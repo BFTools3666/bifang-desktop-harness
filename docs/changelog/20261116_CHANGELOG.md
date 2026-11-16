@@ -4,7 +4,7 @@
 
 ## 2026-11-16 变化
 
-- `HARNESS-CHANGE-USER-FACING-RELEASE-NOTES`（`required_version = pending`）：生成更新日志时，围绕用户实际操作的场景说明新增功能、使用方法和修复结果。性能和资源占用的变化幅度以可比较的实测为依据。
+- `HARNESS-CHANGE-USER-FACING-RELEASE-NOTES`（`required_version = 202611161524`）：生成更新日志时，围绕用户实际操作的场景说明新增功能、使用方法和修复结果。性能和资源占用的变化幅度以可比较的实测为依据。
 
 ## 2026-11-14 变化
 
