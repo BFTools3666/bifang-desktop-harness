@@ -15,7 +15,7 @@ description: 整理并验证当前源码，提交发布元数据，合并本地�
 4. Harness 只在本次正式发布开始且完成前述复核后运行 `node .agents/skills/desktop-prepare-release/scripts/harness_version_clock.mjs stamp --project-root .`，以当前 `Asia/Shanghai` 年月日时分直接写入 `Version.md` 的唯一版本字段。同一分钟无法产生新版本就等待下一分钟；重试复用已写入目标，不再次取号。将同一版本同步到 README、最新 Product Spec 与 `docs/RELEASE.md`，把本次已包含变化的 `required_version = pending` 物化后运行 `node scripts/validate_harness.mjs`，再复核全部待提交路径。下游只运行 `$desktop-manage-version check --phase release`，使用开发阶段已完成并通过相关测试的目标版本；发布准备不补算 Minor/Patch、不绕过记录纠错门禁。
 5. 紧邻实际提交调用 `$desktop-configure-git-commits`，仅补仓库 local 身份和提交模板。用复核的 `statusSha256` 与 literal `--path` 清单调用 `release_git.mjs commit` 提交源码/治理变化及已独立触发的 Changelog；正常运行 hooks，不使用 `--no-verify`。clean 且无源码变化时不创建空提交。提交后的 clean HEAD 是 `sourceHead`；此后不得补写 Changelog。
 6. 按 `reviewSelection` 对上次真实发布提交到 `sourceHead` 的累计差异形成 `releaseReview`。启用时检查行为、core/adapter 边界（由 `$desktop-review-core-boundaries` 承接）、对外契约、职责与规模、临时标记，Harness 另运行 `node scripts/validate_harness.mjs --release-review`，通过后记录 `passed`、五项固定检查和绑定 `sourceHead` 的摘要；关闭且无硬要求时记录 `Not run`、原因与剩余风险。范围、秘密、必要测试和 clean 检查始终执行。
-7. 从上次真实发布到 `sourceHead` 的差异整理双语 `release-notes.json`，保留包含当前发布版本在内的最近 10 个实际发布版本。每版“功能优化”和“问题修复”各最多 10 项，合计至少一项；每项 `zh-CN`、`en-US` 语义对应。写入仍运行 `release_notes.mjs upsert`，随后交 `$desktop-inspect-release-notes` 执行 `check --expected-version` 和两个 locale 的 `render`，并并排核对结果。日志是源码发布元数据；本步骤不创建候选或修改 Changelog。
+7. 从上次真实发布到 `sourceHead` 的差异，按下方 [更新日志撰写](#更新日志撰写) 整理双语 `release-notes.json`，保留包含当前发布版本在内的最近 10 个实际发布版本。每版“功能优化”和“问题修复”各最多 10 项，合计至少一项。写入前并排核对每项 `zh-CN`、`en-US` 的含义、适用范围和数字。运行 `release_notes.mjs upsert` 写入，随后交 `$desktop-inspect-release-notes` 执行 `check --expected-version` 和两个 locale 的 `render`，并并排核对结果。日志是源码发布元数据；本步骤不创建候选或修改 Changelog。
 8. 读取并复核本地默认主分支，使用同一版本、发布日期、`sourceHead` 和审查结果写入发布上下文。下游必须传 `--channel <release|beta>`，写入 schema v4。Harness 源省略该参数，沿用 schema v3：
 
    ```text
@@ -33,6 +33,13 @@ description: 整理并验证当前源码，提交发布元数据，合并本地�
    helper 在任何合并或 tag 副作用前核对 tracked 上下文；从关联 Task Worktree 发起时先核对调用 Worktree 的 HEAD blob 和工作字节，再路由主 Worktree。合并登记分支得到最终 HEAD 后再次核对该提交中的上下文 blob。它只切换本地默认主分支、普通合并、创建或复用同名且指向最终 HEAD 的轻量 tag，并复读本地两条 ref；同名 tag 指向其他提交时停止。失败重试沿用冻结 HEAD，不吸收新变化。
 10. 生命周期成功后锁定最终 40 位 `sourceCommit`，运行 `release_context.mjs verify --project-root . --expected-version <version> --expected-sha256 <releaseContextSha256> --expected-head <sourceCommit>`。要求 clean 本地默认主分支、该分支 HEAD、本地预期 tag 和上下文均精确一致。`sourceHead` 是审查输入，`sourceCommit` 是合并后的发布提交，两者不要求相等。此时报告 `Released` 并结束 Git 发布；不以远端、源码归档、产品候选或渠道分发判断完成。
 11. 完成初始化的下游在发布后读取生命周期记录里该次冻结的 `postReleaseAction`，执行并检测后续路径；旧发布没有冻结值时先报告不可自动补做，不得读取当前新偏好代替。`local_package` 先运行生命周期 `check-post-release --project-root "<absolute-downstream-root>" --action local_package`，再运行 `node .agents/skills/desktop-switch-post-release-action/scripts/post_release_action.mjs route --project-root "<absolute-downstream-root>"`，按返回的唯一 `interface`、`target`、`skill` 进入相应正式候选构建；未返回路线时保留 Git `Released` 并报告打包阻断。固定顺序是本机 GUI/NSH desktop、CLI、NSH iOS（仅 macOS）、Android、Web。所选构建失败不自动改选；仅用户明确提出另一个已选且本机可构建的接口/目标时，用 `route --project-root "<absolute-downstream-root>" --interface <接口> --target <目标>` 验证后重试。已有候选只在同一发布 HEAD、上下文摘要、目标和 manifest 证据完整复核后复用，不能凭目录存在或时间戳跳过构建。按对应 Skill 核对真实产物、摘要和清单后，本次本地打包动作才完成；候选可保持 `pending`，不表示其他接口/平台已构建或候选已验收。构建、E2E、签名和验收门禁仍由适用 Skill 执行。`push_release_branch` 使用独立 `push-release --remote <name>`，把已发布的固定 HEAD 放到本地同名渠道分支（`release` 或 `beta`），非强制推送远端默认主分支、同名渠道分支与 tag，逐项复读并最终联合核对远端默认主分支、渠道分支和 tag，以及本地发布引用；不 fetch/merge 或重算 HEAD。若只有一个已配置远端可采用它，多个远端先明确选择一个；没有可用远端、必要凭据或复读失败时报告后续路径未完成。Git 发布事实保持 `Released`，整个下游发布后流程只有所选路径实际通过才算完成。Harness 源按用户当次决定另行制作源码归档或用 `push-release --remote <name>` 推送固定的 `release` 分支，不受模板 `pending` 值阻断；多个远端同样先确认精确目标。下游版本状态是受跟踪文件；下一次开发先从已发布主分支建新 feature 分支，在该分支复核主分支/tag 后执行 `$desktop-manage-version finalize-release`，再分类新改动，避免 tag 后写脏主分支。
+
+## 更新日志撰写
+
+- 围绕本版实际交付的内容，按读者要完成的任务组织条目。用发布范围内的真实差异核对变化，结合实际用法、测试或测量记录确认正文。合并同一场景中的相关变化，优先写影响较大的结果。正文使用日常语言和用户实际看到的名称，省略线程、内部接线、数据库结构等实现细节，以及没有可确认用户影响的内部改动。
+- 新增或改进功能时，说明用户现在能做什么、在哪种场景下用得上。需要用户操作时，写明真实入口和关键步骤。修复问题时，写清在哪种操作下会遇到什么问题，以及更新后会怎样。平台、使用条件或限制会影响读者判断时，一并说明。
+- 性能优化写具体场景和实际改善，例如打开某个页面的等待时间缩短，或批量处理时内存占用降低。有相近设备、环境和负载下的前后实测时，给出变化量或经合理取整的百分比，并简述适用条件。只有定性证据时，只写已确认的体验变化。缺少证据时，省略数字及未经确认的性能主张。
+- 写入前确认每项功能、使用方法、修复结果和量化收益都有依据。若筛选后没有可证实的条目，说明原因，避免使用笼统表述或虚构收益填补条数。
 
 ## 边界
 
