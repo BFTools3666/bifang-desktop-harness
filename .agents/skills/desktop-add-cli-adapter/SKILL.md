@@ -5,11 +5,11 @@ description: 为已初始化的下游项目增加可选的非交互式 CLI 适�
 
 # 增加 CLI 适配器
 
-在共享核心之上增加最小且适合 Agent 使用的命令接口。初始化明确选择 CLI 时接入；只有明确选择默认接口或跳过接口选择时才默认使用 CLI，漏答继续等待。初始化后新增 CLI 须有明确批准；只选择 MCP 或 GUI 时绝不静默附加 CLI。
+在共享核心之上增加最小且适合 Agent 使用的命令接口。初始化明确选择 CLI 时接入；只有明确选择默认接口或跳过接口选择时才默认使用 CLI，漏答继续等待。初始化后新增 CLI 须有明确批准；只选择 MCP 或 GUI 时绝不静默附加 CLI。实现前读取 [工程规则](../../../docs/ENGINEERING_RULES.md) 和 [CLI 契约](../../../docs/CLI_CONTRACT.md)。
 
 ## 工作流程
 
-1. 先判断调用模式。由 `$desktop-initialize-rust-project` 分派时是“中性初始化”，只读 `AGENTS.md`、Agent Policy、`docs/ENGINEERING_RULES.md`、CLI 契约和 Rust 基线，不要求 Product Spec、Work Plan、ADR、Verification 或 `$desktop-manage-version`（初始版本由 `$desktop-initialize-rust-project` 统一建立）；初始化后新增 CLI 是新增用户可见能力，只有在改变产品边界时才先更新 Product Spec，再以 `--kind feature` 调用 `$desktop-manage-version plan` 取得稳定 `change_id` 与 `required_version`，然后直接实施，不自动创建 Work Plan 或完整验收记录，并在本次相关测试通过后以相同参数调用 `apply`。
+1. 先确定调用模式。中性初始化由 [$desktop-initialize-rust-project](../desktop-initialize-rust-project/SKILL.md) 分派，沿用已确认的接口、初始版本和工程范围。已初始化项目新增 CLI 时进入 [$desktop-implement-change](../desktop-implement-change/SKILL.md) 的开发闭环，由该入口处理范围、版本、相关测试和提交。已从通用流程进入时复用当前变更的分类和状态。
 2. 确认已记录的接口选择包含 CLI。只能在当前项目根目录中工作，并确定性派生 `<project-id>_cli`；绝不要求另选目录或二进制名称。
 3. 要求已存在初始化完成的共享核心。`Draft` 产品只能获得中性的 `scaffold status` 适配器，并返回 `productDefinitionRequired=true`；已批准产品只能获得计划内命令。
    每个已批准命令必须先映射到一个既有或本次先实现的 core 用例 API 及其 core 成功/最高风险失败测试。当前只有 CLI 也不得把业务规则、语义校验、默认值或调用编排放入 CLI。
@@ -17,7 +17,7 @@ description: 为已初始化的下游项目增加可选的非交互式 CLI 适�
 5. 完整实现 `docs/CLI_CONTRACT.md` 规定的非交互行为和 `--json` 行为。`--version` 必须从 Cargo 权威版本生成 `<product> v<version>`，且不得出现重复 `v`；JSON 元数据和 SemVer 比较保留不带前缀的机器版本。CLI 只处理参数是否可解析、协议必填项、标准流和退出码；值域、跨字段约束、资源状态、业务权限和影响业务结果的默认值必须交给 core。CLI 必须直接调用 core。
 6. 先测试 core 成功路径和最高风险领域失败，再测试真实二进制的命令到 core 映射、JSON 解析、标准输出/标准错误分离、退出码、`--help`、恰有一个小写 `v` 前缀的 `--version`，以及拒绝等待输入。处于 `Draft` 时还要拒绝未批准的业务命令。
 7. 实现期间只运行本次 CLI/core 变化必需的非空单元与回归测试；不因新增适配器自动追加全仓格式、lint、静态、构建、冒烟、E2E 或完整验收。真实二进制黑盒检查仅在它是本次接口变化最高风险失败路径的必要回归，或用户明确要求构建/验收时运行。
-8. 中性初始化完成本次必要测试后返回 `$desktop-initialize-rust-project`。初始化后新增真实 CLI 也直接收口；普通编译/构建仍是开发命令，不产生候选。用户明确要求 Git 发布时才调用 `$desktop-prepare-release`，在本地主分支合并并打 tag 后结束；之后按该次冻结的 `post_release_action` 执行所选后续路径，或按独立候选构建请求进入 `$desktop-build-rust-release` 构建候选，构建另行确认 E2E 并全量运行单元测试。记录实际验证平台，其他平台标记为 `Unverified`。
+8. 将 CLI 的接线与验证结果交回分派方，标明实际运行的宿主与平台。中性初始化由入口继续剩余门禁，已初始化项目由通用开发流程验证并提交。显式发布、打包与验收按交付请求另行路由。
 
 ## 边界
 

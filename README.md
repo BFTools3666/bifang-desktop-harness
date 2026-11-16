@@ -136,13 +136,7 @@ Core-first 是强制规则：值域、跨字段关系、业务默认值和可复
 
 ## Skills 索引
 
-初始化与接口：`$desktop-instantiate-project`、`$desktop-initialize-rust-project`、`$desktop-check-development-environment`、`$desktop-add-cli-adapter`、`$desktop-add-file-operations`、`$desktop-add-external-process`、`$desktop-add-mcp-adapter`、`$desktop-add-gui-adapter`、`$desktop-add-nsh-adapter`、`$mantine-list-view`、`$desktop-add-gui-system-locale`、`$desktop-add-gui-window-state`、`$desktop-add-gui-dialog`、`$desktop-add-gui-system-tray`、`$desktop-add-gui-single-instance`、`$desktop-add-gui-deep-link`、`$desktop-add-gui-global-shortcut`、`$desktop-add-gui-system-notifications`、`$desktop-add-gui-autostart`、`$desktop-prepare-gui-app-identity`、`$desktop-prepare-gui-support-surfaces`、`$desktop-rename-project-identity`、`$desktop-extract-i18n-strings`。
-
-开发与治理：`$desktop-extract-technical-docs`、`$desktop-manage-dependencies`、`$desktop-review-core-boundaries`、`$desktop-record-adr`、`$desktop-handoff-project`、`$desktop-inspect-release-notes`、`$desktop-define-product`、`$desktop-plan-change`、`$desktop-implement-change`、`$desktop-refactor-code`、`$desktop-manage-version`、`$desktop-manage-git-lifecycle`、`$desktop-switch-post-release-action`、`$desktop-task-workflow`、`$desktop-manage-user-tasks`、`$desktop-manage-task-worktrees`、`$desktop-configure-agent-policy`、`$desktop-configure-git-commits`、`$desktop-run-parallel-worktrees`、`$desktop-summarize-development-history`、`$desktop-curate-harness-memory`、`$desktop-upgrade-harness`。
-
-构建与验收：`$desktop-test-nsh-initialization-e2e`、`$desktop-build-tauri-local-install`、`$desktop-prepare-release`、`$desktop-build-rust-release`、`$desktop-build-tauri-release`、`$desktop-build-nsh-release`、`$desktop-prepare-cross-platform-release`、`$desktop-collect-release-artifacts`、`$desktop-test-gui-initialization-e2e`、`$desktop-test-final-artifact-e2e`、`$desktop-verify-delivery`。
-
-其中 `$desktop-add-gui-*` 系列（系统语言、窗口状态、对话框、托盘、单实例、深链接、全局快捷键、通知、开机自启）与 `$mantine-list-view` 只适用于 Tauri GUI。
+按任务查找本地入口、适用范围和兼容名称，见 [项目 Skills 索引](.agents/skills/README.md#skills-索引)。
 
 ## 规则的唯一来源
 

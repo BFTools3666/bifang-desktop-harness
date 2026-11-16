@@ -1,6 +1,6 @@
 ---
 name: desktop-collect-release-artifacts
-description: 在项目根 release 目录中取回、安全合并并验证当前下游项目已完成的本地、交叉编译或原生 CI 构建结果，同时保留每个候选的 pending、rejected 或 accepted 状态。用于本地或 CI 构建完成后、下载工作流产物时，或准备供人工复核的发布候选时。
+description: 取回并原子汇总当前下游已完成的 Rust CLI 或 Tauri 发布候选，复核清单与最终字节并保留候选原状态。适用于本地、交叉编译或原生 CI 产物。
 ---
 
 # 收集发布产物
@@ -8,7 +8,6 @@ description: 在项目根 release 目录中取回、安全合并并验证当前�
 创建一个可复核的当前构建结果目录，不重新构建、签名、执行或发布候选。本 Skill 只收集 Rust CLI 和 Tauri 的扁平候选文件集；NSH 使用按目标隔离的 `release/` 批次目录及 sidecar 证据，由 `$desktop-build-nsh-release` 自行提交和校验，不调用本收集器。
 
 `scripts/installer_artifact_name.mjs` 是 Tauri 打包共用的只读安装包命名模块与 CLI，遵循 [发布物命名](../../../docs/RELEASE.md#发布物命名)。名称在构建完成、写 checksum/manifest 前确定；收集既有候选只保留清单中的精确名称，不就地改名或改写证据。
-
 
 
 ## 工作流程
@@ -46,7 +45,3 @@ description: 在项目根 release 目录中取回、安全合并并验证当前�
 - 除第 4–8 步声明的项目根同级、同一文件系统、唯一且权限受限的 sibling staging 外，不得在精确且非符号链接的 `<canonical-project-root>/release` 目录之外清理或写入；该 staging 只用于形成整组原子替换，失败时也只能清理已复核的本次 staging 精确路径。
 - 原子提交会替换 `release/` 中的历史构建结果；只有完整 staging 已验证且提交临界区能够恢复原目标时才允许进入，不能逐文件删除或覆盖。
 - 即使存在其他文件，缺失或不一致的必需结果、未通过的必需验收门禁仍必须阻断就绪状态。
-
-### NSH 路由
-
-根 Cargo `interfaces = ["nsh"]` 的目标由 `$desktop-build-nsh-release` 按目标写入 `release/` 批次目录并校验清单、包、sidecar 日志和许可证。本 Skill 的扁平目录收集与原子替换流程不适用，NSH 下游也不保留本 Skill。目标宿主或设备 E2E 与候选验收继续走各自独立流程。

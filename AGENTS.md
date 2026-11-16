@@ -32,8 +32,8 @@ DESKTOP（Cargo `gui`）固定使用 Tauri 2、React 和 Mantine。新项目直�
 | 文件读写或外部程序能力 | 已批准范围、相关 Rust/接口事实 | `$desktop-add-file-operations` 或 `$desktop-add-external-process`，返回同一实施流程 |
 | 永久 Agent 能力偏好变更 | Agent Policy 字段语义与初始化后变更规则 | `$desktop-configure-agent-policy`；发布后动作仍用专用 Skill |
 | CLI 或 Rust core/adapter | `docs/CLI_CONTRACT.md`（仅 CLI）、`docs/RUST_CLI_TEMPLATE.md` | 对应 adapter Skill；实现仍走 `$desktop-implement-change` |
-| GUI 展示、交互、初始化或桌面能力 | `docs/design_standards/README.md` 后只读精确命中的标准；再读 `docs/RUST_CLI_TEMPLATE.md`、存在时的 `docs/GUI_APP_PROFILE.md`；Tauri/Mantine 列表页、数据表格、后台列表、搜索结果页及已有列表审查另读 `$mantine-list-view` | 按所需能力读取 Tauri Skill；Tauri/Mantine 列表任务即使未明说表格也必须使用 `$mantine-list-view`；不得一次加载全部 GUI Skills |
-| NSH | Cargo `interfaces`、`nsh-targets`、`target-platforms`；NSH Skill 的运行时引用 | 仅 desktop、mobile、web、tui 可用；新项目采用正式 0.5.1 固定提交，CLI 匹配项目版本；desktop 才读 `docs/GUI_APP_PROFILE.md` |
+| GUI 展示、交互、初始化或桌面能力 | `docs/design_standards/README.md` 后只读精确命中的标准；再读 `docs/RUST_CLI_TEMPLATE.md`、存在时的 `docs/GUI_APP_PROFILE.md`；Tauri/Mantine 列表页、数据表格、后台列表、搜索结果页及已有列表审查另读 `$mantine-list-view` | 按需读 Tauri 能力 Skill；列表读 `$mantine-list-view`；抽取 Tauri/React 或 Rust 用户文案读 `$desktop-extract-i18n-strings`；首次产品桌面界面读身份 Skill；不得一次加载全部 GUI Skills |
+| NSH | Cargo `interfaces`、`nsh-targets`、`target-platforms`；NSH Skill 的运行时引用 | 开发读项目内 `$nsh`，界面读 `$nsh-design-guides`；新项目固定正式 0.5.1，CLI 匹配项目版本；desktop 才读 profile，首次产品桌面界面读身份 Skill；不得一次加载全部 GUI Skills |
 | Task、工作树、子任务权限与并行调度 | `docs/AGENT_POLICY.md` 的项目选择；统一 Skill 的按需引用 | `$desktop-task-workflow`；默认不自动创建左侧 Task，Local 同 cwd 串行，独立 Worktree 尽量并行 |
 | 内部并行 Worktree/Subagent 或提交 | 统一 Skill 的并行引用；提交时读提交规范 | `$desktop-task-workflow`、`$desktop-configure-git-commits`（按触发器） |
 | 恢复进度、重要阻断或跨会话交接 | 最新 Product Status；用户要求持久计划或存在活动计划时再读最新 Work Plan | `$desktop-handoff-project`；持久计划另按触发调用 `$desktop-plan-change` |
@@ -63,11 +63,7 @@ DESKTOP（Cargo `gui`）固定使用 Tauri 2、React 和 Mantine。新项目直�
 
 ## Skills 地图
 
-项目 Skills 位于 `.agents/skills/`，按职责见[分类索引](.agents/skills/README.md)。先用任务路由选择最小集合；命中后必须完整读取对应 `SKILL.md` 及其精确引用。下游只列实际保留的 Skills。
-
-- 初始化与接口：`$desktop-instantiate-project`、`$desktop-initialize-rust-project`、`$desktop-check-development-environment`、`$desktop-add-cli-adapter`、`$desktop-add-file-operations`、`$desktop-add-external-process`、`$desktop-add-mcp-adapter`、`$desktop-add-gui-adapter`、`$desktop-add-nsh-adapter`、`$mantine-list-view`、`$desktop-add-gui-system-locale`、`$desktop-add-gui-window-state`、`$desktop-add-gui-dialog`、`$desktop-add-gui-system-tray`、`$desktop-add-gui-single-instance`、`$desktop-add-gui-deep-link`、`$desktop-add-gui-global-shortcut`、`$desktop-add-gui-system-notifications`、`$desktop-add-gui-autostart`、`$desktop-prepare-gui-app-identity`、`$desktop-prepare-gui-support-surfaces`、`$desktop-rename-project-identity`、`$desktop-extract-i18n-strings`。
-- 开发与治理：`$desktop-extract-technical-docs`、`$desktop-manage-dependencies`、`$desktop-review-core-boundaries`、`$desktop-record-adr`、`$desktop-handoff-project`、`$desktop-inspect-release-notes`、`$desktop-define-product`、`$desktop-plan-change`、`$desktop-implement-change`、`$desktop-refactor-code`、`$desktop-manage-version`、`$desktop-manage-git-lifecycle`、`$desktop-switch-post-release-action`、`$desktop-task-workflow`、`$desktop-manage-user-tasks`、`$desktop-manage-task-worktrees`、`$desktop-configure-agent-policy`、`$desktop-configure-git-commits`、`$desktop-run-parallel-worktrees`、`$desktop-summarize-development-history`、`$desktop-curate-harness-memory`、`$desktop-upgrade-harness`。
-- 构建与验收：`$desktop-test-nsh-initialization-e2e`、`$desktop-build-tauri-local-install`、`$desktop-prepare-release`、`$desktop-build-rust-release`、`$desktop-build-tauri-release`、`$desktop-build-nsh-release`、`$desktop-prepare-cross-platform-release`、`$desktop-collect-release-artifacts`、`$desktop-test-gui-initialization-e2e`、`$desktop-test-final-artifact-e2e`、`$desktop-verify-delivery`。
+项目 Skills 位于 `.agents/skills/`。按 [项目 Skills 索引](.agents/skills/README.md#skills-索引) 查找入口，命中后必须完整读取对应 `SKILL.md` 和当前模式需要的引用。终端下游的地图按实际保留的文件生成。
 
 ## 约束地图
 

@@ -9,7 +9,7 @@ description: 为具有共享核心的已初始化下游项目增加可选的 Rus
 
 ## 工作流程
 
-1. 先判断调用模式。由 `$desktop-initialize-rust-project` 分派时是“中性初始化”，只读 `AGENTS.md`、Agent Policy、工程规则和 Rust/MCP 基线，不要求 Product Spec、Work Plan、ADR、Verification 或 `$desktop-manage-version`（初始版本由 `$desktop-initialize-rust-project` 统一建立）；初始化后新增 MCP 是新增用户可见能力，只有在改变产品边界时才先更新 Product Spec，再以 `--kind feature` 调用 `$desktop-manage-version plan` 取得稳定 `change_id` 与 `required_version`，然后直接实施，不自动创建计划或验收记录，并在本次相关测试通过后以相同参数调用 `apply`。
+1. 先确定调用模式。中性初始化由 [$desktop-initialize-rust-project](../desktop-initialize-rust-project/SKILL.md) 分派，沿用已确认的接口、初始版本和工程范围。已初始化项目新增 MCP 时进入 [$desktop-implement-change](../desktop-implement-change/SKILL.md) 的开发闭环，由该入口处理范围、版本、相关测试和提交。已从通用流程进入时复用当前变更的分类和状态。
 2. 确认当前工作目录是真实下游 Rust 工作区，具有共享核心，且初始化选择或已批准产品范围中记录了 MCP。`Draft` 项目只能公开不含业务操作的中性脚手架状态工具。若当前目录只是文档 Harness，或缺少核心，则停止。不得要求另选目标目录，也不得要求 CLI。
 3. 选择依赖或设计工具前，完整阅读 [references/mcp-baseline.md](references/mcp-baseline.md)。实施前还要阅读 `docs/RUST_CLI_TEMPLATE.md` 的 MCP 小节，了解工具模式定义/事实来源契约一致性以及命名/说明基础规则的最小硬要求。
 4. 识别目标 MCP 宿主、工具支持的最小用户闭环、每个工具到 core 用例 API 与 core 测试的映射、输入/输出模式定义、稳定错误映射、副作用、权限、风险注解、超时、取消和关闭行为。若真实业务用例尚不在 core，必须先返回 core 实现；当前只有 MCP 也不得在工具 handler 中首次实现业务。只询问会实质改变范围的缺失选择。
@@ -19,7 +19,7 @@ description: 为具有共享核心的已初始化下游项目增加可选的 Rus
 8. 只公开已批准核心闭环所需的工具。适配器只验证 JSON/协议是否可解析、必填字段和 schema 结构；值域、跨字段约束、资源状态、业务权限、幂等性和影响业务结果的默认值交给 core。格式正确但业务无效的输入必须调用 core，并保留与其他接口相同的稳定领域错误。工具 handler 只调用一个 core 用例并映射结果；协议流量只能写入标准输出，诊断只能写入标准错误。只有测量确认的 CPU 密集工作才可考虑 `spawn_blocking`、专用线程或多线程运行时，并明确记录所有权、取消、超时、并发上限、资源预算和测试。仅支持阻塞调用的依赖应替换为异步能力，否则停止并进入范围或硬规则例外流程。没有独立批准需求时，不得增加 HTTP、OAuth、客户端、采样、提示、资源或后台服务。
 9. 先用 core 测试覆盖成功路径和最高风险领域失败，再测试工具发现、工具到 core 映射、违反模式定义的输入、格式正确但业务无效时的稳定领域错误、标准输出/标准错误分离、EOF 干净关闭、适用时的取消或超时，以及目标宿主实际支持的任何审批/风险行为。
 10. 实现期间只运行本次 MCP/core 变化必需的非空单元与回归测试；不自动追加全仓格式、lint、静态、构建、冒烟、E2E 或完整验收。协议/stdio 测试只覆盖本次变化和最高风险失败路径。
-11. 中性初始化完成本次必要测试后返回 `$desktop-initialize-rust-project`。初始化后新增真实 MCP 也直接收口；普通编译/构建仍是开发命令，不产生候选。用户明确要求 Git 发布时才进入 `$desktop-prepare-release`，在本地主分支合并并打 tag 后结束；之后按该次冻结的 `post_release_action` 执行所选后续路径，或按独立候选构建请求构建候选，构建另行确认 E2E 并全量运行单元测试。未测试宿主或平台标记为 `Unverified`。
+11. 将 MCP 的接线与验证结果交回分派方，标明实际运行的宿主与平台。中性初始化由入口继续剩余门禁，已初始化项目由通用开发流程验证并提交。显式发布、打包与验收按交付请求另行路由。
 
 ## 硬边界
 

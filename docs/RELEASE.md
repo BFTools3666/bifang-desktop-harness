@@ -66,7 +66,7 @@ Harness 模板使用上海时区（`Asia/Shanghai`）的 12 位时间版本 `YYY
 
 完成初始化的下游在 Git 发布开始前读取已确认的 `docs/AGENT_POLICY.md` 中 `post_release_action`，将当次值冻结在 Git common-dir 生命周期记录；发布后只消费该次冻结值，切换仅影响后续发布。旧发布没有冻结值时不得用升级后的新偏好补推或补打包。`local_package` 先运行生命周期 `check-post-release --action local_package`，再由 `$desktop-switch-post-release-action` 的只读 `route` 从当前宿主与已选接口/目标解析唯一候选和适用打包 Skill；本机 GUI 或 NSH desktop 优先，其次 CLI，再到 NSH iOS（仅 macOS）、Android、Web。使用已发布 clean HEAD、当前候选 E2E/签名选择及真实产物门禁完成该候选；失败时不自动回退另一目标，用户明确要求时才可用 `route --interface <接口> --target <目标>` 改选。既有候选只能在同一发布 HEAD、上下文摘要、目标与清单证据全部复核后复用；候选成功形成且清单有效即可完成本次本地打包动作，`pending` 不等于验收通过，其余接口/平台独立构建。`push_release_branch` 另行使用 `push-release --remote <name>`，把上次已发布的同一 HEAD 放到本地同名渠道分支，再非强制推到远端 advertised 默认主分支、同名渠道分支并推送同一 tag，逐项复读确认。只有一个已配置远端时可直接选择，多个远端须先明确目标；不创建远端或凭据。后续路径失败不撤销本地 Git 发布，但不得宣称发布后流程完成，也不重新 fetch、merge、计算 HEAD。Harness 源的待确认模板值不阻断自身 Git 发布；用户当次授权推送后，`push-release --remote <name>` 须从已发布提交核对 Harness 身份，再执行相同的分支和 tag 安全复读。流程允许普通 merge commit，不设置保护分支、严格线性、active leaf、单写入者、fast-forward-only、lease 或 atomic push。
 
-发布上下文记录的本地默认主分支与远端渠道分支职责不同；后续远程候选分别验证本地主分支/tag 与远端渠道分支/tag，均须指向同一已发布 HEAD。远端 advertised 默认分支也必须与同一已发布 HEAD 一致。
+发布上下文记录的本地默认主分支与远端渠道分支职责不同；后续远程候选分别验证本地主分支/tag 与远端渠道分支/tag，均须指向同一已发布 HEAD。`push-release` 完成时一并复读远端 advertised 默认分支。候选构建和验收后续复核渠道分支与 tag；GitHub 矩阵另核对远端 advertised 默认分支当前包含可派发的工作流。
 
 本次 `reviewSelection: enabled` 时，`sourceHead` 必须包含所有登记分支的当前 HEAD；未纳入的分支先在本地普通整合并重新审查。生命周期合并后还须证明最终 HEAD 相对 `sourceHead` 仅改变被冻结的 `release-notes.json` 与 `.harness/release-context.json`，拒绝审查后新合入的源码或冲突解决差异。审查关闭且无强制要求时，仍以实际合并、tag 和版本事实复核决定 Git 发布。
 
@@ -74,7 +74,7 @@ Harness 模板使用上海时区（`Asia/Shanghai`）的 12 位时间版本 `YYY
 
 ## 用户可见版本与更新日志
 
-- Windows 原生本地安装试包不是发布候选，不进入本文件的更新日志、clean HEAD、manifest、E2E、签名或 `release/` 门禁。普通“构建/打包/首次安装试一下”由 `$desktop-build-tauri-local-install` 处理；只有用户明确要求发布候选或准备发布，才适用下列规则。该试包仍须明确标注未签名、未安装、未验收且不可分发。
+- Windows/Linux 原生 Tauri 的本地安装试包由 `$desktop-build-tauri-local-install` 处理，标注未签名、未安装、未验收及试包用途。下列更新日志、clean HEAD、manifest、E2E、签名和 `release/` 门禁适用于正式候选。
 - Harness 源正式发布同样使用根 `release-notes.json` 记录最近 10 个实际发布模板版本的双语维护摘要，但它只是源码发布元数据，不是产品资源、候选 manifest 或产品验收证据。
 - 所有面向用户显示的版本号统一使用且只使用一个小写 `v` 前缀，包括 GUI 页面、窗口标题、CLI `--version`、发布记录和更新日志。Cargo、`.harness/version-state.json`、候选 manifest 的机器版本字段、协议比较值和 SemVer 运算继续保存不带 `v` 的原始版本；展示边界负责先移除已有任意 `v`/`V` 前缀，再规范化为 `v<version>`。exe/dmg 安装包文件名按下方「发布物命名」使用无 `v` 的原始版本。
 - 下游在准备首个正式发布时创建根 `release-notes.json`。它是发布制品固定携带的用户更新日志事实；`about_page = enabled` 时 Tauri 通过固定 `load_release_notes` 窄命令复用，窗口线程不读文件，使用整数 `schemaVersion: 2` 与非空、按最新在前的 `releases` 数组；每项字段固定为 `releaseDate`、带一个 `v` 的 `version`、`featureOptimizations` 和 `bugFixes`。两个分类中的每个逻辑条目都是键恰好为 `zh-CN` 与 `en-US` 的翻译对，两个值都必须是非空、无首尾空白且无边界 BOM 的字符串；任一翻译缺失或重复 JSON 字段都阻断。只读 `check` 必须拒绝需静默规范化的原文件，写入和读取均拒绝超过 1 MiB 的 UTF-8 资源，与关于页运行时上限一致。Tauri GUI 初始化预置但不在调试构建使用 `src-tauri/tauri.release.conf.json`；正式候选构建显式 `--config` 合并该文件，把根日志唯一映射为候选逻辑资源 `release-notes.json`。
@@ -140,16 +140,32 @@ Harness 源码归档在用户另行要求生成时，只创建相邻 `<artifact>
 
 构建请求、执行、重试、测试结果、产物路径/摘要/签名状态，以及候选 E2E、完整验收和就绪复核，均只进入忽略的 `release/` 原子证据及最终回复，不自动写入 Product Spec、ADR、Changelog、Product Status、Work Plan 或 Verification。Git 发布已在合并主分支并创建 tag 时结束；下一开发分支须以该主分支/tag 的精确版本和 40 位 HEAD 调用 `finalize-release`，恢复版本周期。真实渠道分发或独立回顾审计可按其独立触发条件追加记录，但不得反向批准活动候选。
 
-发布审查启用时，manifest 另记录 `reviewedSourceCommit`，并要求它逐字段复制 `.harness/release-context.json` 的 `releaseReview.reviewedSourceCommit`，且该值等于上下文 `sourceHead`；最终构建 HEAD/manifest `sourceCommit` 是发布元数据提交和普通合并完成后由主分支与 tag 指向的候选提交，两者不要求相等，但已审查 `sourceHead` 必须是最终提交的祖先；启用审查时最终提交相对它只能改变被冻结的两份发布元数据，不要求线性历史。关闭审查时 `reviewedSourceCommit` 与 `reviewEvidence` 一并缺席。发布上下文保存审查选择、结果和可复算的范围摘要，后续候选只读复核这些事实。
+发布审查启用时，CLI/Tauri manifest 另记录 `reviewedSourceCommit`，其值与 `.harness/release-context.json` 的 `releaseReview.reviewedSourceCommit` 一致；NSH manifest 保留完整的嵌套 `releaseReview`。两种清单的审查提交均等于上下文 `sourceHead`；最终构建 HEAD/manifest `sourceCommit` 是发布元数据提交和普通合并完成后由主分支与 tag 指向的候选提交，两者不要求相等，但已审查 `sourceHead` 必须是最终提交的祖先；启用审查时最终提交相对它只能改变被冻结的两份发布元数据，不要求线性历史。关闭审查时，CLI/Tauri manifest 的顶层 `reviewedSourceCommit` 与 `reviewEvidence` 缺席。NSH manifest 从嵌套 `releaseReview` 读取原因和剩余风险。发布上下文保存审查选择、结果和可复算的范围摘要，后续候选只读复核这些事实。
 
 ## Git 发布后构建与完整验收
 
 Git 发布在本地默认主分支和版本 tag 指向同一最终 HEAD 时结束。发布本身不打包、构建或推送；完成初始化的下游随后必须按 `post_release_action` 完成被选中的本地打包或远端渠道分支推送并检测实际结果。Harness 源的后续动作仍由用户当次决定。完整候选验收与渠道分发仍各自承担门禁与证据。
 
+### 按交付结果选择入口
+
+| 当前请求 | 执行入口 |
+|---|---|
+| 本地 Git 发布 | [$desktop-prepare-release](../.agents/skills/desktop-prepare-release/SKILL.md) 编排复核与元数据，再按 [$desktop-manage-git-lifecycle](../.agents/skills/desktop-manage-git-lifecycle/SKILL.md) 合并和创建 tag |
+| 检查或预览更新日志 | [$desktop-inspect-release-notes](../.agents/skills/desktop-inspect-release-notes/SKILL.md) 只读处理 |
+| 未来发布后动作的选择，或用当次冻结动作恢复本地打包 | [$desktop-switch-post-release-action](../.agents/skills/desktop-switch-post-release-action/SKILL.md) 按选择或只读路由执行 |
+| Tauri Windows/Linux 本地试包，或 NSH 本地工程包 | `$desktop-build-tauri-local-install`，或 `$desktop-build-nsh-release` 的 `local` 模式 |
+| 正式候选 | 根据已选接口使用 `$desktop-build-rust-release`、`$desktop-build-tauri-release` 或 `$desktop-build-nsh-release` 的 `candidate` 模式。CLI 默认当前宿主，明确请求三平台原生候选且已独立推送时才进入 `$desktop-prepare-cross-platform-release` |
+| 汇总已完成的 CLI/Tauri 候选 | `$desktop-collect-release-artifacts` 复核并保留原状态。NSH 按构建批次校验 |
+| 完整验收或候选已选 E2E | [$desktop-verify-delivery](../.agents/skills/desktop-verify-delivery/SKILL.md) 定位候选、编排验证与原子更新状态。[$desktop-test-final-artifact-e2e](../.agents/skills/desktop-test-final-artifact-e2e/SKILL.md) 执行已启用或硬性要求的交互场景并交回证据 |
+
+正式候选在测试或编译前解析本次 E2E。复用本次已经明确的 enabled/disabled；有硬性要求时按要求执行，关闭选择与硬性要求冲突时在构建前解决。仍缺选择时询问一次，`e2e_hint` 只提供建议默认值。选择关闭时在候选清单及最终回复记录 `Not run`、原因和剩余风险。最终包形成后按已选 E2E、硬性验收或用户明确要求转入验收；单独构建可交付已复核的 `pending` 候选。
+
+### 从 Git 发布到候选验收
+
 1. 发布准备先判定 Harness 源或终端下游，复核工作树、范围、疑似秘密和提交完整性。提交源码及已触发记录并冻结 `sourceHead`；按当次 `reviewSelection` 对累计差异执行审查或记录 `Not run` 原因与风险。Harness 版本此时从当前上海时区分钟直接取值。
 2. 生成并复核双语 `release-notes.json` 与仅含 Git 发布身份和审查结论的 `.harness/release-context.json`，只提交这两份发布元数据。生命周期以精确上下文 SHA-256 普通合并登记分支至本地默认主分支，创建并复读版本 tag；最终主分支、tag 和上下文一致即完成 Git 发布。
 3. 完成初始化的下游读取本次发布冻结的 `postReleaseAction` 并执行所选后续路径。`local_package` 从 clean 且带已发布 tag 的默认主分支，先运行 `check-post-release` 和只读 `route`，按唯一返回的接口/目标进入对应正式候选打包 Skill；该次构建单独解析 E2E 和 GUI 签名选择（仅在适用时），运行全部非空单元测试，并把选择、构建事实和产物写入忽略的 `release/`。只在该目标的真实产物、摘要与 manifest 复核通过后报告本次本地打包动作完成；`pending` 候选不代表验收或其他平台完成。`push_release_branch` 推送并复读远端默认主分支、同名渠道分支和 tag，三者必须等于同一已发布 HEAD。缺失选择或任何检查失败时报告 Git 发布事实和后续路径阻断，不自动改选候选目标。Harness 源按当次用户要求处理源码归档或远端动作。
-4. 候选使用相同更新日志并逐字节比较。macOS 默认 unsigned；已批准配置、当前请求或渠道硬要求才启用签名、公证和 stapling。`system_notification = enabled` 与 unsigned 冲突须在构建前阻断。任何路径不得自动创建、索取或输出凭据。
+4. 候选使用相同更新日志并逐字节比较。Tauri macOS 默认 unsigned；已批准配置、当前请求或渠道硬要求才启用签名、公证和 stapling。`system_notification = enabled` 与 unsigned 冲突须在构建前阻断。任何路径不得自动创建、索取或输出凭据。
 5. `$desktop-verify-delivery` 在准入和最终状态写入前两次只读核对 clean 默认主分支、tag、发布上下文和本次选定集合的全部 manifest；CLI/Tauri 的集合是当前扁平 `release/`，NSH 只取显式选定的一个批次，旧批次不参与。远程候选另外复核远端 refs。按冒烟、当前 E2E 选择和产品/渠道硬要求验收，并重新计算该集合最终产物及证据的字节。只有全部通过，才原子地把该集合 manifest 从 `pending` 变为 `accepted`。
 6. 就绪复核只读检查本次选定集合的 `accepted` 状态、Git 引用、版本、更新日志、最终哈希和签名，不改写 manifest 或 tracked 项目记忆；NSH 其他批次的状态不构成该目标就绪证据。后续渠道分发按用户独立要求执行；渠道处理若改变候选字节，须重新构建和验收。
 

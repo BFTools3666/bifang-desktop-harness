@@ -142,7 +142,7 @@ export function validateBuildSkillContract(errors, overrides = {}) {
       "编译、签名与打包期间不得启动二进制文件或混跑冒烟/E2E",
     ]],
     [paths.crossPlatformSkill, [
-      "默认 `$desktop-build-rust-release` 路线", "fail-fast: false", "release_notes.mjs check --file release-notes.json",
+      "只处理 `$desktop-build-rust-release` 明确选择的三平台矩阵", "fail-fast: false", "release_notes.mjs check --file release-notes.json",
       "远端小写渠道分支（`release` 或 `beta`）和版本 tag",
       "verify_dispatch_readiness.mjs",
       "cargo test --workspace --all-targets --all-features", "原子隔离旧目录", "必须尝试签名并验证",

@@ -32,7 +32,7 @@ description: 整理并验证当前源码，提交发布元数据，合并本地�
 
    helper 在任何合并或 tag 副作用前核对 tracked 上下文；从关联 Task Worktree 发起时先核对调用 Worktree 的 HEAD blob 和工作字节，再路由主 Worktree。合并登记分支得到最终 HEAD 后再次核对该提交中的上下文 blob。它只切换本地默认主分支、普通合并、创建或复用同名且指向最终 HEAD 的轻量 tag，并复读本地两条 ref；同名 tag 指向其他提交时停止。失败重试沿用冻结 HEAD，不吸收新变化。
 10. 生命周期成功后锁定最终 40 位 `sourceCommit`，运行 `release_context.mjs verify --project-root . --expected-version <version> --expected-sha256 <releaseContextSha256> --expected-head <sourceCommit>`。要求 clean 本地默认主分支、该分支 HEAD、本地预期 tag 和上下文均精确一致。`sourceHead` 是审查输入，`sourceCommit` 是合并后的发布提交，两者不要求相等。此时报告 `Released` 并结束 Git 发布；不以远端、源码归档、产品候选或渠道分发判断完成。
-11. 完成初始化的下游在发布后读取生命周期记录里该次冻结的 `postReleaseAction`，执行并检测后续路径；旧发布没有冻结值时先报告不可自动补做，不得读取当前新偏好代替。`local_package` 先运行生命周期 `check-post-release --project-root "<absolute-downstream-root>" --action local_package`，再运行 `node .agents/skills/desktop-switch-post-release-action/scripts/post_release_action.mjs route --project-root "<absolute-downstream-root>"`，按返回的唯一 `interface`、`target`、`skill` 进入相应正式候选构建；未返回路线时保留 Git `Released` 并报告打包阻断。固定顺序是本机 GUI/NSH desktop、CLI、NSH iOS（仅 macOS）、Android、Web。所选构建失败不自动改选；仅用户明确提出另一个已选且本机可构建的接口/目标时，用 `route --project-root "<absolute-downstream-root>" --interface <接口> --target <目标>` 验证后重试。已有候选只在同一发布 HEAD、上下文摘要、目标和 manifest 证据完整复核后复用，不能凭目录存在或时间戳跳过构建。按对应 Skill 核对真实产物、摘要和清单后，本次本地打包动作才完成；候选可保持 `pending`，不表示其他接口/平台已构建或候选已验收。构建、E2E、签名和验收门禁仍由适用 Skill 执行。`push_release_branch` 使用独立 `push-release --remote <name>`，把已发布的固定 HEAD 放到本地同名渠道分支（`release` 或 `beta`），非强制推送远端默认主分支、同名渠道分支与 tag，逐项复读并最终联合核对远端默认主分支、渠道分支和 tag，以及本地发布引用；不 fetch/merge 或重算 HEAD。若只有一个已配置远端可采用它，多个远端先明确选择一个；没有可用远端、必要凭据或复读失败时报告后续路径未完成。Git 发布事实保持 `Released`，整个下游发布后流程只有所选路径实际通过才算完成。Harness 源按用户当次决定另行制作源码归档或用 `push-release --remote <name>` 推送固定的 `release` 分支，不受模板 `pending` 值阻断；多个远端同样先确认精确目标。下游版本状态是受跟踪文件；下一次开发先从已发布主分支建新 feature 分支，在该分支复核主分支/tag 后执行 `$desktop-manage-version finalize-release`，再分类新改动，避免 tag 后写脏主分支。
+11. 完成初始化的下游在发布后读取生命周期记录里该次冻结的 `postReleaseAction`，执行并检测后续路径；旧发布没有冻结值时保留 Git `Released`，并报告缺少可恢复动作。`local_package` 按 [$desktop-switch-post-release-action 的已发布快照路由](../desktop-switch-post-release-action/SKILL.md#按已发布快照路由) 解析唯一候选并复核实际结果。`push_release_branch` 按 [$desktop-manage-git-lifecycle](../desktop-manage-git-lifecycle/SKILL.md#命令) 运行 `push-release --remote <name>` 并复核目标引用。Harness 源按用户当次决定处理源码归档或使用同一 `push-release` 命令。Git 发布事实保持 `Released`，整个下游发布后流程只有所选路径实际通过才算完成。下游下一次开发在新 feature 分支按 [$desktop-manage-version](../desktop-manage-version/SKILL.md) 复核主分支/tag 并执行 `finalize-release`，再分类新改动。
 
 ## 更新日志撰写
 
@@ -49,9 +49,3 @@ description: 整理并验证当前源码，提交发布元数据，合并本地�
 - 已发布 tag 绝不移到另一提交；同名 tag 精确命中可幂等复用。不得编造提交、tag、摘要、候选或验证结果。
 - 发布准备不运行构建、冒烟或 E2E。Harness 中性资产和验证器测试须在进入发布准备前通过；终端下游真实候选的全量测试、签名与验收在另行请求的候选构建及验收流程执行。
 - 发布后动作只授权 `post_release_action` 已选的本地打包或所选渠道分支推送，不授权配置 remote/凭据、force push、历史改写或删除未登记资源。候选验收、上传和渠道分发仍是独立事件；打包路径仍遵守当次候选构建的适用选择与硬要求。
-
-### NSH 路由
-
-根 Cargo `interfaces = ["nsh"]` 与 `nsh-targets` 独立使用 `$desktop-build-nsh-release`；旧 `interfaces = ["gui"]` 且 `gui-framework = "nsh"` 仅按既有工程读取。复用通用本地 Git 发布、版本、双语日志和 release 上下文。NSH 打包 helper 使用项目固定版本对应的 CLI 生成所选 desktop 原生包、Android APK/AAB、iOS 设备或模拟器 app、Web 静态站点。Android 默认使用开发签名，iOS 模拟器使用临时签名。渠道签名与 IPA 由同一 helper 消费本次明确选择的官方签名参数。本机不可构建目标如实阻断。TUI 只提供官方运行和终端测试。
-
-NSH 最终候选证据在忽略的 release 批次目录，校验 manifest 列出的包、sidecar 日志和许可证字节及摘要；sidecar 不冒充内部资源。E2E 在最终包形成后使用真实目标宿主/设备或 Web 静态站点；每个目标独立取证，pending/Unverified 不能升级 accepted。初始化中性壳层测试不替代产品验收。

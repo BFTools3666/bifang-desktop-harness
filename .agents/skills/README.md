@@ -1,12 +1,12 @@
 # 项目 Skills 索引
 
-本索引按职责定位 Skill。真正的执行条件、输入和验证步骤只在对应 `SKILL.md` 与其按需引用中定义；先从根 [AGENTS.md](../../AGENTS.md) 判断任务，再读取命中的 Skill。`.agents/skills/<名称>/SKILL.md` 是实例化、裁剪和升级使用的稳定路径，因此分类不改变目录层级。下游只保留已选接口适用的 Skill；初始化专用 Skill 在基线前裁剪。
+先从根 [AGENTS.md](../../AGENTS.md) 判断任务，再按下列职责打开对应入口。每个 Skill 在自己的 `SKILL.md` 声明触发条件、执行步骤和完成证据，专项资料按当前操作读取。项目 Skill 继续使用 `.agents/skills/<名称>/SKILL.md` 稳定路径。终端下游在自己的 `AGENTS.md` 查看按实际保留文件生成的地图。
 
 ## Skills 索引
 
 ### 创建与身份
 
-固定表单、工程准备、所选接口初始化、身份及初始化验收。创建流程见 [项目创建索引](../../docs/PROJECT_CREATION.md)。
+固定表单、工程准备、所选接口初始化、身份及初始化验收。先从 [项目创建索引](../../docs/PROJECT_CREATION.md) 判断已有选择和当前阶段。
 
 - [`$desktop-instantiate-project`](desktop-instantiate-project/SKILL.md)、[`$desktop-initialize-rust-project`](desktop-initialize-rust-project/SKILL.md)、[`$desktop-check-development-environment`](desktop-check-development-environment/SKILL.md)、[`$desktop-rename-project-identity`](desktop-rename-project-identity/SKILL.md)。
 - [`$desktop-test-gui-initialization-e2e`](desktop-test-gui-initialization-e2e/SKILL.md)、[`$desktop-test-nsh-initialization-e2e`](desktop-test-nsh-initialization-e2e/SKILL.md)：仅在相应初始化路径使用。
@@ -16,6 +16,13 @@
 每个接口 Skill 只处理共享 core 到所选宿主的接线；NSH 与 CLI、MCP、DESKTOP 平级。
 
 - [`$desktop-add-cli-adapter`](desktop-add-cli-adapter/SKILL.md)、[`$desktop-add-mcp-adapter`](desktop-add-mcp-adapter/SKILL.md)、[`$desktop-add-gui-adapter`](desktop-add-gui-adapter/SKILL.md)、[`$desktop-add-nsh-adapter`](desktop-add-nsh-adapter/SKILL.md)。
+
+### NSH 官方随附 Skills
+
+这里链接到适配器携带的官方副本。初始化 NSH 下游时安装到该项目的 `.agents/skills/`，随后从下游目录调用对应版本。
+
+- [`$nsh`](desktop-add-nsh-adapter/assets/vendor/nsh/SKILL.md) 负责 NSH 开发、运行与测试。
+- [`$nsh-design-guides`](desktop-add-nsh-adapter/assets/vendor/nsh-design-guides/SKILL.md) 负责 NSH 界面设计标准。
 
 ### 桌面能力与呈现
 
@@ -34,9 +41,10 @@
 
 ### Task 与并行
 
-`desktop-task-workflow` 是唯一操作合同；另外三个名称只保留兼容入口。项目开关决定是否自动创建左侧 Task。
+项目开关决定何时创建左侧 Task。Task、工作树及内部并行从统一入口按操作读取。
 
-- [`$desktop-task-workflow`](desktop-task-workflow/SKILL.md)、[`$desktop-manage-user-tasks`](desktop-manage-user-tasks/SKILL.md)、[`$desktop-manage-task-worktrees`](desktop-manage-task-worktrees/SKILL.md)、[`$desktop-run-parallel-worktrees`](desktop-run-parallel-worktrees/SKILL.md)。
+- 统一入口 [`$desktop-task-workflow`](desktop-task-workflow/SKILL.md)。
+- 兼容入口 [`$desktop-manage-user-tasks`](desktop-manage-user-tasks/SKILL.md)、[`$desktop-manage-task-worktrees`](desktop-manage-task-worktrees/SKILL.md)、[`$desktop-run-parallel-worktrees`](desktop-run-parallel-worktrees/SKILL.md)。
 
 ### 知识与决策
 

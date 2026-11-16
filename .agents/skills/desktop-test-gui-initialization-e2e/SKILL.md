@@ -13,7 +13,7 @@ description: 在含 GUI 的下游初始化提交前，按九项配置验证桌�
 
 1. 当前目录是已规范化的唯一终端下游项目根，GUI 目录精确为 `<project-id>_gui`。新实例化目标在本 E2E 阶段不得提前 `git init`；当前根若已经存在自身 `.git`，其规范化 Git 顶层必须精确等于当前目录，父级仓库不得视为目标自身的 Git 边界。独立 `main` 仓库仍由初始化器在本 E2E 与裁剪成功后、紧邻唯一基线提交时建立。
 2. 读取 `AGENTS.md`、Agent Policy、`docs/ENGINEERING_RULES.md`、`docs/design_standards/README.md`、精确命中的 UI 标准、Rust/GUI 基线及 `docs/GUI_APP_PROFILE.md`。资料必须有且只有一个 `gui-initialization-config` 围栏代码块，字段按固定顺序恰好为 `system_tray`、`system_notification`、`autostart`、`about_page`、`sponsor_page`、`single_instance`、`deep_link`、`global_shortcut`、`sidebar_mode`；八项能力均为 `enabled`/`disabled`，侧栏模式为 `compact`/`detailed`，且无 `pending`。`deep_link = enabled` 必须同时满足 `single_instance = enabled`。`global_shortcut = enabled` 时还必须有唯一合法 `gui-global-shortcut-contract` JSON 块，中性初始化的 `actions` 必须为空；禁用时该块必须缺席。若用户未选择侧栏，初始化器应已写入 `detailed`；本 E2E 不补写或推断缺失字段。
-3. 读取并使用 `computer-use` Skill 操作真实桌面窗口。只允许本地调试构建和只读界面操作，不签名、不生成安装包、不写 `release/`、不启用远程能力。
+3. 按宿主提供的 Computer Use 工具说明操作真实桌面窗口。只允许本地调试构建和只读界面操作，不签名、不生成安装包、不写 `release/`、不启用远程能力。必需界面无法操作时记录原因并停止初始化收尾。
 4. 未选能力不是缺失证据；已选能力若当前宿主无法观察、操作或判定，则阻断初始化。唯一例外是静态 scheme 需打包安装才能证明的 OS 注册（macOS/Windows/Linux）：初始化仍须通过解析器、冷/热分发与窗口恢复的非空回归；当前调试程序可观察的宿主事件继续实测，无法通过系统 URL 唤起的部分明确为 `Not verified` 并留给最终安装候选阻断式补验。不得为通过初始化调用运行时注册或改变真实系统关联，也不能把解析器回归冒充 OS 注册通过。
 
 ## 工作流程

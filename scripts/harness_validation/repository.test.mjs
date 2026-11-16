@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 import { ROOT } from "./core.mjs";
-import { validateMarkdownLinks, validateSkillsMap, validateWorkPlanContract } from "./repository.mjs";
+import { validateMarkdownLinks, validateSkillsIndexLink, validateSkillsMap, validateWorkPlanContract } from "./repository.mjs";
 import { REQUIRED_ROOT_FILES } from "./repository_required_files.mjs";
 import { safeRelativePath } from "../../.agents/skills/desktop-upgrade-harness/scripts/harness_upgrade_safety.mjs";
 import {
@@ -21,43 +21,37 @@ test("required_root_paths_are_unique_and_canonical", () => {
   for (const relative of REQUIRED_ROOT_FILES) assert.equal(safeRelativePath(relative), relative);
 });
 
-/** 合法目录可使用带或不带美元符号的精确 Skill 名称，后续章节不进入索引范围。 */
-test("skills_map_accepts_exact_complete_inventory", () => {
+/** 分类、项目 Skills 和 vendored 入口均使用稳定的真实路径。 */
+test("skills_map_accepts_linked_entries_in_each_group", () => {
   const errors = [];
-  validateSkillsMap(errors, "# Entry\n## Skills 索引\n`$desktop-first`、`desktop-second`\n## Next\n`$desktop-unrelated`\n", {
-    file: "README.md", heading: "## Skills 索引", expected: new Set(["desktop-first", "desktop-second"]),
-  });
+  const expected = new Map([["desktop-first", "desktop-first/SKILL.md"], ["nsh", "adapter/assets/vendor/nsh/SKILL.md"]]);
+  validateSkillsMap(errors, "# Entry\n## Skills 索引\n### 创建\n[`$desktop-first`](desktop-first/SKILL.md)\n### 官方\n[`$nsh`](adapter/assets/vendor/nsh/SKILL.md)\n## Next\n[`$desktop-unrelated`](desktop-unrelated/SKILL.md)\n", expected);
   assert.deepEqual(errors, []);
 });
 
-/** 分类使用三级标题，索引仍须覆盖其下全部 Skill，不能只检查首类。 */
-test("skills_map_reads_all_categorized_subsections", () => {
+/** 名称必须与链接目标一致，每个预期入口只出现一次。 */
+test("skills_map_rejects_missing_duplicate_and_wrong_targets", () => {
   const errors = [];
-  validateSkillsMap(errors, "# Entry\n## Skills 索引\n### 创建\n[`$desktop-first`](first/SKILL.md)\n### 验收\n[`$desktop-second`](second/SKILL.md)\n## Next\n`$desktop-unrelated`\n", {
-    file: ".agents/skills/README.md", heading: "## Skills 索引", expected: new Set(["desktop-first", "desktop-second"]),
-  });
+  const expected = new Map([["desktop-first", "desktop-first/SKILL.md"], ["desktop-second", "desktop-second/SKILL.md"]]);
+  validateSkillsMap(errors, "## Skills 索引\n[`$desktop-first`](desktop-first/SKILL.md)\n[`$desktop-first`](desktop-second/SKILL.md)\n[`$desktop-retired`](desktop-retired/SKILL.md)\n## Next\n[`$desktop-second`](desktop-second/SKILL.md)\n", expected);
+  assert.equal(errors.length, 4);
+  assert.match(errors.join("\n"), /重复列出 Skill: desktop-first/u);
+  assert.match(errors.join("\n"), /desktop-first 链接应指向 desktop-first\/SKILL\.md/u);
+  assert.match(errors.join("\n"), /不存在的 Skill: desktop-retired/u);
+  assert.match(errors.join("\n"), /遗漏 Skill: desktop-second/u);
+});
+
+/** 两个根路由需在自己的地图章节直达同一可点击索引。 */
+test("root_skill_maps_link_to_the_catalog_from_their_own_section", () => {
+  const errors = [];
+  const link = "[项目 Skills 索引](.agents/skills/README.md#skills-索引)";
+  validateSkillsIndexLink(errors, "## Skills 索引\n" + link, "README.md");
+  validateSkillsIndexLink(errors, "## Skills 地图\n" + link, "AGENTS.md");
   assert.deepEqual(errors, []);
-});
-
-/** 索引漏项不能由其它段落中的说明补足，防止新增 Skill 后出现不可发现的入口。 */
-test("skills_map_rejects_omission_despite_mentions_elsewhere", () => {
-  const errors = [];
-  validateSkillsMap(errors, "`$desktop-second`\n## Skills 地图\n`$desktop-first`\n## Next\n`$desktop-second`\n", {
-    file: "AGENTS.md", heading: "## Skills 地图", expected: new Set(["desktop-first", "desktop-second"]),
-  });
-  assert.equal(errors.length, 1);
-  assert.match(errors[0], /索引遗漏 Skill: desktop-second/u);
-});
-
-/** 已删除技能不能继续作为目录入口；缺少索引标题也必须给出明确失败。 */
-test("skills_map_rejects_retired_entries_and_missing_section", () => {
-  const options = { file: "README.md", heading: "## Skills 索引", expected: new Set(["desktop-first"]) };
-  const errors = [];
-  validateSkillsMap(errors, "## Skills 索引\n`$desktop-first`、`$desktop-retired`\n", options);
-  assert.match(errors[0], /不存在的 Skill: desktop-retired/u);
-  const absent = [];
-  validateSkillsMap(absent, "# Entry\n`$desktop-first`\n", options);
-  assert.match(absent[0], /缺少 Skills 索引章节/u);
+  validateSkillsIndexLink(errors, link + "\n## Skills 地图\n`$desktop-first`", "AGENTS.md");
+  validateSkillsIndexLink(errors, link, "README.md");
+  assert.match(errors[0], /须链接到项目 Skills 索引/u);
+  assert.match(errors[1], /缺少 Skills 索引章节/u);
 });
 
 /** 本地章节链接覆盖同页、跨页、重复标题和显式 HTML id。 */

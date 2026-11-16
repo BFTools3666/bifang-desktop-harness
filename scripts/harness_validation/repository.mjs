@@ -75,6 +75,15 @@ export const EXPECTED_SKILLS = new Set([
   "mantine-list-view",
 ]);
 
+const SKILL_INDEX = ".agents/skills/README.md";
+const SKILL_INDEX_LINK = SKILL_INDEX + "#skills-索引";
+const INDEXED_SKILLS = new Map([
+  ...[...EXPECTED_SKILLS].map((name) => [name, name + "/SKILL.md"]),
+  ...["nsh", "nsh-design-guides"].map((name) => [
+    name, "desktop-add-nsh-adapter/assets/vendor/" + name + "/SKILL.md",
+  ]),
+]);
+
 /** 验证固定入口、许可证、事实源和 Node 校验入口存在。 */
 export function validateRequiredFiles(errors) {
   for (const relative of REQUIRED_ROOT_FILES) {
@@ -90,19 +99,41 @@ export function validateRequiredFiles(errors) {
   }
 }
 
-/** 只核对明确的 Skills 索引章节，正文其它位置提及名称不能补足遗漏的目录入口。 */
-export function validateSkillsMap(errors, source, { file, heading, expected = EXPECTED_SKILLS }) {
+/** 取指定二级章节并保留其下分类，避免正文提及名称掩盖索引遗漏。 */
+function skillsSection(errors, source, file, heading) {
   const lines = source.split(/\r?\n/u);
   const start = lines.indexOf(heading);
   if (start < 0) {
-    fail(errors, `${file} 缺少 Skills 索引章节: ${heading}`);
-    return;
+    fail(errors, file + " 缺少 Skills 索引章节: " + heading);
+    return null;
   }
-  const followingHeading = lines.findIndex((line, index) => index > start && /^##\s/u.test(line));
-  const section = lines.slice(start + 1, followingHeading < 0 ? undefined : followingHeading).join("\n");
-  const listed = new Set([...section.matchAll(/`\$?((?:desktop-[a-z0-9-]+)|mantine-list-view)`/gu)].map(match => match[1]));
-  for (const name of expected) if (!listed.has(name)) fail(errors, `${file} Skills 索引遗漏 Skill: ${name}`);
-  for (const name of listed) if (!expected.has(name)) fail(errors, `${file} Skills 索引包含不存在的 Skill: ${name}`);
+  const end = lines.findIndex((line, index) => index > start && /^##\s/u.test(line));
+  return lines.slice(start + 1, end < 0 ? undefined : end).join("\n");
+}
+
+/** 逐项核对链接名称与目标，同时检测漏项、重复和已下线入口。 */
+export function validateSkillsMap(errors, source, expected = INDEXED_SKILLS) {
+  const section = skillsSection(errors, source, SKILL_INDEX, "## Skills 索引");
+  if (section === null) return;
+  const visited = new Set();
+  for (const [, name, target] of section.matchAll(/\[\x60\$([a-z0-9-]+)\x60\]\(([^)]+)\)/gu)) {
+    if (visited.has(name)) fail(errors, SKILL_INDEX + " 重复列出 Skill: " + name);
+    visited.add(name);
+    if (!expected.has(name)) fail(errors, SKILL_INDEX + " Skills 索引包含不存在的 Skill: " + name);
+    else if (expected.get(name) !== target) fail(errors, SKILL_INDEX + " Skill " + name + " 链接应指向 " + expected.get(name) + "，实际为 " + target);
+  }
+  for (const name of expected.keys()) {
+    if (!visited.has(name)) fail(errors, SKILL_INDEX + " Skills 索引遗漏 Skill: " + name);
+  }
+}
+
+/** 两个根入口都通过各自的地图章节直达唯一项目索引。 */
+export function validateSkillsIndexLink(errors, source, file) {
+  const heading = file === "AGENTS.md" ? "## Skills 地图" : "## Skills 索引";
+  const section = skillsSection(errors, source, file, heading);
+  if (section !== null && !section.includes("(" + SKILL_INDEX_LINK + ")")) {
+    fail(errors, file + " 的 " + heading + " 须链接到项目 Skills 索引");
+  }
 }
 
 /** 验证 Skill 集合、frontmatter 与元数据入口保持一一对应。 */
@@ -121,13 +152,13 @@ export function validateSkills(errors) {
   try {
     readme = readText(path.join(ROOT, "README.md"));
     agents = readText(path.join(ROOT, "AGENTS.md"));
-    skillIndex = readText(path.join(SKILLS_ROOT, "README.md"));
+    skillIndex = readText(path.join(ROOT, SKILL_INDEX));
   } catch (error) {
     fail(errors, error.message);
   }
-  validateSkillsMap(errors, readme, { file: "README.md", heading: "## Skills 索引" });
-  validateSkillsMap(errors, agents, { file: "AGENTS.md", heading: "## Skills 地图" });
-  validateSkillsMap(errors, skillIndex, { file: ".agents/skills/README.md", heading: "## Skills 索引" });
+  validateSkillsIndexLink(errors, readme, "README.md");
+  validateSkillsIndexLink(errors, agents, "AGENTS.md");
+  validateSkillsMap(errors, skillIndex);
   for (const name of EXPECTED_SKILLS) {
     if (!actual.has(name)) fail(errors, `缺少预期 Skill: ${name}`);
   }

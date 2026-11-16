@@ -223,7 +223,7 @@ export function inapplicableGuiCandidate(relative, selection) {
   if (skill === "desktop-add-mcp-adapter") return !selection.interfaces.includes("mcp");
   if (skill === "desktop-extract-i18n-strings") return selection.guiFramework !== "tauri";
   if (skill === "desktop-collect-release-artifacts") return !(cli || selection.guiFramework === "tauri");
-  if (["desktop-add-nsh-adapter", "desktop-build-nsh-release", "desktop-test-nsh-initialization-e2e"].includes(skill)) return !nsh;
+  if (["desktop-add-nsh-adapter", "desktop-build-nsh-release", "desktop-test-nsh-initialization-e2e", "nsh", "nsh-design-guides"].includes(skill)) return !nsh;
   if (skill === "desktop-prepare-gui-support-surfaces") return !(selection.guiFramework === "tauri" || nsh && (!selection.nshTargets || selection.nshTargets.includes("desktop")));
   if (TAURI_SKILLS.has(skill)) return selection.guiFramework !== "tauri";
   if (skill === "desktop-prepare-gui-app-identity") return !desktopGraphics;

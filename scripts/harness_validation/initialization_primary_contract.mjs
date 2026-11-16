@@ -195,12 +195,14 @@ export function primaryRequiredFragments(skillFile = INITIALIZE_SKILL) {
       "残留",
     ]],
     [path.join(SKILLS_ROOT, "desktop-add-gui-adapter", "SKILL.md"), [
-      "设置页固定区始终只渲染当前应用名/带一个小写 `v` 的版本",
+      "[$desktop-prepare-gui-support-surfaces](../desktop-prepare-gui-support-surfaces/SKILL.md)",
       "唯一 `gui-initialization-config` 代码块",
       "$desktop-add-gui-system-locale",
       "$desktop-add-gui-window-state",
       "$desktop-add-gui-dialog",
-      "全局快捷键空 contract 不增加占位",
+      "[$desktop-add-gui-global-shortcut](../desktop-add-gui-global-shortcut/SKILL.md)",
+      "[$desktop-test-gui-initialization-e2e](../desktop-test-gui-initialization-e2e/SKILL.md)",
+      "[$desktop-build-tauri-release](../desktop-build-tauri-release/SKILL.md)",
     ]],
     [RENAME_SCRIPT, [
       "EXCLUDED_DIRECTORIES",

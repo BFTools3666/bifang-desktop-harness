@@ -5,7 +5,7 @@ description: 为已初始化下游明确选择或切换未来 Git 发布完成�
 
 # 切换发布后动作
 
-在终端下游项目中，按用户本次明确选择持久化 `docs/AGENT_POLICY.md` 的 `post_release_action`。这个选择只约束未来完成的 Git 发布，不执行当前发布、不构建、不修改远端。
+在终端下游项目中，按用户本次明确选择持久化 `docs/AGENT_POLICY.md` 的 `post_release_action`。持久选择约束之后开始的 Git 发布。发布完成后同一 helper 的只读 route 用于解析该次已冻结的本地打包路径。
 
 ## 固定选择
 
@@ -37,10 +37,6 @@ DESKTOP 使用 Tauri。旧 GUI 缺省兼容 Tauri；显式不受支持的框架�
 
 报告先前选择、本次选择、是否实际改变、策略 schema 与 `check` 结果、ADR 条目及未执行的构建/远端动作。
 
+## 按已发布快照路由
+
 发布后实际执行 `local_package` 时，先由 `$desktop-manage-git-lifecycle` 运行 `check-post-release --action local_package`，再调用 `node .agents/skills/desktop-switch-post-release-action/scripts/post_release_action.mjs route --project-root "<absolute-downstream-root>"`。输出唯一 `interface`、`target`、`skill`；固定优先序是当前宿主 GUI/NSH desktop、CLI、NSH iOS（仅 macOS）、Android、Web。若用户在已选候选失败后明确要求另一个已选且当前宿主可构建的目标，用 `route --project-root "<absolute-downstream-root>" --interface <接口> --target <目标>` 验证；不得因构建错误自动改选。没有可用目标时保持 Git 发布已完成、发布后打包阻断。成功条件是同 HEAD、发布上下文、目标绑定的正式候选真实文件、摘要与 manifest 通过构建 Skill 的复核；`milestoneAcceptance: pending` 不表示验收通过。既有候选也只能按相同证据复用，不能依据目录存在或时间戳复用。
-
-### NSH 路由
-
-根 Cargo `interfaces = ["nsh"]` 与 `nsh-targets` 独立使用 `$desktop-build-nsh-release`；旧 `interfaces = ["gui"]` 且 `gui-framework = "nsh"` 仅按既有工程读取。复用通用本地 Git 发布、版本、双语日志和 release 上下文。支持所选 desktop 原生包、Android APK、iOS app 与 Web 完整静态目录，统一正式 0.5.1 revision 与匹配 CLI。当前 helper 具体格式和签名边界以其 Skill 为准，正式 IPA 须另行完成签名/渠道流程。不得走 Tauri 前端/NSIS。本机不可构建目标如实阻断，不推断已验证。 TUI 只提供官方运行和终端测试，无正式打包候选。
-
-NSH 最终候选证据在忽略的 release 批次目录，校验 manifest 列出的包、sidecar 日志和许可证字节及摘要；sidecar 不冒充内部资源。E2E 在最终包形成后使用真实目标宿主/设备或 Web 静态站点；每个目标独立取证，pending/Unverified 不能升级 accepted。初始化中性壳层测试不替代产品验收。

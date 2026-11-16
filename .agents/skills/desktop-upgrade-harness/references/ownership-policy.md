@@ -60,6 +60,7 @@
 6. 源 Harness 存在无需身份渲染的必需 `managed` 传播文件时，候选必须包含内容摘要一致的结果。当前包括行数、Rust 中文注释与 core-first 检查器及各自专属测试，以及 `$desktop-manage-git-lifecycle` 的完整 Skill、helper 与测试。遗漏或内容过期都会阻断计划与基线记录。
 7. 候选排除退役接口工程资产。升级计划跳过这些路径，下一次记录时将其退出来源锁，目标工程文件由原项目持有。
 8. 候选排除上游的 Skills 总索引、`$desktop-curate-harness-memory` 目录，以及上游专用 `check_no_python.mjs` 与其测试。旧目标残留的上游专用 `check_no_python.mjs` 和测试须经审查后移除，才能继续升级。
+9. 合并目标 `AGENTS.md` 的 Skills 地图时，逐项核对本次升级结束后实际保留的 `.agents/skills/<名称>/SKILL.md`。链接已安装的工程和项目自有入口，并移除已裁剪或退役入口的链接。NSH 的官方 Skills 从目标项目的安装路径引用，版本须匹配受保护的 Cargo 运行时。
 
 ## 永久保护
 

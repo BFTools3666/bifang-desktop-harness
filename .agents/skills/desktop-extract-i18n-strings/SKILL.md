@@ -5,25 +5,23 @@ description: 抽取 DESKTOP 的 Tauri/React 与 Rust 用户可见文案，复用
 
 # 抽取硬编码文案为 i18n 配置
 
-NSH 专用路由：根 Cargo `interfaces = ["nsh"]` 读取 `nsh-targets`，使用 `$desktop-add-nsh-adapter` 与 `docs/design_standards/nsh_gui.md`；旧 GUI/NSH 仅保留读取兼容。NSH 使用自己的双语资源与运行时语言接线，不应用下文 Tauri 国际化技术栈。桌面九项能力仅在 `nsh-targets` 包含 `desktop` 时读取；仅 desktop/mobile/web/tui 可用。精确平台限制见 NSH Skill 的 `references/runtime-and-capabilities.md`。
-
 把 GUI 适配器中硬编码的用户可见文案迁移为 ADR-20260806-001 固定的 i18n 技术栈键值，不新建并行的国际化机制，也不触碰 core。
 
 ## 框架分派
 
-本 Skill 只扫描 DESKTOP 的 Tauri/React 界面；既有 GUI 缺失框架字段时兼容 Tauri。NSH 的双语接线由自己的 adapter 维护。
+本 Skill 只扫描 DESKTOP 的 Tauri/React 界面；既有 GUI 缺失框架字段时兼容 Tauri。NSH 的双语接线见 [NSH 适配器](../desktop-add-nsh-adapter/SKILL.md)。
 
 ## 工作流程
 
-1. 确认当前项目已选择 GUI 适配器且已接入 `i18next`/`react-i18next`（前端）与 `rust-i18n`（Rust 原生文案），可在 `.agents/skills/desktop-add-gui-adapter/references/gui-baseline.md` 与 `references/react-frontend-baseline.md` 核对固定技术栈；未接入时先完成基础接入，不在中途新建替代机制。
-2. 直接实施不改变默认语言下可观察行为的纯文案迁移；若同时新增语言切换入口或修改默认语言探测逻辑，先确认产品边界，只在形成长期重要决定或硬规则例外时记录 ADR。
+1. 确认当前项目已选择 GUI 适配器且已接入 `i18next`/`react-i18next`（前端）与 `rust-i18n`（Rust 原生文案），可在 [Tauri 基线](../desktop-add-gui-adapter/references/gui-baseline.md) 与 [React 基线](../desktop-add-gui-adapter/references/react-frontend-baseline.md) 核对固定技术栈；未接入时先完成基础接入，不在中途新建替代机制。
+2. 独立调用时从 [$desktop-implement-change](../desktop-implement-change/SKILL.md) 建立开发上下文，已分派时复用。保持纯文案迁移在默认语言下的可观察行为。若同时新增语言切换入口或修改默认语言探测逻辑，先确认产品边界，只在形成长期重要决定或硬规则例外时记录 ADR。
 3. 扫描范围限定在 `<project-id>_gui` 前端 `src/`（JSX/TSX 文本节点、`label`/`placeholder`/`title`/`aria-label`/通知内容等字符串属性）与 Rust GUI 适配器层（托盘菜单、窗口标题、系统通知文案）。绝不扫描或修改共享 core；core 中出现的用户可见字符串是 core-first 边界问题，转 `$desktop-refactor-code` 评估，不在本 Skill 内直接改写业务代码所在 crate。
 4. 排除非用户可见字符串：标识符、CSS 类名、`tracing`/日志文案、内部错误码、测试夹具、代码注释和开发调试专用文本；只处理真实渲染给最终用户的文案。
 5. 为每处硬编码文案生成或复用稳定的层级翻译 key（如 `settings.language.label`），前端调用 `react-i18next` 的 `useTranslation`/`t()`，Rust 侧使用 `rust_i18n::t!()` 宏；翻译资源按功能域拆分文件存放，不得把 key 直接设为源文案本身的复制。
 6. 只为基准回退语言（英文）和当前已批准维护的语言写入真实翻译；不得为未批准或未来语言臆造译文。缺失的其他已支持语言译文按 `docs/ENGINEERING_RULES.md` 第 3.3 节关于临时标记的规则记录明确原因和完成条件，并同步登记 `docs/TECH_DEBT.md`，不得裸写未说明原因的临时标记。
 7. 替换源码中的字符串字面量为 i18n 调用后，运行前端和 Rust 相关测试确认默认语言渲染结果与迁移前一致；新增 key 需有测试或人工核对证据，不得只改资源文件不验证渲染。
 8. 仅对本次触及文件执行适用硬门禁：前端源码超过 1000 行、翻译资源等其他人工维护文本超过 2000 行必须按真实职责拆分。501–1000 行前端和 501–2000 行其他文本的职责复核只在明确发布且当次 `reviewSelection: enabled` 时集中执行；日常文案迁移不自行增加软阈值审查，也不自动运行全仓文件行数门禁。
-9. 只按 `docs/ENGINEERING_RULES.md` 的独立事件触发规则更新项目记忆；纯文案迁移属于不改变可观察行为的重构，默认不触发 Product Spec、ADR、Product Status 或 Changelog。
+9. 把默认语言的对照验证和缺失翻译证据交回 `$desktop-implement-change`。纯文案位置迁移沿用 `maintenance`，项目记忆依独立事件触发。
 
 ## 硬边界
 

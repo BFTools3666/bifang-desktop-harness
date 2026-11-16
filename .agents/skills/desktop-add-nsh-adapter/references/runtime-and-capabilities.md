@@ -13,7 +13,9 @@
 
 TUI 和 desktop 并选时系统集合去重；仅 TUI 不询问桌面 profile 或 Logo。TUI 是 NSH 子目标，使用同一 Mixed UI、共享 core、键盘焦点及终端 Cell 布局。用 `platform.idiom === "terminal"` 区分终端；`platform.os` 仍是宿主系统。图形侧栏、托盘、窗口和移动状态栏不用于终端。0.5.1 在无状态栏配置时仍可能记录一次权限警告，终端测试和运行继续使用原有权限。用 [TUI 指南](https://github.com/longbridge/nsh/blob/v0.5.1/website/docs/tui.md) 验证窄终端、Tab/Enter、退出与终端恢复。各目标脚本按实际平台选择 `App.test.tsx` 运行共享回归；`App.platform.test.tsx` 中的宿主模拟由无目标参数的 headless 套件执行。专属测试可以直接将测试文件路径传给 `nsh test`。
 
-Mixed 成员的 `nsh.json` 设置 `rust: "."`，不设置 `root`；`App.tsx` 使用 NSH 自身的 TSX 运行时，native module 将业务委托给 Rust core。选择 NSH 时自动把同版本官方 [nsh](https://github.com/longbridge/nsh/tree/v0.5.1/skills/nsh) 与 [nsh-design-guides](https://github.com/longbridge/nsh/tree/v0.5.1/skills/nsh-design-guides) 原样安装到项目的 `.agents/skills/`（保留引用与 Apache 许可证）。模板内固定发行版副本，初始化不调用 npm、不依赖用户目录的全局 Skill。用项目的 Skill 查类型、组件及设计规则。
+Mixed 成员的 `nsh.json` 设置 `rust: "."`，不设置 `root`；`App.tsx` 使用 NSH 自身的 TSX 运行时，native module 将业务委托给 Rust core。
+
+生成新项目时，适配器把官方 v0.5.1 的 [NSH 开发 Skill](../assets/vendor/nsh/SKILL.md) 和 [NSH 设计指南 Skill](../assets/vendor/nsh-design-guides/SKILL.md) 原样安装到项目的 `.agents/skills/`，保留引用与 Apache 许可证。初始化使用模板随附副本，不依赖 npm 或用户目录的全局 Skill。下游开发读取匹配当前运行时版本的 `.agents/skills/nsh/SKILL.md`，界面设计读取 `.agents/skills/nsh-design-guides/SKILL.md`。
 
 | 桌面能力 | 0.5.1 模板接线 |
 | --- | --- |

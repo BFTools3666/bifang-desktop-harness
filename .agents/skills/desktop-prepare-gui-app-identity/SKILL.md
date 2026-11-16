@@ -21,7 +21,7 @@ GUI 初始化先建立经过用户选择的应用 Logo；首次真实 GUI 开发
 6. 完整身份模式预览初始化所选 Logo，让用户选择保留或重新走“自动生成 / 确定性备选方案 / 用户上传”的三候选流程；重新生成时同样执行稳定标识、原始顺序预览和选择后才验证/标准化的规则。随后确认应用展示名称、简短描述、应用标识符或包标识符、图标方向，以及任何品牌色或源资产。Tauri 主窗口标题记录并预览固定公式 `{applicationName} v{version} QQ:2222980`，其中应用名来自本资料、版本来自权威打包元数据、联系字段来自品牌 profile 的 `contacts.windowTitle`；不得保存会漂移的手写版本标题。NSH 使用自身适配器的双语应用名与窗口标题，不套用该公式。
 7. 仅 Tauri 且批准的分发格式包含 macOS DMG 时，展示初始化生成的 `<project-id>_gui/src-tauri/dmg/background.png`，再让用户批准该中性基线或替换它；同时确认文案语言、660×400 DMG 安装卷窗口尺寸和应用/Applications 落点。批准基线时保留现有字节，替换时把最终 660×400 PNG 写回同一路径并重新展示。NSH 不使用此 Tauri 路径。软件许可页只按产品/渠道明确要求决定；不得复用 Harness、其他产品或带第三方身份的图片。
 8. 在完整身份模式补全 `docs/GUI_APP_PROFILE.md` 的已批准值、当前框架实际标题与权威字段来源、应用 Logo/图标来源与溯源、实际资源路径及 SHA-256；Tauri 有 DMG 选择时另记背景路径/摘要/尺寸/落点/文案语言，其他框架只记录其实际分发元数据和未解决项。只有身份选择构成长期重要决定时才调用 `$desktop-record-adr`；只有状态索引规定的独立事件触发时才交 `$desktop-handoff-project` 更新 Product Status。
-9. 将资料按框架交给 `$desktop-add-gui-adapter` 或 `$desktop-add-nsh-adapter`；以下 Tauri 接线只适用于前者：选中 Logo 必须接入平台图标和侧栏顶部，当前版本紧随 Logo 下方；仅当 `system_tray: enabled` 时还接入托盘并把 `default_window_icon()` 当作必需值。更新显示名后验证平台图标、侧栏 Logo、原生标题与 `document.title`，并仅对已选关于页验证身份/版本来源。NSH 验证自身资源清单、原生标题和已选页面；系统能力均以对应配置块为准，身份 Skill 不得自行启用。
+9. 初始化 Logo 模式把资料交给当前框架的适配器完成中性脚手架，DESKTOP 使用 [$desktop-add-gui-adapter](../desktop-add-gui-adapter/SKILL.md)，NSH desktop 使用 [$desktop-add-nsh-adapter](../desktop-add-nsh-adapter/SKILL.md)。完整身份模式在当前 `$desktop-implement-change` 上下文更新既有适配器的资源与接线。Tauri 将所选 Logo 接入平台图标和侧栏顶部，在下方展示当前版本。启用托盘时复用该图标并核对 `default_window_icon()`。更新显示名后核对平台图标、侧栏 Logo、原生标题、`document.title` 与已选关于页的身份和版本来源。NSH 按 [运行时合同](../desktop-add-nsh-adapter/references/runtime-and-capabilities.md) 验证资源清单、原生标题和已选页面。系统能力继续取对应配置块的选择。
 
 ## 边界
 

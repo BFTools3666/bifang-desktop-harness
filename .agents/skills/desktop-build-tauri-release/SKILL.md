@@ -7,7 +7,7 @@ description: 从 clean HEAD 构建下游 Tauri 2 GUI 发布候选；支持 macOS
 
 为 Tauri GUI 生成可追溯发布候选；不得把普通本地试包升级为发布任务，也不得把 macOS 交叉构建证据冒充 Windows 原生运行证据。
 
-仅供本机安装检查的试包转到 `$desktop-build-tauri-local-install`；已完成 Git 发布后，用户另行请求可分发候选打包，或本次发布冻结了用户已确认的 `post_release_action: local_package`，才进入本 Skill。正式候选的 E2E 选择在本次请求已明确 `enabled`/`disabled` 时直接复用，否则在任何测试或编译前询问用户一次；`e2e_hint` 只提供建议默认值。当前候选目标包含 macOS 时 `macosSigningSelection` 必须精确为 `enabled | disabled`；不含 macOS 时为 `not-applicable`。这些候选构建只核对既有版本，构建不得提升版本。
+仅供本机安装检查的试包转到 `$desktop-build-tauri-local-install`；已完成 Git 发布后，用户另行请求可分发候选打包，或本次发布冻结了用户已确认的 `post_release_action: local_package`，才进入本 Skill。按 [候选共用流程](../../../docs/RELEASE.md#git-发布后构建与完整验收) 确认发布身份。正式候选的 E2E 选择在本次请求已明确 `enabled`/`disabled` 时直接复用，否则在任何测试或编译前询问用户一次；`e2e_hint` 只提供建议默认值。当前候选目标包含 macOS 时 `macosSigningSelection` 必须精确为 `enabled | disabled`；不含 macOS 时为 `not-applicable`。这些候选构建只核对既有版本，构建不得提升版本。
 
 从已验证上下文读取 `releaseChannel`，在测试、构建与签名命令的进程环境设置 `HARNESS_RELEASE_CHANNEL`，并把同值写入 manifest。完成发布目录预检后按目标运行：
 
@@ -19,7 +19,7 @@ node .agents/skills/desktop-build-tauri-release/scripts/tauri_channel_config.mjs
 
 ## 按需资料
 
-先从根 Cargo 与当前请求确定实际候选目标和构建路线，仅读取命中行的引用；多路线取并集。签名适用性取决于候选目标，不能仅因宿主是 macOS 而启用。
+先从根 Cargo 与当前请求确定实际候选目标和构建路线，仅读取命中行的引用；多路线取并集。按上方已解析的候选目标确定签名适用性。
 
 | 路线或选择 | 必须读取 |
 |---|---|
@@ -55,7 +55,7 @@ node .agents/skills/desktop-build-tauri-release/scripts/tauri_channel_config.mjs
    - macOS 完整路径只在 ticket 验证成功时使用 `notarized-and-stapled`；Windows 使用 `not-applicable`。
 
    所有条件分支完成后才把 manifest 写入同一暂存目录。写完 manifest 后必须按每份 manifest 枚举并复算安装包、签名、校验和及适用证据的精确集合，要求全部为普通文件、无多余/缺失项且与最终摘要一致；随后才以不跟随链接的目录级原子替换提交到 `release/`。替换前的任何失败都不得在目标目录留下部分候选。
-13. 重新枚举 `release/`，要求文件集与所有 manifests 精确相等。只在当前 `release/` manifest、其声明的相邻制品证据和最终回复中记录环境变化、命令、Rust/前端全量单元测试数量、安装包、大小、摘要、签名/公证证据、源码提交、本次 E2E 选择、交叉构建限制和未验证平台。不得创建或更新 Product Spec、ADR、Changelog、Product Status、Work Plan 或 Verification。编译、签名与打包期间不得混跑冒烟/E2E。若本次 E2E 为 `enabled` 或产品/渠道要求，最终字节形成后立即交给 `$desktop-verify-delivery`，否则只在 manifest 和最终回复记录 `E2E: Not run` 与剩余风险并结束构建。
+13. 重新枚举 `release/`，要求文件集与所有 manifests 精确相等。只在当前 `release/` manifest、其声明的相邻制品证据和最终回复中记录环境变化、命令、Rust/前端全量单元测试数量、安装包、大小、摘要、签名/公证证据、源码提交、本次 E2E 选择、交叉构建限制和未验证平台。不得创建或更新 Product Spec、ADR、Changelog、Product Status、Work Plan 或 Verification。编译、签名与打包期间不得混跑冒烟/E2E。本次已选 E2E、产品或渠道要求验收，或用户同时请求完整验收时，最终字节形成后立即交给 `$desktop-verify-delivery`。E2E 为 `disabled` 时记录 `E2E: Not run` 与剩余风险。仅构建请求在候选复核通过后结束。
 
    同一输出还必须记录当次 `reviewSelection`/`reviewStatus`、适用 `reviewEvidence` 或 `Not run` 原因/风险，以及 macOS `macosSigningSelection`/`macosSigningSource`；关闭的审查或签名分支不得残留对应探测与证据字段。
 
@@ -75,6 +75,6 @@ node .agents/skills/desktop-build-tauri-release/scripts/tauri_channel_config.mjs
 
 ## 完成输出
 
-报告 clean `buildSourceCommit`/HEAD、本地主分支/tag 复核、当次 `reviewSelection`/`reviewStatus` 及适用证据或 `Not run` 风险；同时报告 bundle/target、环境安装与复探、真实命令、Rust/前端全量单元测试、安装候选/哈希/manifest、macOS `macosSigningSelection`/来源/签名公证状态、`runtimeVerification`、`milestoneAcceptance: pending`、本次 E2E 选择/结果和剩余风险；不更新项目记忆。
+报告 clean `buildSourceCommit`/HEAD、本地主分支/tag 复核、当次 `reviewSelection`/`reviewStatus` 及适用证据或 `Not run` 风险；同时报告 bundle/target、环境安装与复探、真实命令、Rust/前端全量单元测试、安装候选/哈希/manifest、macOS `macosSigningSelection`/来源/签名公证状态、`runtimeVerification`、最终 `milestoneAcceptance`（仅构建时为 `pending`）、本次 E2E 选择/结果和剩余风险；不更新项目记忆。
 
 现有发布日志只读复核使用 `$desktop-inspect-release-notes`；构建不整理或写入条目，内部直接复用原读取库的脚本保持原路径。

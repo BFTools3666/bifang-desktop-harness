@@ -7,6 +7,7 @@ import { removeUpstreamOnly, renderProjectAgents, sha256 } from '../../desktop-i
 import { validateNeutralWorkspace } from './initialization_workspace.mjs';
 
 const INITIALIZATION_SKILLS = new Set(['desktop-instantiate-project', 'desktop-initialize-rust-project', 'desktop-test-gui-initialization-e2e', 'desktop-test-nsh-initialization-e2e', 'desktop-curate-harness-memory']);
+const SKILL_MENTION = /\$([a-z0-9-]+)/gu;
 const MEMORY_DIRECTORIES = ['docs/adr/', 'docs/changelog/', 'docs/product_spec/', 'docs/work_plan/', 'docs/project_status/', 'docs/verification/'];
 
 /** 新实例化只裁剪预定路径；未知文件与所有实际产品文件保持原样。 */
@@ -85,11 +86,13 @@ function rewriteLinks(text, relative, finalPaths, removedPaths) {
 function neutralizeRoutes(text, removedSkills) {
   for (const name of removedSkills) {
     const replacement = INITIALIZATION_SKILLS.has(name) ? '一次性初始化步骤（基线前完成）' : '未选择的接口能力';
-    text = text.replaceAll(`$${name}`, replacement);
     text = text.replaceAll(`.agents/skills/${name}/SKILL.md`, replacement);
     text = text.replaceAll(`.agents/skills/${name}/`, `${replacement}：`);
   }
-  return text;
+  return text.replace(SKILL_MENTION, (mention, name) => {
+    if (!removedSkills.has(name)) return mention;
+    return INITIALIZATION_SKILLS.has(name) ? '一次性初始化步骤（基线前完成）' : '未选择的接口能力';
+  });
 }
 
 /** 仅剔除 Harness 源专用发布段落；下游版本、发布与候选合同保留。 */
@@ -137,7 +140,9 @@ export function validateFinalReferences(files, removedSkills) {
     if (relative.includes('/assets/vendor/') || /^\.agents\/skills\/(?:design-taste-frontend)\//u.test(relative)) continue;
     const text = file.bytes.toString('utf8');
     if (/\.(?:md|yaml)$/u.test(relative)) {
-      if ([...removedSkills].some(name => text.includes(`$${name}`) || text.includes(`.agents/skills/${name}/`))) throw new Error(`裁剪后仍有活动 Skill 路由：${relative}`);
+      const removedMention = [...text.matchAll(SKILL_MENTION)].some(([, name]) => removedSkills.has(name));
+      const removedPath = [...removedSkills].some(name => text.includes(`.agents/skills/${name}/`));
+      if (removedMention || removedPath) throw new Error(`裁剪后仍有活动 Skill 路由：${relative}`);
       // These byte-verified upstream docs carry links relative to nsh.dev.
       if (/^\.agents\/skills\/(?:nsh\/references\/coding-guides|nsh-design-guides\/references\/design-guides)\.md$/u.test(relative)) continue;
       for (const match of text.matchAll(/\[[^\]\n]*\]\(([^)\n]+)\)/gu)) {

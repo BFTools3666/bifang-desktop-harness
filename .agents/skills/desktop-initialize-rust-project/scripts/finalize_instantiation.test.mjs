@@ -6,6 +6,7 @@ import path from 'node:path';
 import { prepareFixture, writeNeutralWorkspace } from '../../desktop-instantiate-project/scripts/instantiation_test_support.mjs';
 import { inventoryTarget } from '../../desktop-instantiate-project/scripts/instantiation_io.mjs';
 import { finalizeInstantiation, planFinalization } from './finalize_instantiation.mjs';
+import { validateFinalReferences } from './instantiation_pruning.mjs';
 
 /** 夹具只提供外部引用形状，不把此值当真实 E2E 执行证据。 */
 function fixtureEvidence(plan) { return { scopeDigest: plan.scopeDigest, ...Object.fromEntries(plan.requiredEvidence.map(key => [key, `tool:fixture-not-real-execution/${key}`])) }; }
@@ -52,6 +53,9 @@ for (const framework of [null, 'tauri', 'nsh', 'nsh-mobile-web', 'nsh-tui']) tes
   assert.equal(fs.existsSync(path.join(f.target, '.agents/skills/desktop-add-nsh-adapter/scripts/run_nsh_tui.mjs')), false);
   assert.deepEqual(fs.readFileSync(path.join(f.target, 'LICENSE.zh-CN.md')), beforeLicense);
   const agents = fs.readFileSync(path.join(f.target, 'AGENTS.md'), 'utf8');
+  if (nsh) assert.match(agents, /### NSH 官方随附 Skills\n\n- \[\$nsh\]\(.+?\)、\[\$nsh-design-guides\]/u);
+  else assert.doesNotMatch(agents, /### NSH 官方随附 Skills/u);
+  if (framework === 'tauri') assert.match(agents, /抽取文案读 \$desktop-extract-i18n-strings/u);
   assert.ok(agents.trimEnd().split('\n').length <= 120);
   assert.match(agents, /## Skills 地图/u);
   assert.match(agents, /## 约束地图/u);
@@ -69,6 +73,14 @@ for (const framework of [null, 'tauri', 'nsh', 'nsh-mobile-web', 'nsh-tui']) tes
   assert.match(agents, /### 开发与架构/u);
   assert.match(agents, /### 版本、策略与 Git/u);
   if (framework !== null) assert.match(agents, /### 接口适配/u);
+});
+
+test('Skill route validation distinguishes exact names from longer retained names', () => {
+  const removed = new Set(['nsh']);
+  const files = new Map([['AGENTS.md', { bytes: Buffer.from('Read $nsh-design-guides.') }]]);
+  assert.doesNotThrow(() => validateFinalReferences(files, removed));
+  files.set('AGENTS.md', { bytes: Buffer.from('Read $nsh or $nsh-design-guides.') });
+  assert.throws(() => validateFinalReferences(files, removed), /裁剪后仍有活动 Skill 路由/u);
 });
 
 test('NSH finalization requires installed upstream references to match the vendored release', t => {

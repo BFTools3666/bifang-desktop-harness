@@ -85,6 +85,26 @@ test("gui_candidate_selection_excludes_the_other_framework_and_non_gui_projects"
   assert.equal(inapplicableGuiCandidate(".agents/skills/desktop-prepare-gui-app-identity/SKILL.md", topLevelNsh), true);
 });
 
+/** 官方 NSH Skill 的安装路径与适配器遵守相同的接口裁剪。 */
+test("upgrade_plans_route_installed_official_skills_only_to_nsh_targets", (t) => {
+  const f = new HarnessUpgradeFixture(t);
+  const vendorEntries = ["nsh", "nsh-design-guides"].map(name => ".agents/skills/" + name + "/SKILL.md");
+  for (const entry of vendorEntries) f.write(f.candidate, entry, "official NSH skill\n");
+  f.write(f.target, "Cargo.toml", METADATA + 'interfaces = ["cli"]\n');
+  const cliPlan = f.plan(2);
+  for (const entry of vendorEntries) {
+    assert.ok(cliPlan.problems.some(problem => problem.includes(entry)), entry);
+  }
+  for (const metadata of [
+    'interfaces = ["nsh"]\nnsh-targets = ["mobile"]\n',
+    'interfaces = ["gui"]\ngui-framework = "nsh"\n',
+  ]) {
+    f.write(f.target, "Cargo.toml", METADATA + metadata);
+    const nshPlan = f.plan();
+    for (const entry of vendorEntries) assert.equal(f.classification(nshPlan, entry), "add");
+  }
+});
+
 /** 实际接口决定文档与发布 Skill 的保留范围；NSH 批次证据不走扁平收集器。 */
 test("interface_candidate_selection_prunes_unused_cli_mcp_i18n_and_collection_paths", () => {
   const cases = [

@@ -51,9 +51,19 @@ test('project_skill_map_groups_retained_skills_without_stale_or_duplicate_routes
   const actual = fs.readdirSync(path.join(SOURCE_ROOT, '.agents/skills'), { withFileTypes: true })
     .filter(entry => entry.isDirectory() && fs.existsSync(path.join(SOURCE_ROOT, '.agents/skills', entry.name, 'SKILL.md')))
     .map(entry => entry.name);
+  for (const name of ['nsh', 'nsh-design-guides']) {
+    assert.ok(fs.existsSync(path.join(SOURCE_ROOT, '.agents/skills/desktop-add-nsh-adapter/assets/vendor', name, 'SKILL.md')));
+    actual.push(name);
+  }
   const grouped = SKILL_GROUPS.flatMap(([, names]) => names);
   assert.equal(new Set(grouped).size, grouped.length);
   assert.deepEqual(grouped.toSorted(), actual.toSorted());
+  const catalog = fs.readFileSync(path.join(SOURCE_ROOT, '.agents/skills/README.md'), 'utf8');
+  const catalogGroups = catalog.split(/^### /mu).slice(1).map(section => [
+    section.split('\n', 1)[0],
+    [...section.matchAll(/\[\x60\$([a-z0-9-]+)\x60\]\(/gu)].map(([, name]) => name).sort(),
+  ]);
+  assert.deepEqual(catalogGroups, SKILL_GROUPS.map(([name, skills]) => [name, skills.toSorted()]));
   const map = renderProjectSkillMap(['desktop-add-nsh-adapter', 'desktop-implement-change', 'desktop-add-nsh-adapter', 'project-local-skill']);
   assert.match(map, /### 接口适配/u);
   assert.match(map, /### 开发与架构/u);
