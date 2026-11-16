@@ -2,6 +2,30 @@
   "schemaVersion": 2,
   "releases": [
     {
+      "releaseDate": "2026-11-16",
+      "version": "v202611161524",
+      "featureOptimizations": [
+        {
+          "zh-CN": "从 README 或 AGENTS.md 打开项目 Skills 索引，按任务查找适用入口。新建 NSH 项目的 Skills 地图也会链接到项目内安装的官方开发 Skill 和设计指南。",
+          "en-US": "Open the project Skills index from README or AGENTS.md to find the right entry for each task. New NSH projects also link to the official development Skill and design guide installed in the project."
+        },
+        {
+          "zh-CN": "准备交付时，可按目标查找 Git 发布、本地试包、正式候选或验收入口。撰写双语更新日志时，说明用户如何使用改进、修复后会看到什么结果，并用可比较的实测支持性能数字。",
+          "en-US": "When preparing a delivery, find the guide for a Git release, a local test package, a release candidate, or acceptance. When writing bilingual release notes, describe how to use improvements and what users will see after a fix, and support performance figures with comparable measurements."
+        }
+      ],
+      "bugFixes": [
+        {
+          "zh-CN": "新建项目完成初始化时，按完整名称裁剪 Skill 引用，避免误伤名称相近的入口。非 NSH 项目的 Harness 升级预览会拦截不适用的 NSH 官方 Skills。",
+          "en-US": "When a new project finishes initialization, pruning matches complete Skill names so entries with similar names stay intact. Harness upgrade previews for projects without NSH block inapplicable official NSH Skills."
+        },
+        {
+          "zh-CN": "NSH 验收指南明确按选定的构建批次核对审查记录。已选或必需场景缺少运行证据，或缺少渠道要求的签名时，该批次判为拒绝。",
+          "en-US": "The NSH acceptance guide now specifies how to check the review record for the selected build batch. The batch is rejected if it lacks runtime evidence for a selected or required scenario or lacks required channel signing."
+        }
+      ]
+    },
+    {
       "releaseDate": "2026-11-14",
       "version": "v202611142116",
       "featureOptimizations": [
@@ -254,30 +278,6 @@
         {
           "zh-CN": "统一 NSH GUI 本地打包的策略说明与初始化表单条件。",
           "en-US": "Align NSH GUI local-packaging policy descriptions with initialization-form conditions."
-        }
-      ]
-    },
-    {
-      "releaseDate": "2026-11-06",
-      "version": "v202611061129",
-      "featureOptimizations": [
-        {
-          "zh-CN": "新增 NSH 第三框架，按平台能力完成桌面、Android、iOS、Web 初始化及共享 Rust core 接线。",
-          "en-US": "Add NSH alongside Tauri and GPUI, with platform-aware initialization and shared Rust core wiring for desktop, Android, iOS and Web."
-        },
-        {
-          "zh-CN": "新增 NSH 本地与候选打包、版本同步、发布元数据及按框架裁剪的升级支持。",
-          "en-US": "Add dedicated NSH local and candidate packaging, version synchronization, release metadata, and framework-specific upgrade pruning."
-        }
-      ],
-      "bugFixes": [
-        {
-          "zh-CN": "处理 iOS 可执行文件与资源目录重名，生成同时兼容 Android 和 Apple 的应用标识。",
-          "en-US": "Prevent iOS executable and resource name collisions, and generate application identifiers accepted by both Android and Apple."
-        },
-        {
-          "zh-CN": "在写入工作区前格式化生成的 Rust，并补齐框架元数据的 NSH 文档声明。",
-          "en-US": "Format generated Rust before writing the workspace and include NSH in the documented GUI framework values."
         }
       ]
     }
