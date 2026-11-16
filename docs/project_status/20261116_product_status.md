@@ -1,14 +1,14 @@
 # 项目状态
 
-> 记忆日期：2026-11-12
+> 记忆日期：2026-11-16
 >
-> 更新事件：`v202611121721-20261112` 发布后的首个受管开发周期。
+> 更新事件：`v202611142116-20261114` 发布后的受管开发周期核对 NSH 知识。
 
 ## 当前阶段
 
-- Harness 源维护规则、Skills、工程工具和中性资产。下游可组合 CLI、MCP、DESKTOP，也可独立选择 NSH。DESKTOP 固定使用 Tauri。NSH 使用正式 0.5.0 工具链，支持桌面、移动、Web 和 TUI。产品范围以 [Product Spec](../product_spec/README.md) 为准。
-- 上次本地 Git 发布的 `master` 和 tag `v202611121721-20261112` 均已复核指向 `5c71d55cceb1c12f3d916ca02a04ecd1f09ae998`。时间版本继续以 [Version.md](../../Version.md) 为准。
-- 当前受管开发周期清理退役接口的工程入口与知识，核对下游创建、升级、运行和打包路由。范围与旧工程边界见 [ADR-20261112-002](../adr/20261113_ADR.md)。
+- Harness 源维护规则、Skills、工程工具和中性资产。下游可组合 CLI、MCP、DESKTOP，也可独立选择 NSH。DESKTOP 固定使用 Tauri。新 NSH 项目固定官方 0.5.1 和匹配 CLI，支持桌面、移动、Web 和 TUI。[产品规格](../product_spec/README.md) · [NSH 运行时](../../.agents/skills/desktop-add-nsh-adapter/references/runtime-and-capabilities.md)
+- 上次本地 Git 发布的 `master` 和 tag `v202611142116-20261114` 均已复核指向 `a968e0438da204b3f2ce944ed59a3180dde80627`。[Harness 时间版本](../../Version.md)
+- 当前开发周期已调整更新日志的写作规则，并在本次工作中核对 NSH 文档和两套官方 Skills 的版本。[变更记录](../changelog/README.md)
 
 ## 工程入口
 
