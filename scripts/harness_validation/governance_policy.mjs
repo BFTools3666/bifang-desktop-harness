@@ -5,6 +5,7 @@ import { ROOT, fail, readText, relativePath } from "./core.mjs";
 import { parseCargoToml } from "./initialization_toml.mjs";
 import { POST_RELEASE_ACTIONS, localPackageSupported, parseAgentPolicyDocument, parseReleaseGuiFramework, parseReleaseMetadataArray, policyBodyIsCurrent, validConfirmedAt } from "../../.agents/skills/desktop-switch-post-release-action/scripts/post_release_action.mjs";
 import { parseInterfaceSelection } from "../../.agents/skills/desktop-upgrade-harness/scripts/harness_upgrade_interfaces.mjs";
+import { validateNshPlatforms } from "../../.agents/skills/desktop-implement-change/scripts/nsh_runtime_policy.mjs";
 
 const SESSION_PROGRESS_STATES = ["已分配", "运行中", "检查中", "已完成"];
 const SESSION_PROGRESS_TITLE_PATTERN = new RegExp(`^Task (?<sequence>[1-9][0-9]*) \\| (?<progress>${SESSION_PROGRESS_STATES.join("|")}) \\| (?<singleResult>[^|\\r\\n]+)$`, "u");
@@ -65,13 +66,7 @@ function persistedReleaseMetadata(policyPath, errors) {
     parseCargoToml(source);
     const selection = parseInterfaceSelection(source);
     const targetPlatforms = parseReleaseMetadataArray(source, "target-platforms");
-    if (selection.nshTargets && [
-      ["native", ["windows", "macos", "linux"]],
-      ["mobile", ["android", "ios"]],
-      ["web", ["web"]],
-    ].some(([target, platforms]) => (target === "native" ? (selection.nshTargets.includes("desktop") || selection.nshTargets.includes("tui")) : selection.nshTargets.includes(target)) !== targetPlatforms.some(platform => platforms.includes(platform)))) {
-      throw new Error("NSH 目标类别与具体目标平台不一致");
-    }
+    if (selection.nshTargets) validateNshPlatforms(selection.nshTargets, targetPlatforms);
     return {
       interfaces: parseReleaseMetadataArray(source, "interfaces"),
       "target-platforms": targetPlatforms,

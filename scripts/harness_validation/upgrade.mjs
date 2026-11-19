@@ -71,6 +71,7 @@ export const REQUIRED_UPGRADE_RULES = new Map([
   [".agents/skills/desktop-implement-change/scripts/check_core_first.mjs", "managed"],
   [".agents/skills/desktop-implement-change/scripts/check_core_first.test.mjs", "managed"],
   [".agents/skills/desktop-implement-change/scripts/project_lock_policy.mjs", "managed"],
+  [".agents/skills/desktop-implement-change/scripts/nsh_runtime_policy.mjs", "managed"],
   [".agents/skills/desktop-implement-change/scripts/project_lock_policy.test.mjs", "managed"],
   [".agents/skills/desktop-implement-change/scripts/check_rust_chinese_comments.mjs", "managed"],
   [".agents/skills/desktop-implement-change/scripts/check_rust_chinese_comments.test.mjs", "managed"],

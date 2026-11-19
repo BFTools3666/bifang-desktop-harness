@@ -32,13 +32,12 @@ test("Rust-only project requires Node but not pnpm", posixOnly, () => withTempor
   ]) assert.ok(result.stdout.includes(fragment), fragment);
 }));
 
-/** NSH 接受同一 GUI 工程工具门禁，不安装其他 GUI 框架的依赖。 */
-test("nsh_gui_accepts_framework_and_requires_project_tooling", posixOnly, () => withTemporaryRoot((root) => {
-  const probe=path.join(root,"probe");fakeExistingTools(probe);fakeFrontendTools(probe);
-  const result=runGate(root,["--check-only","--interfaces","GUI","--gui-framework","nsh"],{probe});
-  assert.equal(result.status,0,result.stderr);
-  assert.match(result.stdout,/gate\.pnpm\.status=passed/u);
-  assert.equal(existsSync(path.join(root,"home",".profile")),false);
+/** 旧 GUI/NSH 必须在环境探测前失败。 */
+test("nsh_gui_framework_is_retired", posixOnly, () => withTemporaryRoot((root) => {
+  const result = runGate(root, ["--check-only", "--interfaces", "GUI", "--gui-framework", "nsh"]);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /不支持的 GUI 框架/u);
+  assert.equal(result.stdout, "");
 }));
 
 /** 新顶层 NSH 仅需共享 Rust/Node 工具，不从 DESKTOP 分支附加 pnpm。 */
@@ -47,6 +46,9 @@ test("top_level_nsh_does_not_require_desktop_frontend_tools", posixOnly, () => w
   const result=runGate(root,["--check-only","--interfaces","NSH"],{probe});
   assert.equal(result.status,0,result.stderr);
   assert.match(result.stdout,/gate\.pnpm\.status=not-required/u);
+  const mixed = runGate(root, ["--check-only", "--interfaces", "NSH,GUI"], {probe});
+  assert.equal(mixed.status, 2, mixed.stdout + mixed.stderr);
+  assert.match(mixed.stderr, /NSH 必须单独选择/u);
 }));
 
 /** 未知框架不能被当作原生框架绕过前端门禁。 */
@@ -60,7 +62,7 @@ test("invalid_gui_framework_fails_before_tool_probe", posixOnly, () => withTempo
 /** Windows 参数与 POSIX 采用相同闭集及默认框架，运行测试由原生宿主补充。 */
 test("windows_gui_frameworks_share_the_pnpm_requirement", () => {
   const source = readFileSync(WINDOWS_SCRIPT, "utf8");
-  assert.match(source, /\[ValidateSet\("tauri", "nsh"\)\]/u);
+  assert.match(source, /\[ValidateSet\("tauri"\)\]/u);
   assert.match(source, /\$GuiFramework = "tauri"/u);
   assert.match(source, /\$PnpmRequired = \(\$NormalizedInterfaces -contains "GUI"\)\r?\n/u);
   assert.match(source, /"CLI", "MCP", "GUI", "NSH"/u);

@@ -6,9 +6,9 @@
 
 ## 当前阶段
 
-- Harness 源维护规则、Skills、工程工具和中性资产。下游可组合 CLI、MCP、DESKTOP，也可独立选择 NSH。DESKTOP 固定使用 Tauri。新 NSH 项目固定官方 0.6.0 和匹配 CLI，支持桌面、移动、Web 和 TUI。[产品规格](../product_spec/README.md) · [NSH 运行时](../../.agents/skills/desktop-add-nsh-adapter/references/runtime-and-capabilities.md)
+- Harness 源维护规则、Skills、工程工具和中性资产。下游可组合 CLI、MCP、DESKTOP，也可独立选择 NSH。DESKTOP 固定使用 Tauri。受管 NSH 工程统一使用官方 0.6.0 和匹配 CLI，支持桌面、移动、Web 和 TUI。[产品规格](../product_spec/README.md) · [NSH 运行时](../../.agents/skills/desktop-add-nsh-adapter/references/runtime-and-capabilities.md)
 - 上次本地 Git 发布的 `master` 和 tag `v202611161524-20261116` 均已复核指向 `fc52458c9dd2275ddabe91ff20113bb8b5d1b6ae`。[Harness 时间版本](../../Version.md)
-- 当前开发周期同步 NSH 官方知识、适配器模板和工程层兼容检查。[变更记录](../changelog/README.md)
+- 当前开发周期同步 NSH 官方知识与模板，并统一开发、升级和交付的版本检查。[变更记录](../changelog/README.md)
 
 ## 工程入口
 

@@ -73,7 +73,14 @@ function fixture(t, { realLifecycle = false } = {}) {
   fs.mkdirSync(path.dirname(lifecycleScript), { recursive: true });
   if (realLifecycle) {
     fs.cpSync(fileURLToPath(new URL("../../desktop-manage-git-lifecycle/scripts/", import.meta.url)), path.dirname(lifecycleScript), { recursive: true });
-    const dependencies = ["desktop-prepare-release/scripts/release_context.mjs", "desktop-prepare-release/scripts/harness_version_clock.mjs", "desktop-prepare-release/scripts/release_notes.mjs", "desktop-switch-post-release-action/scripts/post_release_action.mjs", "desktop-implement-change/scripts/project_lock_policy.mjs"];
+    const dependencies = [
+      "desktop-prepare-release/scripts/release_context.mjs",
+      "desktop-prepare-release/scripts/harness_version_clock.mjs",
+      "desktop-prepare-release/scripts/release_notes.mjs",
+      "desktop-switch-post-release-action/scripts/post_release_action.mjs",
+      "desktop-implement-change/scripts/project_lock_policy.mjs",
+      "desktop-implement-change/scripts/nsh_runtime_policy.mjs",
+    ];
     for (const relative of dependencies) {
       const target = path.join(root, ".agents", "skills", relative); fs.mkdirSync(path.dirname(target), { recursive: true });
       fs.copyFileSync(fileURLToPath(new URL(`../../${relative}`, import.meta.url)), target);

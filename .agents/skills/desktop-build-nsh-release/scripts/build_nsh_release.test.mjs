@@ -5,85 +5,76 @@ import path from 'node:path';
 import os from 'node:os';
 import test from 'node:test';
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 import { assertNshToolchain,buildNshRelease,inventory,packageFacts,passingNshCases,releaseNoteBuildInputs,safeOutputPath,validateNshArtifacts } from './build_nsh_release.mjs';
 import { renderDocument } from '../../desktop-prepare-release/scripts/release_notes.mjs';
 
 /** 临时包只用于拒绝畸形输入，不能充当运行验证。 */
 function fixture(run){const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'nsh-package-test-')));try{run(root);}finally{fs.rmSync(root,{recursive:true,force:true});}}
 
-/** 新顶层 NSH 包使用独立成员和类别事实；旧 GUI/NSH 包仍可读。 */
-test('package_facts_accepts_top_level_nsh_and_legacy_gui_nsh',()=>fixture(root=>{
-  const metadata=(interfaces,member,extra)=>({workspace_root:root,workspace_members:['member-id'],packages:[{id:'member-id',name:`sample_tool_${member}`,manifest_path:path.join(root,`sample_tool_${member}`,'Cargo.toml'),version:'0.1.0'}],metadata:{'agent-first-harness':{'project-id':'sample_tool',interfaces,'target-platforms':['macos','android','web'],...extra}}});
-  const modern=metadata(['nsh'],'nsh',{'nsh-targets':['desktop','mobile','web']});
-  assert.equal(packageFacts(root,modern,'web').gui,path.join(root,'sample_tool_nsh'));
-  assert.equal(packageFacts(root,modern,'android').modern,true);
-  assert.equal(packageFacts(root,modern,'macos').modern,true);
-  assert.equal(packageFacts(root,metadata(['nsh'],'nsh',{'nsh-targets':['desktop','tui','mobile','web']}),'macos').modern,true);
-  assert.throws(()=>packageFacts(root,metadata(['nsh'],'nsh',{'nsh-targets':['tui'],'target-platforms':['macos']}),'macos'),/target capability is not selected/u);
-  assert.throws(()=>packageFacts(root,modern,'tui'),/unsupported NSH packaging target/u);
-  assert.throws(()=>packageFacts(root,metadata(['nsh'],'nsh',{'nsh-targets':['desktop','web']}),'macos'),/target-platforms mismatch/u);
-  assert.throws(()=>packageFacts(root,modern,'linux'),/not selected/u);
-  const legacy=metadata(['gui'],'gui',{'gui-framework':'nsh'});
-  assert.equal(packageFacts(root,legacy,'macos').modern,false);
-  const invalidLegacy=metadata(['gui'],'gui',{'gui-framework':'nsh','nsh-targets':['tui']});
-  assert.throws(()=>packageFacts(root,invalidLegacy,'macos'),/requires NSH workspace/u);
+const current = '554163758e30d2f62f814096a6327937dcb4fe49';
+const git = 'https://github.com/longbridge/nsh.git';
+const older = [
+  ['0.5.0', 'f4d68f7f9f31eb7b3ecc8a4cbc31096d5c6238a1'],
+  ['0.5.1', '224d9a795c7ac9d10d75750de9351adac5549675'],
+];
+
+/** 独立成员必须匹配当前运行时与目标，旧框架和混装都被拒绝。 */
+test('package_facts_accepts_only_current_top_level_nsh', () => fixture(root => {
+  const metadata = (extra = {}, req = '^0.6.0', revision = current) => ({
+    workspace_root: root, workspace_members: ['member-id'],
+    packages: [{
+      id: 'member-id', name: 'sample_tool_nsh', version: '0.1.0',
+      manifest_path: path.join(root, 'sample_tool_nsh', 'Cargo.toml'),
+      dependencies: [{ name: 'nsh-core', req, source: 'git+' + git + '?rev=' + revision }],
+    }],
+    metadata: { 'agent-first-harness': {
+      'project-id': 'sample_tool', interfaces: ['nsh'],
+      'target-platforms': ['macos', 'android', 'web'], 'nsh-targets': ['desktop', 'mobile', 'web'], ...extra,
+    } },
+  });
+  for (const target of ['web', 'android', 'macos']) {
+    assert.equal(packageFacts(root, metadata(), target).gui, path.join(root, 'sample_tool_nsh'));
+  }
+  assert.throws(() => packageFacts(root, metadata({ 'nsh-targets': ['tui'], 'target-platforms': ['macos'] }), 'macos'), /target capability is not selected/u);
+  assert.throws(() => packageFacts(root, metadata(), 'tui'), /unsupported NSH packaging target/u);
+  assert.throws(() => packageFacts(root, metadata({ 'nsh-targets': ['desktop', 'web'] }), 'macos'), /target-platforms mismatch/u);
+  assert.throws(() => packageFacts(root, metadata(), 'linux'), /not selected/u);
+  assert.throws(() => packageFacts(root, metadata({ interfaces: ['gui'], 'gui-framework': 'nsh' }), 'macos'), /requires NSH workspace/u);
+  for (const [version, revision] of older) {
+    assert.throws(() => packageFacts(root, metadata({}, '^' + version, revision), 'web'), /仅支持官方 v0.6.0/u);
+  }
+  const mixed = metadata();
+  mixed.workspace_members.push('core');
+  mixed.packages.push({ id: 'core', dependencies: [{ name: 'nsh-core', rename: 'old_runtime', req: '^0.5.1', source: 'git+' + git + '?rev=' + older[1][1] }] });
+  assert.throws(() => packageFacts(root, mixed, 'web'), /仅支持官方 v0.6.0/u);
 }));
 
-/** 新旧正式版均要求版本、提交及 CLI 精确匹配。 */
-test('nsh_toolchain_requires_matching_released_cli_and_runtime',()=>fixture(root=>{
-  const current='554163758e30d2f62f814096a6327937dcb4fe49';
-  const preview='beeb9fc7707e0d4a195a4f7274f77b30e134c500';
-  const stable='224d9a795c7ac9d10d75750de9351adac5549675';
-  const previous='f4d68f7f9f31eb7b3ecc8a4cbc31096d5c6238a1';
-  const dependency=(version,revision)=>`{ version = "${version}", git = "https://github.com/longbridge/nsh.git", rev = "${revision}" }`;
-  const manifest=(revision,version='0.5.1')=>`[workspace]\nmembers = []\n[workspace.dependencies]\nnsh-core = ${dependency(version,revision)}\nnsh-base = ${dependency(version,revision)}\n[workspace.metadata.agent-first-harness]\ninterfaces = ["nsh"]\n`;
-  fs.writeFileSync(path.join(root,'Cargo.toml'),manifest(current,'0.6.0').replace(/^nsh-base.*$/mu,''));
-  assert.equal(assertNshToolchain(root,['web'],'nsh 0.6.0 (5541637)'),current);
-  assert.throws(()=>assertNshToolchain(root,['web'],'nsh 0.5.1 (224d9a7)'),/do not match/u);
-  fs.writeFileSync(path.join(root,'Cargo.toml'),manifest(preview));
-  assert.throws(()=>assertNshToolchain(root,['web'],'nsh 0.5.1 (beeb9fc)'),/pinned official stable runtime/u);
-  fs.writeFileSync(path.join(root,'Cargo.toml'),manifest(stable));
-  assert.equal(assertNshToolchain(root,['web'],'nsh 0.5.1 (224d9a7)'),stable);
-  assert.throws(()=>assertNshToolchain(root,['web'],'nsh 0.5.0 (f4d68f7)'),/do not match/u);
-  fs.writeFileSync(path.join(root,'Cargo.toml'),manifest(previous,'0.5.0'));
-  assert.equal(assertNshToolchain(root,['web'],'nsh 0.5.0 (f4d68f7)'),previous);
-  fs.writeFileSync(path.join(root,'Cargo.toml'),manifest(stable,'0.5.0'));
-  assert.throws(()=>assertNshToolchain(root,['web'],'nsh 0.5.1 (224d9a7)'),/pinned official stable runtime/u);
-  fs.writeFileSync(path.join(root,'Cargo.toml'),manifest(stable).replace(/^nsh-base.*$/mu,''));
-  assert.throws(()=>assertNshToolchain(root,['web'],'nsh 0.5.1 (224d9a7)'),/requires nsh-base/u);
-  fs.writeFileSync(path.join(root,'Cargo.toml'),manifest(stable).replace('[workspace.metadata.agent-first-harness]',`nsh-engine = ${dependency('0.5.0',previous)}\n[workspace.metadata.agent-first-harness]`));
-  assert.throws(()=>assertNshToolchain(root,['web'],'nsh 0.5.1 (224d9a7)'),/must all match/u);
-  fs.writeFileSync(path.join(root,'Cargo.toml'),manifest(preview).replace('[workspace.metadata.agent-first-harness]','nsh-engine = { workspace = true }\n[workspace.metadata.agent-first-harness]'));
-  assert.throws(()=>assertNshToolchain(root,['web'],'nsh 0.5.0 (f4d68f7)'),/pinned official NSH Git runtime/u);
+/** Cargo 和 CLI 必须分别匹配发布版本与提交。 */
+test('nsh_toolchain_requires_exact_v060_cli_and_runtime', () => fixture(root => {
+  const file = path.join(root, 'Cargo.toml');
+  const manifest = (version, revision) => '[workspace.dependencies]\nnsh-core = { version = "' + version + '", git = "' + git + '", rev = "' + revision + '" }\n';
+  fs.writeFileSync(file, manifest('0.6.0', current));
+  assert.equal(assertNshToolchain(root, ['web'], 'nsh 0.6.0 (5541637)'), current);
+  for (const [version, revision] of older) {
+    const oldCli = 'nsh ' + version + ' (' + revision.slice(0, 7) + ')';
+    assert.throws(() => assertNshToolchain(root, ['web'], oldCli), /do not match/u);
+    fs.writeFileSync(file, manifest(version, revision));
+    assert.throws(() => assertNshToolchain(root, ['web'], oldCli), /仅支持官方 v0.6.0/u);
+    fs.writeFileSync(file, manifest('0.6.0', current));
+  }
+  fs.writeFileSync(file, manifest('0.6.0', older[1][1]));
+  assert.throws(() => assertNshToolchain(root, ['web'], 'nsh 0.6.0 (5541637)'), /仅支持官方 v0.6.0/u);
 }));
 
-/** 旧 GUI/NSH 元数据仍可识别，但预览 pin 必须在任何构建测试前失败。 */
-test('legacy_gui_nsh_build_requires_released_cargo_pin',()=>fixture(root=>{
-  const stable='f4d68f7f9f31eb7b3ecc8a4cbc31096d5c6238a1';
-  const preview='beeb9fc7707e0d4a195a4f7274f77b30e134c500';
-  const manifest=revision=>`[workspace]\nmembers = ["sample_tool_gui"]\n[workspace.dependencies]\nnsh-core = { version = "0.5.0", git = "https://github.com/longbridge/nsh.git", rev = "${revision}" }\nnsh-base = { version = "0.5.0", git = "https://github.com/longbridge/nsh.git", rev = "${revision}" }\n[workspace.metadata.agent-first-harness]\nproject-id = "sample_tool"\ninterfaces = ["gui"]\ngui-framework = "nsh"\ntarget-platforms = ["web"]\n`;
-  fs.writeFileSync(path.join(root,'Cargo.toml'),manifest(preview));
-  const bin=path.join(root,'fake-bin');fs.mkdirSync(bin);
-  const metadataFile=path.join(root,'metadata.json'),marker=path.join(root,'cargo-test-called');
-  fs.writeFileSync(metadataFile,JSON.stringify({workspace_root:root,workspace_members:['member-id'],packages:[{id:'member-id',name:'sample_tool_gui',manifest_path:path.join(root,'sample_tool_gui','Cargo.toml'),version:'0.1.0'}],metadata:{'agent-first-harness':{'project-id':'sample_tool',interfaces:['gui'],'gui-framework':'nsh','target-platforms':['web']}}}));
-  fs.writeFileSync(path.join(bin,'cargo'),'#!/usr/bin/env node\nconst fs=require("node:fs");\nif(process.argv[2]==="metadata") process.stdout.write(fs.readFileSync(process.env.NSH_FAKE_METADATA));\nelse { fs.writeFileSync(process.env.NSH_FAKE_TEST_MARKER,"called"); process.exitCode=7; }\n',{mode:0o755});
-  fs.writeFileSync(path.join(bin,'nsh'),'#!/usr/bin/env node\nif(process.argv[2]==="--version") process.stdout.write("nsh 0.5.0 (f4d68f7)\\n");\nelse process.exitCode=8;\n',{mode:0o755});
-  const script=fileURLToPath(new URL('./build_nsh_release.mjs',import.meta.url));
-  const env={...process.env,PATH:bin+path.delimiter+process.env.PATH,NSH_FAKE_METADATA:metadataFile,NSH_FAKE_TEST_MARKER:marker};
-  const invoke=()=>spawnSync(process.execPath,[script,'--root',root,'--target','web'],{cwd:root,env,encoding:'utf8',timeout:30_000});
-  const blocked=invoke();
-  assert.equal(blocked.status,1,blocked.stderr);
-  assert.match(blocked.stderr,/pinned official stable runtime/u);
-  assert.equal(fs.existsSync(marker),false);
-  fs.writeFileSync(path.join(root,'Cargo.toml'),manifest(stable));
-  fs.mkdirSync(path.join(root,'sample_tool_gui'));
-  fs.writeFileSync(path.join(root,'sample_tool_gui/nsh.json'),JSON.stringify({name:'Example',id:'com.example.fixture',version:'0.1.0'}));
-  const accepted=invoke();
-  assert.equal(accepted.status,1,accepted.stderr);
-  assert.match(accepted.stderr,/cargo failed \(7\)/u);
-  assert.equal(fs.readFileSync(marker,'utf8'),'called');
-  assert.deepEqual(fs.readdirSync(path.join(root,'target/nsh-packaging')),[]);
+/** 旧工程在测试或包目录写入之前失败。 */
+test('legacy_gui_nsh_cannot_enter_build', () => fixture(root => {
+  fs.writeFileSync(path.join(root, 'Cargo.toml'), '[workspace]\nmembers = ["sample_tool_gui"]\n[workspace.metadata.agent-first-harness]\nproject-id = "sample_tool"\ninterfaces = ["gui"]\ngui-framework = "nsh"\ntarget-platforms = ["web"]\n');
+  const member = path.join(root, 'sample_tool_gui');
+  fs.mkdirSync(path.join(member, 'src'), { recursive: true });
+  fs.writeFileSync(path.join(member, 'Cargo.toml'), '[package]\nname = "sample_tool_gui"\nversion = "0.1.0"\nedition = "2024"\n');
+  fs.writeFileSync(path.join(member, 'src', 'lib.rs'), '');
+  assert.throws(() => buildNshRelease({ root, target: 'web' }), /requires NSH workspace/u);
+  assert.equal(fs.existsSync(path.join(root, 'target')), false);
 }));
 
 test('tracked_resolution_and_unanswered_candidate_selection_fail_before_build',()=>fixture(root=>{

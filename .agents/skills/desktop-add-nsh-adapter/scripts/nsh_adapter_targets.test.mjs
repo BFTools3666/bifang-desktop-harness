@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { NSH_REVISION, normalizeNshOptions, nshDependencies, nshPackageScripts, nshRevisionForTargets, renderNshAdapterFiles } from './nsh_adapter_files.mjs';
 
+const preflight = "node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs && ";
 const profile = Object.freeze({
   system_tray: 'disabled', system_notification: 'disabled', autostart: 'disabled',
   about_page: 'disabled', sponsor_page: 'disabled', single_instance: 'disabled',
@@ -23,8 +24,8 @@ test('supported NSH targets use only the released v0.6.0 runtime and scripts', (
     assert.doesNotMatch(files.get('sample_tool_nsh/Cargo.toml'), /nsh-base/u);
     assert.ok(![...files.keys()].some(name => name.includes('.tui.')));
     const scripts = nshPackageScripts(options.projectId, options.nshTargets, options.targetPlatforms);
-    assert.equal(scripts['nsh:check'], 'nsh check sample_tool_nsh');
-    assert.equal(scripts['nsh:test'], 'nsh test sample_tool_nsh');
+    assert.equal(scripts['nsh:check'], preflight + 'nsh check sample_tool_nsh');
+    assert.equal(scripts['nsh:test'], preflight + 'nsh test sample_tool_nsh');
     assert.equal(scripts['dev:tui'], undefined);
     assert.equal(scripts['nsh:test:tui'], undefined);
   }
@@ -45,12 +46,12 @@ test('generation_rejects_unsupported_nsh_targets', () => {
 
 test('selected iOS runs and tests on ios while terminal tests select an explicit file', () => {
   const ios = nshPackageScripts('sample_tool', ['mobile'], ['ios']);
-  assert.equal(ios.dev, 'nsh run sample_tool_nsh --target ios');
+  assert.equal(ios.dev, preflight + 'nsh run sample_tool_nsh --target ios');
   assert.equal(ios['dev:android'], undefined);
   const mixed = nshPackageScripts('sample_tool', ['desktop','mobile','web','tui'], ['macos','ios','android','web']);
-  assert.equal(mixed['dev:web'], 'nsh run sample_tool_nsh --target web');
-  assert.equal(mixed['nsh:test:macos'], 'nsh test sample_tool_nsh/App.test.tsx --target macos');
-  assert.equal(mixed['nsh:test:tui'], 'nsh test sample_tool_nsh/App.test.tsx --target tui');
+  assert.equal(mixed['dev:web'], preflight + 'nsh run sample_tool_nsh --target web');
+  assert.equal(mixed['nsh:test:macos'], preflight + 'nsh test sample_tool_nsh/App.test.tsx --target macos');
+  assert.equal(mixed['nsh:test:tui'], preflight + 'nsh test sample_tool_nsh/App.test.tsx --target tui');
 });
 
 test('renderer preserves literal dollar replacements and token-shaped names', () => {

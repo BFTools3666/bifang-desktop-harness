@@ -3,7 +3,7 @@
 param(
     [switch]$CheckOnly,
     [string[]]$Interfaces = @(),
-    [ValidateSet("tauri", "nsh")]
+    [ValidateSet("tauri")]
     [string]$GuiFramework = "tauri",
     [string]$RustMinVersion = ""
 )
@@ -47,6 +47,10 @@ $NormalizedInterfaces = @($Interfaces | ForEach-Object { $_ -split ',' } | ForEa
 $UnsupportedInterfaces = @($NormalizedInterfaces | Where-Object { $_ -and $_ -notin @("CLI", "MCP", "GUI", "NSH") })
 if ($UnsupportedInterfaces.Count -gt 0) {
     [Console]::Error.WriteLine("不支持的接口：$($UnsupportedInterfaces -join ',')")
+    exit 2
+}
+if ($NormalizedInterfaces -contains "NSH" -and $NormalizedInterfaces.Count -ne 1) {
+    [Console]::Error.WriteLine("NSH 必须单独选择")
     exit 2
 }
 $PnpmRequired = ($NormalizedInterfaces -contains "GUI")

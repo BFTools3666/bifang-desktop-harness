@@ -8,7 +8,7 @@ GUI 版本/兼容、性能和打包方案按 [GUI 工程索引](GUI_ENGINEERING.
 
 ## 桌面框架与适用范围
 
-新项目的接口与能力输入统一复用初始化表单的确认结果，问句、默认触发与顺序不在本文件定义；无答复不得应用默认。DESKTOP 新初始化在根 `[workspace.metadata.agent-first-harness]` 保存 `gui-framework = "tauri"`（固定派生），既有 GUI 缺失时兼容 Tauri。NSH 为平级接口，保存 `interfaces = ["nsh"]`、`nsh-targets` 和具体 `target-platforms`，不写 `gui-framework`；旧 `interfaces = ["gui"]`、`gui-framework = "nsh"` 保留读取兼容。九字段 `gui-initialization-config` 对 NSH 仅适用于桌面子目标。
+新项目的接口与能力输入统一复用初始化表单的确认结果，问句、默认触发与顺序不在本文件定义；无答复不得应用默认。DESKTOP 新初始化在根 `[workspace.metadata.agent-first-harness]` 保存 `gui-framework = "tauri"`（固定派生），既有 GUI 缺失时兼容 Tauri。NSH 为平级接口，保存 `interfaces = ["nsh"]`、`nsh-targets` 和具体 `target-platforms`，不写 `gui-framework`；旧 GUI/NSH 工程须先迁移为顶层 NSH。九字段 `gui-initialization-config` 对 NSH 仅适用于桌面子目标。
 
 - Tauri走 `$desktop-add-gui-adapter`。下文Tauri插件、Tokio-backed GUI runtime/command、WebView/IPC/ACL、React/Mantine/Jotai、Tabler、TS门禁、Tauri图标/DMG/NSIS及Tauri初始化E2E只在这条路径生效。
 
@@ -125,7 +125,7 @@ git --version
 node --version
 # 仅 GUI
 
-NSH 专用路由：根 Cargo `interfaces = ["nsh"]` 与 `nsh-targets` 表示顶层 NSH 及 desktop/mobile/web/tui 子目标；全部使用正式 v0.6.0 固定提交 `554163758e30d2f62f814096a6327937dcb4fe49` 的 Mixed TSX/Rust 运行时与匹配 CLI。NSH 使用 `$desktop-add-nsh-adapter`、`docs/design_standards/nsh_gui.md` 与 `$desktop-build-nsh-release`；旧 GUI/NSH 元数据仅供读取兼容。能力边界以 NSH Skill 的 `references/runtime-and-capabilities.md` 为准。
+NSH 专用路由：根 Cargo `interfaces = ["nsh"]` 与 `nsh-targets` 表示顶层 NSH 及 desktop/mobile/web/tui 子目标；全部使用正式 v0.6.0 固定提交 `554163758e30d2f62f814096a6327937dcb4fe49` 的 Mixed TSX/Rust 运行时与匹配 CLI。NSH 使用 `$desktop-add-nsh-adapter`、`docs/design_standards/nsh_gui.md` 与 `$desktop-build-nsh-release`；旧版与旧 GUI/NSH 工程须先迁移。能力边界以 NSH Skill 的 `references/runtime-and-capabilities.md` 为准。
 pnpm --version
 ```
 

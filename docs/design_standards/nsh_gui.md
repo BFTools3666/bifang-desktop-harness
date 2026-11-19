@@ -1,6 +1,6 @@
 # NSH GUI 标准
 
-`standard_id = nsh-gui-common-v1`，新项目匹配根 Cargo `interfaces = ["nsh"]`；既有 `interfaces = ["gui"]`、`gui-framework = "nsh"` 保留读取兼容。`nsh-targets` 仅支持 desktop/mobile/web/tui；统一正式 0.6.0 固定提交 `554163758e30d2f62f814096a6327937dcb4fe49`。
+`standard_id = nsh-gui-common-v1`，适用于根 Cargo `interfaces = ["nsh"]`。`nsh-targets` 仅支持 desktop/mobile/web/tui；统一正式 0.6.0 固定提交 `554163758e30d2f62f814096a6327937dcb4fe49`。
 
 desktop、mobile、Web 图形目标先应用 [共用基座](ui_foundation.md)。三类目标均使用 Mixed 模式：TSX 组件、NSH `nsh/base` 语义控件、reactive signal 和 Rust native module；共享业务规则留在 Rust core。颜色、字号、间距和断点集中在 TSX Token。TSX 是 NSH 自有运行时，不套用 Tauri CSS、Mantine、React hooks 合同。
 

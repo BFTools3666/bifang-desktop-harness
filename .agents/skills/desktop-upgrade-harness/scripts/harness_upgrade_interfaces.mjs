@@ -3,16 +3,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { UpgradeError, assertSafePath, lstatOrNull, snapshotFile } from "./harness_upgrade_safety.mjs";
+import {
+  assertNshWorkspacePin, equalPath, keyPath, readNshCargoApp, readNshMixedConfig, statements, stringValue, validateNshTargets,
+} from "../../desktop-implement-change/scripts/nsh_runtime_policy.mjs";
 
 const METADATA_TABLE = ["workspace", "metadata", "agent-first-harness"];
 const INTERFACES = new Set(["cli", "mcp", "gui", "nsh"]);
-const FRAMEWORKS = new Set(["tauri", "nsh"]);
-const NSH_TARGETS = new Set(["desktop", "mobile", "web", "tui"]);
-const NSH_RELEASE_REVISIONS = Object.freeze({
-  "0.5.0": "f4d68f7f9f31eb7b3ecc8a4cbc31096d5c6238a1",
-  "0.5.1": "224d9a795c7ac9d10d75750de9351adac5549675",
-  "0.6.0": "554163758e30d2f62f814096a6327937dcb4fe49",
-});
 const TAURI_SKILLS = new Set([
   "desktop-add-gui-adapter", "mantine-list-view", "desktop-add-gui-system-locale",
   "desktop-add-gui-window-state", "desktop-add-gui-dialog",
@@ -20,107 +16,6 @@ const TAURI_SKILLS = new Set([
   "desktop-add-gui-global-shortcut", "desktop-add-gui-system-notifications", "desktop-add-gui-autostart",
   "desktop-build-tauri-local-install", "desktop-build-tauri-release",
 ]);
-
-/** 以字符串和数组边界分句，防止注释、多行文本伪装成接口元数据。 */
-function statements(source) {
-  const result = [];
-  let current = "";
-  let quote = null;
-  let triple = false;
-  let escaped = false;
-  let depth = 0;
-  for (let index = 0; index < source.length; index += 1) {
-    const character = source[index];
-    if (quote !== null) {
-      current += character;
-      if (quote === '"' && escaped) escaped = false;
-      else if (quote === '"' && character === "\\") escaped = true;
-      else if (character === quote && (!triple || source.slice(index, index + 3) === quote.repeat(3))) {
-        if (triple) { current += quote.repeat(2); index += 2; }
-        quote = null;
-      }
-      continue;
-    }
-    if (character === '"' || character === "'") {
-      quote = character;
-      triple = source.slice(index, index + 3) === character.repeat(3);
-      current += triple ? character.repeat(3) : character;
-      if (triple) index += 2;
-    } else if (character === "#") {
-      while (index + 1 < source.length && source[index + 1] !== "\n") index += 1;
-    } else if (character === "\n" && depth === 0) {
-      if (current.trim()) result.push(current.trim());
-      current = "";
-    } else {
-      if (character === "[") depth += 1;
-      if (character === "]") depth -= 1;
-      current += character;
-    }
-  }
-  if (quote !== null || depth !== 0) throw new UpgradeError("Cargo 接口元数据包含未结束的字符串或数组");
-  if (current.trim()) result.push(current.trim());
-  return result;
-}
-
-/** 支持 Cargo 常见裸键与引号键，未知键语法不猜测。 */
-function keyPath(value) {
-  const parts = [];
-  let remaining = value.trim();
-  while (remaining) {
-    const matched = /^(?:([A-Za-z0-9_-]+)|'([^']*)'|("(?:[^"\\]|\\.)*"))\s*/u.exec(remaining);
-    if (!matched) return null;
-    let part;
-    try { part = matched[1] ?? matched[2] ?? JSON.parse(matched[3]); }
-    catch { return null; }
-    parts.push(part);
-    remaining = remaining.slice(matched[0].length);
-    if (!remaining) return parts;
-    if (!remaining.startsWith(".")) return null;
-    remaining = remaining.slice(1).trimStart();
-    if (!remaining) return null;
-  }
-  return null;
-}
-
-function equalPath(left, right) {
-  return left?.length === right.length && left.every((value, index) => value === right[index]);
-}
-
-/** 框架值只接受明确字符串；不将未知值或类型当作 Tauri 默认。 */
-function stringValue(value, label) {
-  if (/^'[^'\r\n]*'$/u.test(value)) return value.slice(1, -1);
-  try {
-    const parsed = JSON.parse(value);
-    if (typeof parsed === "string") return parsed;
-  } catch { /* 下方统一报告受管字段类型错误。 */ }
-  throw new UpgradeError(`Cargo ${label} 必须是字符串`);
-}
-
-/** 升级前拒绝未固定到正式版提交的 NSH 工作区依赖。 */
-function hasNonstableNshRuntime(source) {
-  let section = [];
-  let workspaceRevision;
-  for (const statement of statements(source)) {
-    if (statement.startsWith("[")) {
-      const array = statement.startsWith("[[");
-      section = keyPath(statement.slice(array ? 2 : 1, array ? -2 : -1));
-      continue;
-    }
-    if (!equalPath(section, ["workspace", "dependencies"])) continue;
-    const separator = statement.indexOf("=");
-    if (separator < 0) continue;
-    const keys = keyPath(statement.slice(0, separator));
-    if (keys?.length !== 1 || !/^nsh-[a-z0-9_-]+$/u.test(keys[0])) continue;
-    const dependency = statement.slice(separator + 1).trim();
-    const version = /\bversion\s*=\s*"([^"]+)"/u.exec(dependency)?.[1];
-    const git = /\bgit\s*=\s*"([^"]+)"/u.exec(dependency)?.[1];
-    const revision = /\brev\s*=\s*"([0-9a-f]{40})"/u.exec(dependency)?.[1];
-    if (!revision || git !== "https://github.com/longbridge/nsh.git" || revision !== NSH_RELEASE_REVISIONS[version]) return true;
-    workspaceRevision ??= revision;
-    if (revision !== workspaceRevision) return true;
-  }
-  return false;
-}
 
 /** 仅缺省框架沿用 Tauri；接口或框架重复、错位与非法类型均失败关闭。 */
 export function parseInterfaceSelection(source) {
@@ -167,7 +62,7 @@ export function parseInterfaceSelection(source) {
     }
   }
   const framework = values.has("gui-framework") ? stringValue(values.get("gui-framework"), "gui-framework") : "tauri";
-  if (!FRAMEWORKS.has(framework)) throw new UpgradeError('Cargo gui-framework 必须是 "tauri" 或旧版 "nsh"；DESKTOP 仅支持 Tauri');
+  if (framework !== "tauri") throw new UpgradeError('Cargo gui-framework 无效。DESKTOP 仅支持 Tauri，NSH 使用顶层 interfaces = ["nsh"]');
   if (values.has("gui-framework") && !interfaces.includes("gui")) throw new UpgradeError("Cargo gui-framework 只适用于已选择 GUI 的下游");
   if (interfaces.includes("nsh")) {
     if (interfaces.length !== 1 || values.has("gui-framework")) throw new UpgradeError("Cargo NSH 当前必须是独立顶层接口，不能同时声明 GUI 框架");
@@ -175,10 +70,9 @@ export function parseInterfaceSelection(source) {
     if (!raw?.startsWith("[") || !raw.endsWith("]")) throw new UpgradeError("Cargo nsh-targets 必须是非空字符串数组");
     const members = raw.slice(1, -1).trim().replace(/,\s*$/u, "");
     const nshTargets = members ? members.split(",").map((member) => stringValue(member.trim(), "nsh-targets")) : [];
-    if (!nshTargets.length || nshTargets.some((target) => !NSH_TARGETS.has(target)) || new Set(nshTargets).size !== nshTargets.length) {
-      throw new UpgradeError("Cargo nsh-targets 包含未知或重复目标");
-    }
-    if (hasNonstableNshRuntime(source)) throw new UpgradeError("Cargo NSH 运行时须使用同一个受支持的正式版固定提交");
+    try { validateNshTargets(nshTargets); }
+    catch { throw new UpgradeError("Cargo nsh-targets 必须非空且只包含受支持的唯一目标"); }
+    assertNshWorkspacePin(source);
     return { interfaces, guiFramework: null, nshTargets };
   }
   if (values.has("nsh-targets")) throw new UpgradeError("Cargo nsh-targets 只适用于顶层 NSH 接口");
@@ -192,7 +86,12 @@ export function readInterfaceSelection(root) {
   if (stat === null) return { interfaces: [], guiFramework: null, manifestSnapshot: null };
   if (!stat.isFile()) throw new UpgradeError("目标 Cargo.toml 必须是普通文件");
   const source = new TextDecoder("utf-8", { fatal: true }).decode(fs.readFileSync(file));
-  return { ...parseInterfaceSelection(source), manifestSnapshot: snapshotFile(file) };
+  const selection = parseInterfaceSelection(source);
+  if (selection.interfaces.includes("nsh")) {
+    try { readNshMixedConfig(path.dirname(readNshCargoApp(root).manifest_path)); }
+    catch (error) { throw new UpgradeError(error.message); }
+  }
+  return { ...selection, manifestSnapshot: snapshotFile(file) };
 }
 
 /** 识别不能继续传播或登记为 Harness 所有的退役工程路径。 */
@@ -214,8 +113,9 @@ export function isRetiredInterfaceAsset(relative) {
 
 /** 接口条件资产仅按受保护 Cargo 选择适用，不能由候选目录反向决定框架。 */
 export function inapplicableGuiCandidate(relative, selection) {
-  const nsh = selection.interfaces.includes("nsh") || selection.guiFramework === "nsh";
-  const desktopGraphics = selection.interfaces.includes("gui") || nsh && (!selection.nshTargets || selection.nshTargets.includes("desktop"));
+  const nsh = selection.interfaces.includes("nsh");
+  const nshDesktop = nsh && selection.nshTargets.includes("desktop");
+  const desktopGraphics = selection.interfaces.includes("gui") || nshDesktop;
   const cli = selection.interfaces.includes("cli");
   if (relative === "docs/CLI_CONTRACT.md") return !cli;
   if (relative === "docs/GUI_ENGINEERING.md") return !(selection.interfaces.includes("gui") || nsh);
@@ -225,7 +125,7 @@ export function inapplicableGuiCandidate(relative, selection) {
   if (skill === "desktop-extract-i18n-strings") return selection.guiFramework !== "tauri";
   if (skill === "desktop-collect-release-artifacts") return !(cli || selection.guiFramework === "tauri");
   if (["desktop-add-nsh-adapter", "desktop-build-nsh-release", "desktop-test-nsh-initialization-e2e", "nsh", "nsh-design-guides"].includes(skill)) return !nsh;
-  if (skill === "desktop-prepare-gui-support-surfaces") return !(selection.guiFramework === "tauri" || nsh && (!selection.nshTargets || selection.nshTargets.includes("desktop")));
+  if (skill === "desktop-prepare-gui-support-surfaces") return !(selection.guiFramework === "tauri" || nshDesktop);
   if (TAURI_SKILLS.has(skill)) return selection.guiFramework !== "tauri";
   if (skill === "desktop-prepare-gui-app-identity") return !desktopGraphics;
   return false;

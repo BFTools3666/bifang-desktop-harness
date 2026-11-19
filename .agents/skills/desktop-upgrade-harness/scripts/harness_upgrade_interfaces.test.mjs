@@ -9,6 +9,7 @@ import { snapshotFile } from "./harness_upgrade_safety.mjs";
 import { HarnessUpgradeFixture, MANAGED } from "./harness_upgrade_test_support.mjs";
 
 const METADATA = "[workspace.metadata.agent-first-harness]\n";
+const CURRENT_PIN = '[workspace.dependencies]\nnsh-core = { version = "0.6.0", git = "https://github.com/longbridge/nsh.git", rev = "554163758e30d2f62f814096a6327937dcb4fe49" }\n';
 const TAURI = ".agents/skills/desktop-add-gui-adapter/SKILL.md";
 
 test("desktop_upgrade_rejects_retired_framework_without_mutation", (t) => {
@@ -24,39 +25,38 @@ test("desktop_upgrade_rejects_retired_framework_without_mutation", (t) => {
   assert.equal(fs.existsSync(path.join(f.target, TAURI)), false);
 });
 
-/** 顶层 NSH 读取显式目标，旧 GUI/NSH 保持原语义。 */
+/** 顶层 NSH 必须显式声明目标和当前运行时。 */
 test("top_level_nsh_targets_are_parsed_without_gui_framework", () => {
-  assert.deepEqual(parseInterfaceSelection(`${METADATA}interfaces = ["nsh"]\nnsh-targets = ["desktop", "mobile", "web"]\n`), { interfaces: ["nsh"], guiFramework: null, nshTargets: ["desktop", "mobile", "web"] });
-  assert.deepEqual(parseInterfaceSelection(`${METADATA}interfaces = ["gui"]\ngui-framework = "nsh"\n`), { interfaces: ["gui"], guiFramework: "nsh" });
-  assert.deepEqual(parseInterfaceSelection(`${METADATA}interfaces = ["nsh"]\nnsh-targets = ["tui"]\n`).nshTargets, ["tui"]);
+  const nsh = METADATA + 'interfaces = ["nsh"]\n';
+  assert.deepEqual(parseInterfaceSelection(nsh + 'nsh-targets = ["desktop", "mobile", "web"]\n' + CURRENT_PIN), { interfaces: ["nsh"], guiFramework: null, nshTargets: ["desktop", "mobile", "web"] });
+  assert.deepEqual(parseInterfaceSelection(nsh + 'nsh-targets = ["tui"]\n' + CURRENT_PIN).nshTargets, ["tui"]);
   for (const suffix of ['nsh-targets = []', 'nsh-targets = ["desktop", "desktop"]', 'nsh-targets = ["unknown"]']) {
-    assert.throws(() => parseInterfaceSelection(`${METADATA}interfaces = ["nsh"]\n${suffix}\n`), /Cargo nsh-targets/u);
+    assert.throws(() => parseInterfaceSelection(nsh + suffix + '\n'), /Cargo nsh-targets/u);
   }
-  assert.throws(() => parseInterfaceSelection(`${METADATA}interfaces = ["gui"]\nnsh-targets = ["desktop"]\n`), /只适用于顶层 NSH/u);
-  assert.throws(() => parseInterfaceSelection(`${METADATA}interfaces = ["nsh"]\n`), /nsh-targets/u);
-  assert.throws(() => parseInterfaceSelection(`${METADATA}interfaces = ["cli", "nsh"]\nnsh-targets = ["desktop"]\n`), /独立顶层接口/u);
+  assert.throws(() => parseInterfaceSelection(METADATA + 'interfaces = ["gui"]\ngui-framework = "nsh"\n'), /DESKTOP 仅支持 Tauri/u);
+  assert.throws(() => parseInterfaceSelection(METADATA + 'interfaces = ["gui"]\nnsh-targets = ["desktop"]\n'), /只适用于顶层 NSH/u);
+  assert.throws(() => parseInterfaceSelection(nsh), /nsh-targets/u);
+  assert.throws(() => parseInterfaceSelection(METADATA + 'interfaces = ["cli", "nsh"]\nnsh-targets = ["desktop"]\n'), /独立顶层接口/u);
 });
 
-/** 工程升级兼容新旧正式版本，拒绝预览、错配和混装。 */
-test("nsh_upgrade_requires_one_supported_runtime_revision", () => {
-  const current = dependency("0.6.0", "554163758e30d2f62f814096a6327937dcb4fe49");
-  const latest = dependency("0.5.1", "224d9a795c7ac9d10d75750de9351adac5549675");
-  const previous = dependency("0.5.0", "f4d68f7f9f31eb7b3ecc8a4cbc31096d5c6238a1");
-  const preview = dependency("0.5.1", "beeb9fc7707e0d4a195a4f7274f77b30e134c500");
-  const source = (core, base) => `${METADATA}interfaces = ["nsh"]\nnsh-targets = ["desktop"]\n[workspace.dependencies]\nnsh-core = ${core}\nnsh-base = ${base}\n`;
-
-  function dependency(version, revision) {
-    return `{ version = "${version}", git = "https://github.com/longbridge/nsh.git", rev = "${revision}" }`;
-  }
-
-  assert.deepEqual(parseInterfaceSelection(source(latest, latest)).nshTargets, ["desktop"]);
-  assert.deepEqual(parseInterfaceSelection(source(previous, previous)).nshTargets, ["desktop"]);
-  assert.deepEqual(parseInterfaceSelection(source(current, current).replace(/^nsh-base.*$/mu, "")).nshTargets, ["desktop"]);
-  assert.throws(() => parseInterfaceSelection(source(preview, preview)), /正式版固定提交/u);
-  assert.throws(() => parseInterfaceSelection(source(latest, previous)), /正式版固定提交/u);
-  assert.throws(() => parseInterfaceSelection(source(current, latest)), /正式版固定提交/u);
-  const wrongVersion = latest.replace('"0.5.1"', '"0.5.0"');
-  assert.throws(() => parseInterfaceSelection(source(wrongVersion, wrongVersion)), /正式版固定提交/u);
+/** 旧版、无 pin、提交错配和别名混装均不能进入升级。 */
+test("nsh_upgrade_rejects_retired_and_missing_runtime_pins", () => {
+  const metadata = METADATA + 'interfaces = ["nsh"]\nnsh-targets = ["desktop"]\n';
+  const current = "554163758e30d2f62f814096a6327937dcb4fe49";
+  const old = "224d9a795c7ac9d10d75750de9351adac5549675";
+  const earlier = "f4d68f7f9f31eb7b3ecc8a4cbc31096d5c6238a1";
+  const expanded = CURRENT_PIN.replace(
+    /^\[workspace.dependencies\]\nnsh-core = \{ (.*) \}\n$/u,
+    (_, fields) => "[workspace.dependencies.nsh-core]\n" + fields.replaceAll(", ", "\n") + "\n",
+  );
+  assert.deepEqual(parseInterfaceSelection(metadata + expanded).nshTargets, ["desktop"]);
+  for (const declarations of [
+    "",
+    CURRENT_PIN.replace("0.6.0", "0.5.0").replace(current, earlier),
+    expanded.replace("0.6.0", "0.5.1").replace(current, old),
+    CURRENT_PIN.replace(current, old),
+    CURRENT_PIN + 'old_base = { package = "nsh-base", version = "0.5.1", git = "https://github.com/longbridge/nsh.git", rev = "' + old + '" }\n',
+  ]) assert.throws(() => parseInterfaceSelection(metadata + declarations), /仅支持官方 v0\.6\.0/u);
 });
 
 /** 未知值、错类型、重复键和非法接口不能降级到默认值。 */
@@ -77,9 +77,6 @@ test("framework_selection_rejects_unknown_duplicate_and_malformed_metadata", () 
 
 /** GUI 工程目录按持久框架选择，不从候选中的技能反推接口。 */
 test("gui_candidate_selection_excludes_the_other_framework_and_non_gui_projects", () => {
-  const nsh = { interfaces: ["gui"], guiFramework: "nsh" };
-  assert.equal(inapplicableGuiCandidate("docs/GUI_ENGINEERING.md", nsh), false);
-  assert.equal(inapplicableGuiCandidate(".agents/skills/desktop-build-nsh-release/SKILL.md", nsh), false);
   assert.equal(inapplicableGuiCandidate("docs/GUI_ENGINEERING.md", { interfaces: ["cli"], guiFramework: null }), true);
   const topLevelNsh = { interfaces: ["nsh"], guiFramework: null, nshTargets: ["mobile", "web"] };
   assert.equal(inapplicableGuiCandidate(".agents/skills/desktop-build-nsh-release/SKILL.md", topLevelNsh), false);
@@ -98,14 +95,21 @@ test("upgrade_plans_route_installed_official_skills_only_to_nsh_targets", (t) =>
   for (const entry of vendorEntries) {
     assert.ok(cliPlan.problems.some(problem => problem.includes(entry)), entry);
   }
-  for (const metadata of [
-    'interfaces = ["nsh"]\nnsh-targets = ["mobile"]\n',
-    'interfaces = ["gui"]\ngui-framework = "nsh"\n',
-  ]) {
-    f.write(f.target, "Cargo.toml", METADATA + metadata);
-    const nshPlan = f.plan();
-    for (const entry of vendorEntries) assert.equal(f.classification(nshPlan, entry), "add");
-  }
+  const cargo = '[workspace]\nmembers = ["sample_tool_nsh"]\n' + CURRENT_PIN + METADATA
+    + 'project-id = "sample_tool"\ninterfaces = ["nsh"]\nnsh-targets = ["mobile"]\ntarget-platforms = ["ios"]\n';
+  f.write(f.target, "Cargo.toml", cargo);
+  f.write(f.target, "sample_tool_nsh/Cargo.toml", '[package]\nname = "sample_tool_nsh"\nversion = "0.1.0"\nedition = "2024"\n[dependencies]\nnsh-core.workspace = true\n');
+  f.write(f.target, "sample_tool_nsh/src/lib.rs", 'pub fn fixture() {}\n');
+  f.write(f.target, "sample_tool_nsh/nsh.json", '{"rust":"."}\n');
+  f.write(f.target, "sample_tool_nsh/App.tsx", 'import { mount } from "nsh";\nmount(() => null);\n');
+  const nshPlan = f.plan();
+  for (const entry of vendorEntries) assert.equal(f.classification(nshPlan, entry), "add");
+
+  f.write(f.target, "sample_tool_nsh/nsh.json", '{"rust":".","root":"App"}\n');
+  assert.match(f.plan(2).error, /Mixed\/Rust 入口/u);
+  f.write(f.target, "sample_tool_nsh/nsh.json", '{"rust":"."}\n');
+  f.write(f.target, "sample_tool_nsh/Cargo.toml", '[package]\nname = "sample_tool_nsh"\nversion = "0.1.0"\nedition = "2024"\n[dependencies]\nnsh-core = { version = "0.5.1", git = "https://github.com/longbridge/nsh.git", rev = "224d9a795c7ac9d10d75750de9351adac5549675" }\n');
+  assert.match(f.plan(2).error, /仅支持官方 v0\.6\.0/u);
 });
 
 /** 实际接口决定文档与发布 Skill 的保留范围；NSH 批次证据不走扁平收集器。 */
@@ -184,7 +188,7 @@ test("framework_metadata_drift_blocks_reviewed_managed_application", (t) => {
   const { planPath } = f.createPlan();
   f.write(f.target, "Cargo.toml", `${METADATA}interfaces = ["gui"]\ngui-framework = "nsh"\n`);
   const result = f.runTool(["apply", "--plan", planPath, "--approval", "apply-managed-changes", "--path", MANAGED], 2);
-  assert.match(result.error, /已复核 plan 不再匹配/u);
+  assert.match(result.error, /DESKTOP 仅支持 Tauri|已复核 plan 不再匹配/u);
   assert.equal(fs.readFileSync(path.join(f.target, MANAGED), "utf8"), "v1");
 });
 

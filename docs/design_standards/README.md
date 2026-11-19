@@ -19,7 +19,7 @@
 | 所有 DESKTOP 与 NSH 图形界面的页面、组件与展示层 | [UI 统一设计基座](ui_foundation.md) | `ui-foundation-v1` |
 | 所有图形界面中按行列浏览重复记录的数据网格 | [通用 Grid 数据网格标准](data_grid.md) | `data-grid-v1` |
 | Tauri 2 + React + Mantine GUI | [Tauri GUI 通用设计标准](tauri_gui.md) | `tauri-gui-common-v1` |
-| `interfaces = ["nsh"]` + 已选 desktop、mobile 或 web；旧 GUI/NSH 只读兼容 | [NSH GUI 标准](nsh_gui.md)；桌面九项能力仅在 `nsh-targets` 含 `desktop` 时适用 | `nsh-gui-common-v1` |
+| `interfaces = ["nsh"]` + 已选 desktop、mobile 或 web | [NSH GUI 标准](nsh_gui.md)；桌面九项能力仅在 `nsh-targets` 含 `desktop` 时适用 | `nsh-gui-common-v1` |
 | React 19.2+ + TypeScript + Mantine UI 9.x + 重复记录检索/浏览/管理 | [Mantine 列表页设计标准](mantine_list_view.md) | `mantine-list-view-v2` |
 | Tauri 2 + React + Mantine GUI + 固定左侧栏 + `sidebar_mode = compact` | [Tauri GUI 左侧栏标准](tauri_sidebar.md#精简模式) | `tauri-gui-sidebar-compact-80-v1` |
 | Tauri 2 + React + Mantine GUI + 固定左侧栏 + `sidebar_mode = detailed` | [Tauri GUI 左侧栏标准](tauri_sidebar.md#详细模式) | `tauri-gui-sidebar-detailed-v1` |

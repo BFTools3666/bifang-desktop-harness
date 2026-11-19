@@ -9,7 +9,7 @@ description: 只收集 Harness 创建终端下游所需的固定初始化信息�
 
 ## DESKTOP 框架与 NSH 路由
 
-顶层选择 DESKTOP（Cargo `gui`）或 NSH 后，严格复用 [唯一表单合同](references/initialization-form.md) 与 `initialization_form.mjs` 的下一问；不在本入口定义默认或重新询问。DESKTOP 直接派生 Cargo `gui-framework = "tauri"`，无需框架问句；旧 GUI 缺失时兼容 Tauri。NSH 写入顶层 `interfaces = ["nsh"]`、`nsh-targets` 和具体 `target-platforms`，不写 `gui-framework`；旧 GUI/NSH 元数据只读兼容。九字段 profile 对 DESKTOP 始终适用，对 NSH 仅随 desktop 子目标适用。
+顶层选择 DESKTOP（Cargo `gui`）或 NSH 后，严格复用 [唯一表单合同](references/initialization-form.md) 与 `initialization_form.mjs` 的下一问；不在本入口定义默认或重新询问。DESKTOP 直接派生 Cargo `gui-framework = "tauri"`，无需框架问句；旧 GUI 缺失时兼容 Tauri。NSH 写入顶层 `interfaces = ["nsh"]`、`nsh-targets` 和具体 `target-platforms`，不写 `gui-framework`。九字段 profile 对 DESKTOP 始终适用，对 NSH 仅随 desktop 子目标适用。
 
 下文的图标/DMG、三项固定插件、六项宿主能力、Mantine/React 与初始化 E2E 适用于 DESKTOP（Tauri）。DESKTOP 使用 Node.js/pnpm；顶层 NSH 只使用 Node.js 工程工具。
 

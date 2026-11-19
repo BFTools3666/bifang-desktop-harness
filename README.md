@@ -14,7 +14,7 @@ DESKTOP 使用 Node.js/pnpm 工程工具，初始化通过 Tauri 专用结构检
 
 ### NSH 项目
 
-NSH 可多选桌面、移动、Web、TUI。四类目标共用 Mixed TSX 和 Rust core，新项目使用正式 v0.6.0 提交 `554163758e30d2f62f814096a6327937dcb4fe49` 与匹配 CLI。初始化会将同版本官方 `nsh`、`nsh-design-guides` 安装到项目的 `.agents/skills/`。
+NSH 可多选桌面、移动、Web、TUI。四类目标共用 Mixed TSX 和 Rust core，受管入口仅支持正式 v0.6.0 提交 `554163758e30d2f62f814096a6327937dcb4fe49` 与匹配 CLI。初始化会将同版本官方 `nsh`、`nsh-design-guides` 安装到项目的 `.agents/skills/`。
 
 | 目标 | 下游开发命令 | 官方打包目标 |
 | --- | --- | --- |
@@ -25,7 +25,7 @@ NSH 可多选桌面、移动、Web、TUI。四类目标共用 Mixed TSX 和 Rust
 
 NSH 桌面默认提供官方多窗口。表单按托盘、单实例、有条件的深链接、关于、赞助、侧栏模式询问。只有启用单实例才询问深链接。自启、通知和 OS 全局快捷键在中性模板固定关闭。仅含移动、Web 或 TUI 的项目跳过桌面配置和 Logo。
 
-从下游根目录运行 `npm run nsh:check` 和 `npm run nsh:test`。组合工程打包保留 Cargo 相对路径和应用资源，iOS 模拟器开发使用 `dev:ios`，打包使用 `ios-simulator`。已有 0.4.0 项目的迁移按项目单独处理。见 [NSH 运行时与能力](.agents/skills/desktop-add-nsh-adapter/references/runtime-and-capabilities.md) 和 [NSH 打包入口](.agents/skills/desktop-build-nsh-release/SKILL.md)。
+从下游根目录运行 `npm run nsh:check` 和 `npm run nsh:test`。组合工程打包保留 Cargo 相对路径和应用资源，iOS 模拟器开发使用 `dev:ios`，打包使用 `ios-simulator`。旧版或旧 GUI/NSH 工程须先在原项目迁移。见 [NSH 运行时与能力](.agents/skills/desktop-add-nsh-adapter/references/runtime-and-capabilities.md) 和 [NSH 打包入口](.agents/skills/desktop-build-nsh-release/SKILL.md)。
 
 这个仓库不是一款可以直接安装的应用，也不包含任何具体产品的业务代码。它更像一套已经整理好的“开工方式”，适合用 AI Agent 持续开发专有、可商业化的小工具。
 

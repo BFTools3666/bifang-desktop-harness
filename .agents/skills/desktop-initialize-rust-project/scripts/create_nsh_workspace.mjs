@@ -15,6 +15,12 @@ export function createNshWorkspace(target,input) {
   const options = normalizeNshOptions(input);
   const id = options.projectId;
   const files = renderNshAdapterFiles(options);
+  for (const relative of [
+    'desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs',
+    'desktop-implement-change/scripts/nsh_runtime_policy.mjs',
+  ]) {
+    files.set('.agents/skills/' + relative, fs.readFileSync(new URL('../../' + relative, import.meta.url)));
+  }
   files.set('Cargo.toml',`[workspace]\nresolver = "3"\nmembers = ["${id}_core", "${id}_nsh"]\n\n[workspace.package]\nversion = "0.1.0"\nedition = "2024"\nrust-version = "1.98.1"\nauthors = [${JSON.stringify(options.owner)}]\n\n[workspace.dependencies]\n${id}_core = { path = "${id}_core" }\n${nshDependencies(options)}\n\n[workspace.metadata.agent-first-harness]\nproject-id = "${id}"\ninterfaces = ["nsh"]\nnsh-targets = ${JSON.stringify(options.nshTargets)}\ntarget-platforms = ${JSON.stringify(options.targetPlatforms)}\nversion-mirrors = ["${id}_nsh/nsh.json"]\n`);
   files.set(`${id}_core/Cargo.toml`,`[package]\nname = "${id}_core"\nversion.workspace = true\nedition.workspace = true\n`);
   files.set(`${id}_core/src/lib.rs`,`//! 运行时中立共享核心；产品定义后在此建立领域规则。\n\n/// 中性工程是否完成初始化，以及产品定义是否待补充。\n#[derive(Debug, PartialEq, Eq)]\npub struct ScaffoldStatus {\n    /// 工程结构已经建立。\n    pub initialized: bool,\n    /// 产品目的和成功标准仍需定义。\n    pub product_definition_required: bool,\n}\n\n/// 返回不含业务假设或宿主副作用的工程状态。\npub async fn scaffold_status() -> ScaffoldStatus {\n    ScaffoldStatus {\n        initialized: true,\n        product_definition_required: true,\n    }\n}\n\n#[cfg(test)]\nmod tests {\n    use super::scaffold_status;\n    use std::future::Future;\n    use std::task::{Context, Poll, Waker};\n\n    #[test]\n    fn new_workspace_reports_its_neutral_core_state() {\n        let mut future = std::pin::pin!(scaffold_status());\n        let mut context = Context::from_waker(Waker::noop());\n        let Poll::Ready(status) = future.as_mut().poll(&mut context) else {\n            panic!("neutral scaffold status unexpectedly deferred");\n        };\n        assert!(status.initialized);\n        assert!(status.product_definition_required);\n    }\n}\n`);

@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { normalizeNshOptions, nshDependencies, nshPackageScripts, renderNshAdapterFiles } from './nsh_adapter_files.mjs';
+import { readNshWorkspaceDependencies } from '../../desktop-implement-change/scripts/nsh_runtime_policy.mjs';
 
 /** 拒绝目标及父级符号链接，避免写入范围逃逸。 */
 export function assertNshPath(file) {
@@ -90,11 +91,11 @@ export function addNshAdapter(root, input) {
   let cargo = fs.readFileSync(cargoPath,'utf8');
   const originalCargo = cargo;
   if (/gui-framework\s*=/u.test(cargo)) throw new Error('existing NSH dependencies/framework conflict');
-  const newDependencies = nshDependencies(options);
-  for (const line of newDependencies.split('\n')) {
-    const name = line.split(' = ')[0];
-    if (new RegExp(`^${name}\\s*=`, 'mu').test(cargo)) throw new Error(`existing NSH dependency conflict: ${name}`);
+  if (readNshWorkspaceDependencies(cargo).size ||
+      metadata.packages.some(pkg => pkg.dependencies.some(dep => dep.name.startsWith('nsh-')))) {
+    throw new Error('existing NSH dependency conflict');
   }
+  const newDependencies = nshDependencies(options);
   if ((cargo.match(/^members\s*=\s*\[[^\n]*\]/gmu) ?? []).length !== 1 || (cargo.match(/^interfaces\s*=\s*\[[^\n]*\]/gmu) ?? []).length !== 1) throw new Error('requires single-line members and interfaces arrays');
   cargo = cargo.replace(/^members\s*=\s*\[[^\n]*\]/mu,`members = ${JSON.stringify([...metadata.workspace_members.map(member=>metadata.packages.find(pkg=>pkg.id===member)).map(pkg=>path.relative(root,path.dirname(pkg.manifest_path)).split(path.sep).join('/')),`${options.projectId}_nsh`])}`);
   cargo = cargo.replace(/^interfaces\s*=\s*\[[^\n]*\]/mu,`interfaces = ["nsh"]\nnsh-targets = ${JSON.stringify(options.nshTargets)}`);

@@ -5,7 +5,7 @@ description: 独立构建 NSH 桌面、Android、iOS、Web 包；区分本地工
 
 # 构建 NSH 包
 
-新下游仅顶层 `interfaces = ["nsh"]`，并读取 `nsh-targets` 与具体 `target-platforms`；旧 `interfaces = ["gui"]`、`gui-framework = "nsh"` 只读兼容。先读 [候选共用流程](../../../docs/RELEASE.md#git-发布后构建与完整验收)、[Agent Policy 构建段](../../../docs/AGENT_POLICY.md#开发与构建) 与 [NSH 运行时合同](../desktop-add-nsh-adapter/references/runtime-and-capabilities.md)。仅打包 desktop/mobile/web 对应的已选平台；TUI 没有官方打包目标。全局 `nsh` CLI 与项目根 Cargo 的 `nsh-core` 与所有已声明的 NSH Git 依赖须使用运行时引用列出的同一正式版本及提交，`nsh --version` 须显示相同版本及短 SHA；不自动下载工具，不运行原移动客户端脚本。0.5.x 项目仍须声明 `nsh-base`。
+仅适用顶层 `interfaces = ["nsh"]`，并读取 `nsh-targets` 与具体 `target-platforms`。先读 [候选共用流程](../../../docs/RELEASE.md#git-发布后构建与完整验收)、[Agent Policy 构建段](../../../docs/AGENT_POLICY.md#开发与构建) 与 [NSH 运行时合同](../desktop-add-nsh-adapter/references/runtime-and-capabilities.md)。仅打包 desktop/mobile/web 对应的已选平台；TUI 没有官方打包目标。全局 `nsh` CLI 与项目根 Cargo 的 `nsh-core` 与所有已声明的 NSH Git 依赖须使用运行时引用列出的同一正式版本及提交，`nsh --version` 须显示相同版本及短 SHA；不自动下载工具，不运行原移动客户端脚本。旧版或旧 GUI/NSH 工程须先按运行时合同迁移。
 
 - `local`：允许未发布源码，完整非空 workspace 测试、NSH 检查与真实渲染树测试后打包到忽略的 `target/nsh-packaging/`；不安装/启动，不消费候选 E2E，不创建发布事实。
 - `candidate`：`$desktop-manage-version check --phase build`（构建不得提升版本）、clean 已发布默认主分支/tag/上下文及双语日志。按候选共用流程在构建前解析本次 E2E 选择。候选形成后，将 `target` 和 `buildRun` 交给 [$desktop-verify-delivery](../desktop-verify-delivery/SKILL.md) 执行已选 E2E、硬性验收或用户明确要求的完整验收。单独构建且 E2E 关闭时记录 `Not run`、原因和剩余风险，候选保持 `pending`。

@@ -140,11 +140,11 @@ test("local_package_route_is_single_target_and_requires_explicit_reselection", (
   assert.deepEqual(choose(nsh), { interface: "nsh", target: "macos", skill: "desktop-build-nsh-release" });
   assert.deepEqual(selectLocalPackageRoute({ ...nsh, hostPlatform: "windows" }),
     { interface: "nsh", target: "windows", skill: "desktop-build-nsh-release" });
-  assert.deepEqual(selectLocalPackageRoute({ ...nsh, nshTargets: ["mobile", "web"], hostPlatform: "linux" }),
+  assert.deepEqual(selectLocalPackageRoute({ ...nsh, nshTargets: ["mobile", "web"], platforms: ["android", "ios", "web"], hostPlatform: "linux" }),
     { interface: "nsh", target: "android", skill: "desktop-build-nsh-release" });
   assert.deepEqual(choose({ ...nsh, nshTargets: ["web"], platforms: ["web"] }),
     { interface: "nsh", target: "web", skill: "desktop-build-nsh-release" });
-  assert.equal(choose({ ...nsh, guiFramework: "nsh" }), null);
+  assert.throws(() => choose({ ...nsh, guiFramework: "nsh" }), /DESKTOP 仅支持 Tauri/u);
   for (const nshTargets of [null, [], ["tui"], ["desktop", "desktop"], ["web", "unknown"]]) {
     assert.equal(choose({ ...nsh, nshTargets }), null);
   }
@@ -161,11 +161,11 @@ test("local_package_route_is_single_target_and_requires_explicit_reselection", (
 });
 
 /** 顶层 NSH 的 Mixed 入口可选择本地打包，旧 Rust UI 入口不得冒充新工程。 */
-test("nsh_mixed_local_package_requires_tsx_and_preserves_legacy_gui_shape", (t) => {
+test("nsh_mixed_local_package_requires_current_runtime_and_tsx", (t) => {
   const f = fixture(t);
-  fs.writeFileSync(path.join(f.root, "Cargo.toml"), '[workspace]\nmembers = ["sample_tool_nsh"]\n[workspace.metadata.agent-first-harness]\nproject-id = "sample_tool"\ntarget-platforms = ["macos", "web"]\ninterfaces = ["nsh"]\nnsh-targets = ["desktop", "web"]\n');
+  fs.writeFileSync(path.join(f.root, "Cargo.toml"), '[workspace]\nmembers = ["sample_tool_nsh"]\n[workspace.dependencies]\nnsh-core = { version = "0.6.0", git = "https://github.com/longbridge/nsh.git", rev = "554163758e30d2f62f814096a6327937dcb4fe49" }\n[workspace.metadata.agent-first-harness]\nproject-id = "sample_tool"\ntarget-platforms = ["macos", "web"]\ninterfaces = ["nsh"]\nnsh-targets = ["desktop", "web"]\n');
   fs.mkdirSync(path.join(f.root, "sample_tool_nsh", "src"), { recursive: true });
-  fs.writeFileSync(path.join(f.root, "sample_tool_nsh", "Cargo.toml"), '[package]\nname = "sample_tool_nsh"\nversion = "0.1.0"\nedition = "2024"\n');
+  fs.writeFileSync(path.join(f.root, "sample_tool_nsh", "Cargo.toml"), '[package]\nname = "sample_tool_nsh"\nversion = "0.1.0"\nedition = "2024"\n[dependencies]\nnsh-core.workspace = true\n');
   fs.writeFileSync(path.join(f.root, "sample_tool_nsh", "src", "lib.rs"), 'pub fn scaffold() {}\n');
   const config = path.join(f.root, "sample_tool_nsh", "nsh.json");
   const app = path.join(f.root, "sample_tool_nsh", "App.tsx");
@@ -193,27 +193,22 @@ test("nsh_mixed_local_package_requires_tsx_and_preserves_legacy_gui_shape", (t) 
   const policyBeforeTui=fs.readFileSync(f.policy,"utf8");
   for (const framework of ['"gui-framework" = "tauri"', "'gui-framework' = 'nsh'"]) {
     fs.writeFileSync(cargo, `${unlocked}${framework}\n`);
-    assert.match(f.run("route", [], 2).error, /顶层 NSH 不声明 GUI 框架/u);
-    assert.match(f.run("check", [], 2).error, /顶层 NSH 不声明 GUI 框架/u);
+    assert.match(f.run("route", [], 2).error, /顶层 NSH 不声明 GUI 框架|DESKTOP 仅支持 Tauri/u);
+    assert.match(f.run("check", [], 2).error, /顶层 NSH 不声明 GUI 框架|DESKTOP 仅支持 Tauri/u);
   }
   fs.writeFileSync(cargo, unlocked.replace('nsh-targets = ["desktop", "web"]','nsh-targets = ["desktop", "web", "tui"]'));
   assert.equal(f.run("check").post_release_action,"local_package");
   assert.equal(f.run("set",setOptions("local_package","local_package")).post_release_action,"local_package");
   assert.equal(fs.readFileSync(f.policy,"utf8"),policyBeforeTui);
 
-  const legacy = fixture(t);
-  fs.writeFileSync(path.join(legacy.root, "Cargo.toml"), '[workspace]\nmembers = ["sample_tool_gui"]\n[workspace.metadata.agent-first-harness]\nproject-id = "sample_tool"\ntarget-platforms = ["macos"]\ninterfaces = ["gui"]\ngui-framework = "nsh"\n');
-  fs.mkdirSync(path.join(legacy.root, "sample_tool_gui", "src"), { recursive: true });
-  fs.writeFileSync(path.join(legacy.root, "sample_tool_gui", "Cargo.toml"), '[package]\nname = "sample_tool_gui"\nversion = "0.1.0"\nedition = "2024"\n');
-  fs.writeFileSync(path.join(legacy.root, "sample_tool_gui", "src", "lib.rs"), 'pub fn scaffold() {}\n');
-  fs.writeFileSync(path.join(legacy.root, "sample_tool_gui", "nsh.json"), '{"rust":".","root":"App"}\n');
-  const legacyBuild = path.join(legacy.root, ".agents", "skills", "desktop-build-nsh-release", "scripts");
-  fs.mkdirSync(legacyBuild, { recursive: true });
-  fs.writeFileSync(path.join(legacyBuild, "build_nsh_release.mjs"), 'export {};\n');
-  assert.equal(legacy.run("set", setOptions("local_package")).post_release_action, "local_package");
-  fs.appendFileSync(path.join(legacy.root, "Cargo.toml"), '"nsh-targets" = ["tui"]\n');
-  assert.match(legacy.run("route", [], 2).error, /只适用于顶层 NSH/u);
-  assert.match(legacy.run("check", [], 2).error, /只适用于顶层 NSH/u);
+  fs.writeFileSync(cargo, unlocked.replace("0.6.0", "0.5.1"));
+  assert.match(f.run("route", [], 2).error, /仅支持官方 v0\.6\.0/u);
+  assert.match(f.run("check", [], 2).error, /仅支持官方 v0\.6\.0/u);
+  assert.equal(fs.readFileSync(f.policy, "utf8"), policyBeforeTui);
+
+  fs.writeFileSync(cargo, '[workspace.metadata.agent-first-harness]\ninterfaces = ["gui"]\ngui-framework = "nsh"\ntarget-platforms = ["macos"]\n');
+  assert.match(f.run("route", [], 2).error, /DESKTOP 仅支持 Tauri/u);
+  assert.match(f.run("check", [], 2).error, /DESKTOP 仅支持 Tauri/u);
 });
 
 /** 框架字段遵循唯一事实；兼容旧项目但不修正显式错误。 */

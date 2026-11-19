@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { renderNshSponsor } from './nsh_support_pages.mjs';
-import { NSH_STABLE_REVISION, NSH_STABLE_VERSION, NSH_TARGETS, nshRevisionForTargets, validNshIdentity, validateNshPlatforms } from './nsh_runtime_revision.mjs';
+import { NSH_OFFICIAL_GIT, NSH_STABLE_REVISION, NSH_STABLE_VERSION, NSH_TARGETS, nshRevisionForTargets, validNshIdentity, validateNshPlatforms } from './nsh_runtime_revision.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const assetRoot = path.resolve(here, '../assets/gui');
@@ -262,14 +262,15 @@ export function renderNshAdapterFiles(input, version = '0.1.0') {
 export function nshDependencies(input) {
   const options = normalizeNshOptions(input);
   const revision = nshRevisionForTargets(options.nshTargets);
-  return `nsh-core = { version = "${NSH_STABLE_VERSION}", git = "https://github.com/longbridge/nsh.git", rev = "${revision}" }`;
+  return `nsh-core = { version = "${NSH_STABLE_VERSION}", git = "${NSH_OFFICIAL_GIT}", rev = "${revision}" }`;
 }
 
 /** Root scripts call only helpers retained by the selected downstream. */
 export function nshPackageScripts(id, targets = ['desktop'], platforms = ['macos']) {
   validateNshPlatforms(targets, platforms);
   const member = id + '_nsh';
-  const run = 'nsh run ' + member;
+  const nsh = 'node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs && nsh';
+  const run = nsh + ' run ' + member;
   const targetScripts = {};
   // NSH defaults to the current native desktop backend. iOS run uses ios, while package uses ios-simulator.
   if (targets.includes('desktop')) targetScripts['dev:desktop'] = run;
@@ -281,20 +282,20 @@ export function nshPackageScripts(id, targets = ['desktop'], platforms = ['macos
   ]) {
     if (!enabled) continue;
     targetScripts['dev:' + target] = run + ' --target ' + target;
-    targetScripts['nsh:test:' + target] = 'nsh test ' + member + '/App.test.tsx --target ' + target;
+    targetScripts['nsh:test:' + target] = nsh + ' test ' + member + '/App.test.tsx --target ' + target;
   }
   if (targets.includes('desktop')) {
     for (const platform of platforms.filter(value => ['macos', 'windows', 'linux'].includes(value))) {
-      targetScripts['nsh:test:' + platform] = 'nsh test ' + member + '/App.test.tsx --target ' + platform;
+      targetScripts['nsh:test:' + platform] = nsh + ' test ' + member + '/App.test.tsx --target ' + platform;
     }
   }
   return {
     dev: Object.values(targetScripts)[0],
     ...targetScripts,
     test: 'cargo test --workspace --all-targets --all-features',
-    'nsh:check': 'nsh check ' + id + '_nsh',
-    'nsh:build': 'nsh build ' + id + '_nsh',
-    'nsh:test': 'nsh test ' + id + '_nsh',
+    'nsh:check': nsh + ' check ' + member,
+    'nsh:build': nsh + ' build ' + member,
+    'nsh:test': nsh + ' test ' + member,
     ...(targets.some(value => value !== 'tui') ? { 'nsh:package': 'node .agents/skills/desktop-build-nsh-release/scripts/build_nsh_release.mjs --root .' } : {}),
     'release:notes': 'node .agents/skills/desktop-prepare-release/scripts/release_notes.mjs',
     'release:context': 'node .agents/skills/desktop-prepare-release/scripts/release_context.mjs',

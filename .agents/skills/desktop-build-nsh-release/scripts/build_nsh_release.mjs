@@ -10,46 +10,21 @@ import { checkContext } from '../../desktop-prepare-release/scripts/release_cont
 import { loadDocument,renderDocument } from '../../desktop-prepare-release/scripts/release_notes.mjs';
 import { check as checkVersion } from '../../desktop-manage-version/scripts/version_gate.mjs';
 import { readDependencyLockPolicy } from '../../desktop-implement-change/scripts/project_lock_policy.mjs';
-import { NSH_RELEASE_REVISIONS, nshRevisionForTargets, validNshIdentity, validateNshPlatforms } from '../../desktop-add-nsh-adapter/scripts/nsh_runtime_revision.mjs';
+import { nshRevisionForTargets, validNshIdentity } from '../../desktop-add-nsh-adapter/scripts/nsh_runtime_revision.mjs';
+import { assertNshCargoRuntime, assertNshCliVersion, assertNshWorkspacePin, readNshMixedConfig } from '../../desktop-implement-change/scripts/nsh_runtime_policy.mjs';
 import { iosPackagingIdentity,restoreIosDisplayIdentity } from './nsh_ios_identity.mjs';
 import { NSH_BUILD_CACHE_NAMES, prepareNshPortableEntry } from './nsh_portable_entry.mjs';
 
 import { addNshIosBindgenSdk, resolveNshPackageOptions } from './nsh_package_options.mjs';
 
 const targets = ['macos','windows','linux','android','ios','ios-simulator','web'];
-const NSH_UPSTREAM = 'https://github.com/longbridge/nsh.git';
 
 /** 仅允许受支持目标使用相同正式提交的 CLI 与 Cargo 运行时。 */
 export function assertNshToolchain(root,selected,cliVersion) {
-  nshRevisionForTargets(selected);
-  const manifest=fs.readFileSync(path.join(root,'Cargo.toml'),'utf8');
-  const dependencies=new Map();
-  let dependencySection=false;
-  for(const line of manifest.split(/\r?\n/u)) {
-    if(/^\s*\[.+\]\s*(?:#.*)?$/u.test(line)) {
-      dependencySection=/^\s*\[workspace\.dependencies\]\s*(?:#.*)?$/u.test(line);
-      continue;
-    }
-    if(!dependencySection) continue;
-    const nshKey=/^\s*(nsh-[a-z0-9_-]+)\s*=/u.exec(line)?.[1];
-    const entry=/^\s*(nsh-[a-z0-9_-]+)\s*=\s*\{([^}]*)\}\s*(?:#.*)?$/u.exec(line);
-    if(nshKey && !entry) throw new Error(`${nshKey} requires a pinned official NSH Git runtime`);
-    if(!entry) continue;
-    if(dependencies.has(entry[1])) throw new Error(`duplicate ${entry[1]} runtime dependency`);
-    const git=/\bgit\s*=\s*"([^"]+)"/u.exec(entry[2])?.[1];
-    const version=/\bversion\s*=\s*"([^"]+)"/u.exec(entry[2])?.[1];
-    const rev=/\brev\s*=\s*"([0-9a-f]{40})"/u.exec(entry[2])?.[1];
-    if(git!==NSH_UPSTREAM || !version || !rev) throw new Error(`${entry[1]} requires a pinned official NSH Git runtime`);
-    dependencies.set(entry[1],{version,rev});
-  }
-  const core=dependencies.get('nsh-core');
-  if(!core || [...dependencies.values()].some(dep=>dep.version!==core.version || dep.rev!==core.rev)) {
-    throw new Error('NSH runtime dependency versions and revisions must all match');
-  }
-  if(NSH_RELEASE_REVISIONS[core.version]!==core.rev) throw new Error('NSH targets require a pinned official stable runtime');
-  if(core.version.startsWith('0.5.') && !dependencies.has('nsh-base')) throw new Error('NSH 0.5 runtime requires nsh-base');
-  if(cliVersion.trim()!==`nsh ${core.version} (${core.rev.slice(0,7)})`) throw new Error('NSH CLI and Cargo runtime revision do not match');
-  return core.rev;
+  const revision = nshRevisionForTargets(selected);
+  assertNshWorkspacePin(fs.readFileSync(path.join(root, 'Cargo.toml'), 'utf8'));
+  assertNshCliVersion(cliVersion);
+  return revision;
 }
 /** 输出只能落在真实项目目录，拒绝链接目录和已有批次覆盖。 */
 export function safeOutputPath(root,file) {
@@ -205,24 +180,13 @@ export function sourceSnapshot(root) {
 /** 只读校验持久框架、版本与选择目标，不能把 CLI 当 NSH 打包。 */
 export function packageFacts(root,metadata,target) {
   if(!targets.includes(target)) throw new Error('unsupported NSH packaging target');
-  const facts=metadata.metadata?.['agent-first-harness'];
-  const modern=facts?.interfaces?.length===1 && facts.interfaces[0]==='nsh' && facts['gui-framework']===undefined;
-  const legacy=facts?.interfaces?.length===1 && facts.interfaces[0]==='gui' && facts['gui-framework']==='nsh' && facts['nsh-targets']===undefined;
-  if(path.resolve(metadata.workspace_root)!==root || !modern && !legacy) throw new Error('requires NSH workspace');
+  const pkg = assertNshCargoRuntime(root, metadata);
+  const facts = metadata.metadata['agent-first-harness'];
   const platform = target === 'ios-simulator' ? 'ios' : target;
-  if(!Array.isArray(facts['target-platforms']) || !facts['target-platforms'].includes(platform)) throw new Error('target is not selected');
-  if(modern){
-    const selected=facts['nsh-targets'];
-    validateNshPlatforms(selected, facts['target-platforms']);
-    const capability = platform === 'web' ? 'web' : ['android', 'ios'].includes(platform) ? 'mobile' : 'desktop';
-    if(!selected.includes(capability)) throw new Error('NSH target capability is not selected');
-  }
-  const id=facts['project-id'];
-  if(!/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/u.test(id)) throw new Error('invalid project-id');
-  const member=`${id}_${modern?'nsh':'gui'}`;
-  const pkg=metadata.packages.find(value=>value.name===member && metadata.workspace_members.includes(value.id));
-  if(!pkg || path.dirname(pkg.manifest_path)!==path.join(root,member)) throw new Error('NSH member missing');
-  return {gui:path.join(root,member),version:pkg.version,policy:facts,modern,dependencies:pkg.dependencies};
+  if (!facts['target-platforms'].includes(platform)) throw new Error('target is not selected');
+  const capability = platform === 'web' ? 'web' : ['android', 'ios'].includes(platform) ? 'mobile' : 'desktop';
+  if (!facts['nsh-targets'].includes(capability)) throw new Error('NSH target capability is not selected');
+  return { gui: path.dirname(pkg.manifest_path), version: pkg.version, policy: facts };
 }
 /** 构建前解析候选选择，测试和封包不掺入运行验收。 */
 export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,...packageInput}) {
@@ -237,26 +201,13 @@ export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,
   const releaseChannel = context?.releaseChannel ?? 'dev';
   const testEnv = { ...releaseNoteBuildInputs(null, null).env, HARNESS_RELEASE_CHANNEL: releaseChannel };
   delete testEnv.NSH_KEYSTORE_PASSWORD;
-  const metadata=JSON.parse(run('cargo',['metadata','--no-deps','--format-version','1'],root,testEnv,true));
+  const metadata=JSON.parse(run('cargo',['metadata','--offline','--no-deps','--format-version','1'],root,testEnv,true));
   const facts=packageFacts(root,metadata,target);
-  const modernDesktop=facts.modern && facts.policy['nsh-targets'].includes('desktop');
+  const desktop = facts.policy['nsh-targets'].includes('desktop');
   const nativeHost={macos:'darwin',windows:'win32',linux:'linux',ios:'darwin','ios-simulator':'darwin'}[target];
   if(nativeHost && nativeHost!==process.platform) throw new Error('target requires its native host');
   const version=run('nsh',['--version'],root,testEnv,true);
-  // 旧 GUI/NSH 元数据保留读取兼容，但其 Cargo 依赖同样必须迁到正式提交。
-  const runtimeTargets=facts.modern?facts.policy['nsh-targets']:[
-    ...(['macos','windows','linux'].some(platform=>facts.policy['target-platforms'].includes(platform))?['desktop']:[]),
-    ...(['android','ios'].some(platform=>facts.policy['target-platforms'].includes(platform))?['mobile']:[]),
-    ...(facts.policy['target-platforms'].includes('web')?['web']:[]),
-  ];
-  const revision = assertNshToolchain(root,runtimeTargets,version);
-  if (facts.modern) {
-    const dependencies = (facts.dependencies ?? []).filter(dependency => dependency.name.startsWith('nsh-'));
-    const source = 'git+' + NSH_UPSTREAM + '?rev=' + revision;
-    const required = version.startsWith('nsh 0.5.') ? ['nsh-core', 'nsh-base'] : ['nsh-core'];
-    if (required.some(name => !dependencies.some(dep => dep.name === name && !dep.kind && !dep.optional)) ||
-        dependencies.some(dep => dep.source !== source)) throw new Error('NSH app dependencies must resolve to the pinned official runtime');
-  }
+  assertNshToolchain(root, facts.policy['nsh-targets'], version);
   const packageOptions = resolveNshPackageOptions(root, target, packageInput);
   let notes=null;
   if(fs.existsSync(path.join(root,'.harness/version-state.json'))) checkVersion(root,'build');
@@ -264,8 +215,7 @@ export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,
     notes=loadDocument(path.join(root,'release-notes.json'));
     if(!notes || context.version!==facts.version || notes.releases[0].version!==`v${facts.version}`) throw new Error('candidate version mismatch');
   }
-  const configPath = safeOutputPath(root, path.join(facts.gui, 'nsh.json'));
-  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  const config = readNshMixedConfig(facts.gui);
   if (!validNshIdentity('nameZh', config.name)) throw new Error('nsh.json name must be a safe application package name');
   if (typeof config.id !== 'string' || config.id.length > 240 || !/^[A-Za-z][A-Za-z0-9_-]*(?:\.[A-Za-z][A-Za-z0-9_-]*)+$/u.test(config.id)) {
     throw new Error('nsh.json id must be a reverse-DNS application identifier');
@@ -306,7 +256,7 @@ export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,
     const {env, temporary} = releaseNoteBuildInputs(stage, notes, packageOptions.env);
     env.HARNESS_RELEASE_CHANNEL = releaseChannel;
     addNshIosBindgenSdk(target, env, sdk => run('xcrun', ['--sdk',sdk,'--show-sdk-path'], root, env, true));
-    const portable = modernDesktop && ['android','ios','ios-simulator','web'].includes(target);
+    const portable = desktop && ['android','ios','ios-simulator','web'].includes(target);
     const staged = portable || Boolean(betaIdentity);
     const entry = staged ? prepareNshPortableEntry(root, facts.gui, stage, { portable, betaIdentity }) : facts.gui;
     const packageRoot = path.join(stage, 'package');
@@ -336,8 +286,7 @@ export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,
     if (mode === 'candidate') checkContext({projectRoot:root,expectedSha256:context.releaseContextSha256},{published:true});
     const androidArch = abis?.length === 1 ? {'arm64-v8a':'arm64','armeabi-v7a':'arm','x86_64':'x64'}[abis[0]] : 'universal';
     const manifest = {
-      schemaVersion:1, project:facts.policy['project-id'], interface:facts.modern?'nsh':'gui',
-      ...(facts.modern ? {nshTargets:facts.policy['nsh-targets']} : {guiFramework:'nsh'}),
+      schemaVersion:1, project:facts.policy['project-id'], interface:'nsh', nshTargets:facts.policy['nsh-targets'],
       mode, releaseChannel, target, platform:target==='ios-simulator'?'ios':target, host:process.platform,
       hostArch:process.arch, arch:packageOptions.arch ?? (target==='web'?'wasm32':target==='android'?androidArch:['ios','ios-simulator'].includes(target)?'arm64':process.arch),
       ...(abis ? {androidAbis:abis} : {}),
