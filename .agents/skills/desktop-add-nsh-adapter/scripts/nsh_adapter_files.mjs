@@ -81,7 +81,6 @@ export function renderNshAdapterFiles(input, version = '0.1.0') {
   const omittedLabels = new Set([
     ...(!about ? ['about'] : []),
     ...(!sponsor ? ['sponsor'] : []),
-    'start_at_login', 'start_at_login_description', 'enabled', 'disabled', 'unknown', 'refresh', 'autostart_error', 'window_error',
     ...(!deepLink ? ['deep_link_received'] : []),
   ]);
   files.set(member + '/translations.ts', readAsset('translations.ts').split('\n').filter(line => {
@@ -162,8 +161,12 @@ export function renderNshAdapterFiles(input, version = '0.1.0') {
       '  const app = await open(".", { locale: "en-US", platform: ' + JSON.stringify(fixturePlatform) + ' });',
       '  await app.press("About");',
       '  expect(app.texts().some((value) => value.includes(' + JSON.stringify(owner) + '))).toBe(true);',
-      '  await app.press("Release notes");',
+      '  const releaseNotes = "role:button[Release notes]";',
+      '  expect(app.texts()).not.toContain("No published release notes");',
+      '  await app.press(releaseNotes);',
       '  await app.waitFor("No published release notes");',
+      '  await app.press(releaseNotes);',
+      '  expect(app.texts()).not.toContain("No published release notes");',
       '});',
     ].join('\n')] : []),
     ...(sponsor ? [[
@@ -224,7 +227,7 @@ export function renderNshAdapterFiles(input, version = '0.1.0') {
   const manifest = [
     '[package]', 'name = "' + member + '"', 'version.workspace = true', 'edition.workspace = true', 'publish = false',
     '', '[lib]', 'crate-type = ["rlib"]', '', '[dependencies]', id + '_core.workspace = true',
-    'nsh-core.workspace = true', 'nsh-base.workspace = true',
+    'nsh-core.workspace = true',
     '',
   ].join('\n');
   files.set(member + '/Cargo.toml', manifest);
@@ -238,7 +241,7 @@ export function renderNshAdapterFiles(input, version = '0.1.0') {
     ...(deepLink ? { schemes: ['app-' + id.replaceAll('_', '-')] } : {}),
     capabilities: {
       ...(mobile ? { statusBar: true } : {}),
-      ...(desktop ? { windows: { kinds: ['normal'], levels: ['normal'] } } : {}),
+      ...(desktop ? { application: true, windows: { kinds: ['normal'], levels: ['normal'] } } : {}),
     },
   }, null, 2) + '\n');
   if (desktop) files.set('docs/GUI_APP_PROFILE.md', '# NSH 桌面能力配置\n\n接口事实：根 Cargo metadata 的 nsh；桌面目标由 nsh-targets 声明。身份：' + nameZh + ' / ' + nameEn + '；负责人：' + owner + '。\n\n```gui-initialization-config\n' + PROFILE_FIELDS.map(key => key + ': ' + profile[key]).join('\n') + '\n```\n\n' + (options.logo ? '使用已选择 Logo。' : '中性工程验证夹具，无正式品牌确认。') + ' 多窗口由 NSH 官方运行时提供；托盘、单实例、深链接仅按已选字段接线。自启、系统通知与系统全局快捷键未接入中性模板。未验证平台不得报通过。\n');
@@ -259,8 +262,7 @@ export function renderNshAdapterFiles(input, version = '0.1.0') {
 export function nshDependencies(input) {
   const options = normalizeNshOptions(input);
   const revision = nshRevisionForTargets(options.nshTargets);
-  return ['nsh-core', 'nsh-base'].map(name =>
-    `${name} = { version = "${NSH_STABLE_VERSION}", git = "https://github.com/longbridge/nsh.git", rev = "${revision}" }`).join('\n');
+  return `nsh-core = { version = "${NSH_STABLE_VERSION}", git = "https://github.com/longbridge/nsh.git", rev = "${revision}" }`;
 }
 
 /** Root scripts call only helpers retained by the selected downstream. */

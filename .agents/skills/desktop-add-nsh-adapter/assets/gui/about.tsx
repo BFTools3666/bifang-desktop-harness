@@ -1,5 +1,5 @@
 import { appInfo, colorScheme, signal, Text, View } from "nsh";
-import { Button as BaseButton } from "nsh/base";
+import { Collapsible } from "nsh/base";
 import { Scaffold } from "__PROJECT_ID__/native";
 import { tr, type Language } from "./translations";
 import { palette, tokens } from "./tokens";
@@ -38,13 +38,24 @@ export function AboutPage(props: { language: Language }) {
         <Text style={{ color: colors().muted, fontSize: tokens.body, lineHeight: tokens.bodyLineHeight }}>{labels().thanks}</Text>
       </View>
 
-      <View style={cardStyle()}>
+      <Collapsible
+        open={notesOpen()}
+        style={cardStyle()}
+        content={
+          <View style={{ paddingTop: tokens.settingsGap, borderTopWidth: tokens.borderWidth, borderTopColor: colors().sidebarBorder }}>
+            <Text style={{ color: colors().foreground, fontSize: tokens.body, lineHeight: tokens.bodyLineHeight }}>{Scaffold.releaseNotes(props.language === "zh")}</Text>
+          </View>
+        }
+      >
         <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: tokens.settingsGap }}>
           <Text style={{ flex: 1, minWidth: 0, color: colors().foreground, fontSize: tokens.sectionTitle, fontWeight: "600" }}>{labels().releaseNotes}</Text>
-          <BaseButton
+          <View
+            role="button"
+            focusable
             onPress={() => notesOpen.set(!notesOpen())}
-            selected={notesOpen()}
             accessibilityLabel={labels().releaseNotes}
+            accessibilityState={{ expanded: notesOpen() }}
+            focusStyle={{ borderColor: colors().focus }}
             style={{
               minHeight: tokens.controlHeight,
               paddingHorizontal: tokens.controlPaddingHorizontal,
@@ -56,13 +67,9 @@ export function AboutPage(props: { language: Language }) {
             }}
           >
             <Text style={{ color: colors().foreground, fontSize: tokens.body }}>{labels().releaseNotes}</Text>
-          </BaseButton>
+          </View>
         </View>
-        {notesOpen() &&
-          <View style={{ paddingTop: tokens.settingsGap, borderTopWidth: tokens.borderWidth, borderTopColor: colors().sidebarBorder }}>
-            <Text style={{ color: colors().foreground, fontSize: tokens.body, lineHeight: tokens.bodyLineHeight }}>{Scaffold.releaseNotes(props.language === "zh")}</Text>
-          </View>}
-      </View>
+      </Collapsible>
 
       <View style={cardStyle()}>
         <Text style={{ color: colors().foreground, fontSize: tokens.sectionTitle, fontWeight: "600" }}>{labels().disclaimer}</Text>

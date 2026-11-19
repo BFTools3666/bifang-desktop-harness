@@ -14,7 +14,7 @@ test('portable_entry_keeps_mixed_core_without_registering_desktop_schemes', t =>
   fs.mkdirSync(stage, {recursive:true});
   const original = { name: 'Example', rust: '.', window: { closeOnPress: false },
     schemes: ['app-example','mobile-example'], singleInstance: true, icon: { default: 'assets/tray.svg' },
-    capabilities: { windows: { kinds: ['normal'] } } };
+    capabilities: { application: true, windows: { kinds: ['normal'] }, statusBar: true } };
   const app = 'import icon from ' + '"./assets/tray.svg";\n';
   fs.writeFileSync(path.join(gui, 'App.tsx'), app);
   fs.writeFileSync(path.join(gui, 'assets', 'tray.svg'), '<svg/>');
@@ -26,7 +26,7 @@ test('portable_entry_keeps_mixed_core_without_registering_desktop_schemes', t =>
   if (process.platform !== 'win32') fs.symlinkSync('portable-fixture', path.join(installed, '..', 'linked-fixture'));
   const entry = prepareNshPortableEntry(root, gui, stage);
   const portable = JSON.parse(fs.readFileSync(path.join(entry, 'nsh.json'), 'utf8'));
-  assert.deepEqual(portable, { name:'Example', rust:'.', icon:original.icon, schemes:['mobile-example'], capabilities:{} });
+  assert.deepEqual(portable, { name:'Example', rust:'.', icon:original.icon, schemes:['mobile-example'], capabilities:{ statusBar: true } });
   assert.equal(fs.readFileSync(path.join(entry, 'App.tsx'), 'utf8'), app);
   assert.equal(fs.readFileSync(path.join(entry, 'assets', 'tray.svg'), 'utf8'), '<svg/>');
   assert.equal(fs.readFileSync(path.join(entry, '..', 'Cargo.toml'), 'utf8'), '[workspace]');

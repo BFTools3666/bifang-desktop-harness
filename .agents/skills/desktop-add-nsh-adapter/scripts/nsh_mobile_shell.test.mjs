@@ -54,6 +54,7 @@ test('combined targets retain official desktop windows while mobile receives sta
   const mixedConfig = JSON.parse(mixed.get('sample_tool_nsh/nsh.json'));
   assert.deepEqual(mixedConfig.statusBar, { foreground: 'auto' });
   assert.equal(mixedConfig.capabilities.statusBar, true);
+  assert.equal(mixedConfig.capabilities.application, true);
   assert.deepEqual(mixedConfig.capabilities.windows, { kinds: ['normal'], levels: ['normal'] });
 
   const web = renderNshAdapterFiles({ ...base, targetPlatforms: ['web'], nshTargets: ['web'] });

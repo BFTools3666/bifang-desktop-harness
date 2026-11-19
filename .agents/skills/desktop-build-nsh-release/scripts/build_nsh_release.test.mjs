@@ -32,11 +32,15 @@ test('package_facts_accepts_top_level_nsh_and_legacy_gui_nsh',()=>fixture(root=>
 
 /** 新旧正式版均要求版本、提交及 CLI 精确匹配。 */
 test('nsh_toolchain_requires_matching_released_cli_and_runtime',()=>fixture(root=>{
+  const current='554163758e30d2f62f814096a6327937dcb4fe49';
   const preview='beeb9fc7707e0d4a195a4f7274f77b30e134c500';
   const stable='224d9a795c7ac9d10d75750de9351adac5549675';
   const previous='f4d68f7f9f31eb7b3ecc8a4cbc31096d5c6238a1';
   const dependency=(version,revision)=>`{ version = "${version}", git = "https://github.com/longbridge/nsh.git", rev = "${revision}" }`;
   const manifest=(revision,version='0.5.1')=>`[workspace]\nmembers = []\n[workspace.dependencies]\nnsh-core = ${dependency(version,revision)}\nnsh-base = ${dependency(version,revision)}\n[workspace.metadata.agent-first-harness]\ninterfaces = ["nsh"]\n`;
+  fs.writeFileSync(path.join(root,'Cargo.toml'),manifest(current,'0.6.0').replace(/^nsh-base.*$/mu,''));
+  assert.equal(assertNshToolchain(root,['web'],'nsh 0.6.0 (5541637)'),current);
+  assert.throws(()=>assertNshToolchain(root,['web'],'nsh 0.5.1 (224d9a7)'),/do not match/u);
   fs.writeFileSync(path.join(root,'Cargo.toml'),manifest(preview));
   assert.throws(()=>assertNshToolchain(root,['web'],'nsh 0.5.1 (beeb9fc)'),/pinned official stable runtime/u);
   fs.writeFileSync(path.join(root,'Cargo.toml'),manifest(stable));
@@ -47,7 +51,7 @@ test('nsh_toolchain_requires_matching_released_cli_and_runtime',()=>fixture(root
   fs.writeFileSync(path.join(root,'Cargo.toml'),manifest(stable,'0.5.0'));
   assert.throws(()=>assertNshToolchain(root,['web'],'nsh 0.5.1 (224d9a7)'),/pinned official stable runtime/u);
   fs.writeFileSync(path.join(root,'Cargo.toml'),manifest(stable).replace(/^nsh-base.*$/mu,''));
-  assert.throws(()=>assertNshToolchain(root,['web'],'nsh 0.5.0 (f4d68f7)'),/must all match/u);
+  assert.throws(()=>assertNshToolchain(root,['web'],'nsh 0.5.1 (224d9a7)'),/requires nsh-base/u);
   fs.writeFileSync(path.join(root,'Cargo.toml'),manifest(stable).replace('[workspace.metadata.agent-first-harness]',`nsh-engine = ${dependency('0.5.0',previous)}\n[workspace.metadata.agent-first-harness]`));
   assert.throws(()=>assertNshToolchain(root,['web'],'nsh 0.5.1 (224d9a7)'),/must all match/u);
   fs.writeFileSync(path.join(root,'Cargo.toml'),manifest(preview).replace('[workspace.metadata.agent-first-harness]','nsh-engine = { workspace = true }\n[workspace.metadata.agent-first-harness]'));

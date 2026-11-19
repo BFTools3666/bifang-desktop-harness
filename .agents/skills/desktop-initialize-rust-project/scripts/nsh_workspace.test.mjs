@@ -42,7 +42,7 @@ test('all_targets_use_mixed_tsx_and_real_shared_core_bridge',()=>{
   const manifest=JSON.parse(desktop.get('sample_tool_nsh/nsh.json'));
   assert.equal(manifest.rust,'.');
   assert.equal(Object.hasOwn(manifest,'root'),false);
-  assert.deepEqual(manifest.capabilities, { windows: { kinds: ['normal'], levels: ['normal'] } });
+  assert.deepEqual(manifest.capabilities, { application: true, windows: { kinds: ['normal'], levels: ['normal'] } });
   assert.equal(manifest.singleInstance, undefined);
   assert.equal(manifest.schemes, undefined);
   const source=desktop.get('sample_tool_nsh/src/lib.rs');
@@ -100,6 +100,7 @@ test('fresh_workspace_cargo_metadata_binds_nsh_to_core_and_platforms',()=>fixtur
   const gui=metadata.packages.find(pkg=>pkg.name==='sample_tool_nsh');assert.ok(gui.dependencies.some(dep=>dep.name==='sample_tool_core' && !dep.optional));
   assert.equal(gui.dependencies.some(dep=>dep.name.startsWith('nsh-platform-')), false);
   assert.ok(gui.dependencies.some(dep=>dep.name==='nsh-core' && dep.source.endsWith(NSH_REVISION)));
+  assert.equal(gui.dependencies.some(dep=>dep.name==='nsh-base'), false);
   initialize(root);assert.deepEqual(check(root,'build').version_mirrors,['sample_tool_nsh/nsh.json']);
   const config=path.join(root,'sample_tool_nsh/nsh.json');const originalConfig=fs.readFileSync(config,'utf8');
   fs.writeFileSync(config,originalConfig.replace('0.1.0','0.2.0'));assert.throws(()=>check(root,'build'),/version|mirror/u);fs.writeFileSync(config,originalConfig);

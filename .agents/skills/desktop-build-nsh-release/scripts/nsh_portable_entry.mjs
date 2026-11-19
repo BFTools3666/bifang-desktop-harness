@@ -47,6 +47,7 @@ export function prepareNshPortableEntry(root, member, stage, { portable = true, 
   if (portable && config.capabilities != null) {
     if (typeof config.capabilities !== 'object' || Array.isArray(config.capabilities)) throw new Error('invalid NSH capabilities');
     delete config.capabilities.windows;
+    delete config.capabilities.application;
     // An explicit empty object denies all capabilities. Omitting the field grants all by default.
   }
   if (portable) {

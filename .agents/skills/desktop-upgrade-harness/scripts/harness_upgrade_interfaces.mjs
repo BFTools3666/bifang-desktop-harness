@@ -11,6 +11,7 @@ const NSH_TARGETS = new Set(["desktop", "mobile", "web", "tui"]);
 const NSH_RELEASE_REVISIONS = Object.freeze({
   "0.5.0": "f4d68f7f9f31eb7b3ecc8a4cbc31096d5c6238a1",
   "0.5.1": "224d9a795c7ac9d10d75750de9351adac5549675",
+  "0.6.0": "554163758e30d2f62f814096a6327937dcb4fe49",
 });
 const TAURI_SKILLS = new Set([
   "desktop-add-gui-adapter", "mantine-list-view", "desktop-add-gui-system-locale",
@@ -177,7 +178,7 @@ export function parseInterfaceSelection(source) {
     if (!nshTargets.length || nshTargets.some((target) => !NSH_TARGETS.has(target)) || new Set(nshTargets).size !== nshTargets.length) {
       throw new UpgradeError("Cargo nsh-targets 包含未知或重复目标");
     }
-    if (hasNonstableNshRuntime(source)) throw new UpgradeError("Cargo NSH 运行时须使用同一个受支持的正式版固定提交（v0.5.0 或 v0.5.1）");
+    if (hasNonstableNshRuntime(source)) throw new UpgradeError("Cargo NSH 运行时须使用同一个受支持的正式版固定提交");
     return { interfaces, guiFramework: null, nshTargets };
   }
   if (values.has("nsh-targets")) throw new UpgradeError("Cargo nsh-targets 只适用于顶层 NSH 接口");

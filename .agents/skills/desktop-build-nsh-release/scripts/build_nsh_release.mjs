@@ -43,10 +43,11 @@ export function assertNshToolchain(root,selected,cliVersion) {
     dependencies.set(entry[1],{version,rev});
   }
   const core=dependencies.get('nsh-core');
-  if(!core || !dependencies.has('nsh-base') || [...dependencies.values()].some(dep=>dep.version!==core.version || dep.rev!==core.rev)) {
+  if(!core || [...dependencies.values()].some(dep=>dep.version!==core.version || dep.rev!==core.rev)) {
     throw new Error('NSH runtime dependency versions and revisions must all match');
   }
   if(NSH_RELEASE_REVISIONS[core.version]!==core.rev) throw new Error('NSH targets require a pinned official stable runtime');
+  if(core.version.startsWith('0.5.') && !dependencies.has('nsh-base')) throw new Error('NSH 0.5 runtime requires nsh-base');
   if(cliVersion.trim()!==`nsh ${core.version} (${core.rev.slice(0,7)})`) throw new Error('NSH CLI and Cargo runtime revision do not match');
   return core.rev;
 }
@@ -252,7 +253,8 @@ export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,
   if (facts.modern) {
     const dependencies = (facts.dependencies ?? []).filter(dependency => dependency.name.startsWith('nsh-'));
     const source = 'git+' + NSH_UPSTREAM + '?rev=' + revision;
-    if (['nsh-core', 'nsh-base'].some(name => !dependencies.some(dep => dep.name === name && !dep.kind && !dep.optional)) ||
+    const required = version.startsWith('nsh 0.5.') ? ['nsh-core', 'nsh-base'] : ['nsh-core'];
+    if (required.some(name => !dependencies.some(dep => dep.name === name && !dep.kind && !dep.optional)) ||
         dependencies.some(dep => dep.source !== source)) throw new Error('NSH app dependencies must resolve to the pinned official runtime');
   }
   const packageOptions = resolveNshPackageOptions(root, target, packageInput);

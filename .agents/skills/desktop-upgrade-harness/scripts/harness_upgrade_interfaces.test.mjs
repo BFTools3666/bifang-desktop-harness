@@ -37,8 +37,9 @@ test("top_level_nsh_targets_are_parsed_without_gui_framework", () => {
   assert.throws(() => parseInterfaceSelection(`${METADATA}interfaces = ["cli", "nsh"]\nnsh-targets = ["desktop"]\n`), /独立顶层接口/u);
 });
 
-/** 工程升级兼容两个正式版本，拒绝预览、错配和混装。 */
+/** 工程升级兼容新旧正式版本，拒绝预览、错配和混装。 */
 test("nsh_upgrade_requires_one_supported_runtime_revision", () => {
+  const current = dependency("0.6.0", "554163758e30d2f62f814096a6327937dcb4fe49");
   const latest = dependency("0.5.1", "224d9a795c7ac9d10d75750de9351adac5549675");
   const previous = dependency("0.5.0", "f4d68f7f9f31eb7b3ecc8a4cbc31096d5c6238a1");
   const preview = dependency("0.5.1", "beeb9fc7707e0d4a195a4f7274f77b30e134c500");
@@ -50,8 +51,10 @@ test("nsh_upgrade_requires_one_supported_runtime_revision", () => {
 
   assert.deepEqual(parseInterfaceSelection(source(latest, latest)).nshTargets, ["desktop"]);
   assert.deepEqual(parseInterfaceSelection(source(previous, previous)).nshTargets, ["desktop"]);
+  assert.deepEqual(parseInterfaceSelection(source(current, current).replace(/^nsh-base.*$/mu, "")).nshTargets, ["desktop"]);
   assert.throws(() => parseInterfaceSelection(source(preview, preview)), /正式版固定提交/u);
   assert.throws(() => parseInterfaceSelection(source(latest, previous)), /正式版固定提交/u);
+  assert.throws(() => parseInterfaceSelection(source(current, latest)), /正式版固定提交/u);
   const wrongVersion = latest.replace('"0.5.1"', '"0.5.0"');
   assert.throws(() => parseInterfaceSelection(source(wrongVersion, wrongVersion)), /正式版固定提交/u);
 });

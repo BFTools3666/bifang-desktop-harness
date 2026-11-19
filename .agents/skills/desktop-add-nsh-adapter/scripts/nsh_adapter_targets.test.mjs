@@ -10,14 +10,17 @@ const profile = Object.freeze({
 const base = { projectId: 'sample_tool', nameZh: '示例工具', nameEn: 'Sample Tool', owner: 'test-owner' };
 
 /** 未选择 TUI 的工程不暴露终端入口。 */
-test('supported NSH targets use only the released v0.5.1 runtime and scripts', () => {
+test('supported NSH targets use only the released v0.6.0 runtime and scripts', () => {
   const desktop = { ...base, targetPlatforms: ['macos'], nshTargets: ['desktop'], profile };
   const mobileWeb = { ...base, targetPlatforms: ['android', 'web'], nshTargets: ['mobile', 'web'] };
-  assert.equal(NSH_REVISION, '224d9a795c7ac9d10d75750de9351adac5549675');
+  assert.equal(NSH_REVISION, '554163758e30d2f62f814096a6327937dcb4fe49');
   for (const options of [desktop, mobileWeb]) {
     assert.equal(nshRevisionForTargets(options.nshTargets), NSH_REVISION);
-    assert.match(nshDependencies(options), new RegExp(NSH_REVISION, 'u'));
+    const dependencies = nshDependencies(options);
+    assert.match(dependencies, new RegExp(NSH_REVISION, 'u'));
+    assert.doesNotMatch(dependencies, /nsh-base/u);
     const files = renderNshAdapterFiles(options);
+    assert.doesNotMatch(files.get('sample_tool_nsh/Cargo.toml'), /nsh-base/u);
     assert.ok(![...files.keys()].some(name => name.includes('.tui.')));
     const scripts = nshPackageScripts(options.projectId, options.nshTargets, options.targetPlatforms);
     assert.equal(scripts['nsh:check'], 'nsh check sample_tool_nsh');
