@@ -2,6 +2,25 @@
   "schemaVersion": 2,
   "releases": [
     {
+      "releaseDate": "2026-11-19",
+      "version": "v202611191015",
+      "featureOptimizations": [
+        {
+          "zh-CN": "新建 NSH 桌面、移动、Web 或终端项目时，使用 NSH 0.6.0 CLI。模板自动安装同版本的官方开发和设计指南。",
+          "en-US": "Use the NSH 0.6.0 CLI to create desktop, mobile, web, or terminal projects. The template installs the matching official development and design guides."
+        },
+        {
+          "zh-CN": "维护已有 NSH 工程时，使用 0.5.0、0.5.1 或旧 GUI/NSH 格式的项目须先迁移到 0.6.0 的顶层 Mixed 工程，再使用新版开发命令、Harness 升级或打包入口。开发命令会在启动前检查 CLI 版本。",
+          "en-US": "Migrate projects on NSH 0.5.0 or 0.5.1 and projects using the legacy GUI/NSH format to a top-level Mixed workspace on 0.6.0 before using the current development commands, Harness upgrade, or packaging. Development commands check the CLI version before launch."
+        },
+        {
+          "zh-CN": "NSH 桌面项目启用关于页后，可展开和收起随应用提供的离线双语更新日志，辅助技术可以读取展开状态。",
+          "en-US": "NSH desktop projects with an About page can expand and collapse the bundled bilingual release notes offline. The control exposes its expanded state to assistive technology."
+        }
+      ],
+      "bugFixes": []
+    },
+    {
       "releaseDate": "2026-11-16",
       "version": "v202611161524",
       "featureOptimizations": [
@@ -246,38 +265,6 @@
         {
           "zh-CN": "纠正 iOS 本地 .app 与正式 IPA 的打包边界，避免将未签名试包误判为渠道产物。",
           "en-US": "Clarify the boundary between local iOS .app packages and formal IPA distribution so unsigned trial packages are not treated as channel artifacts."
-        }
-      ]
-    },
-    {
-      "releaseDate": "2026-11-06",
-      "version": "v202611061437",
-      "featureOptimizations": [
-        {
-          "zh-CN": "新增确认摘要绑定的工程层准备与终端裁剪，固定复制清单并重置身份和策略，保护许可证及第三方资产。",
-          "en-US": "Add confirmation-bound engineering preparation and terminal pruning with fixed copy manifests, identity and policy reset, and license and vendor protection."
-        },
-        {
-          "zh-CN": "治理文档检查保留稳定引用与命令约束，减少等义措辞改写造成的误报。",
-          "en-US": "Keep stable references and command contracts in governance checks while reducing false failures from equivalent wording changes."
-        }
-      ],
-      "bugFixes": [
-        {
-          "zh-CN": "裁剪保留未知文件，修复身份串联替换、成员版本不一致及清理失败后的恢复状态。",
-          "en-US": "Preserve unknown files during pruning and fix cascading identity replacement, member version drift, and recovery states after cleanup failures."
-        },
-        {
-          "zh-CN": "Windows 开发循环改用持续持有的 Job 管理后代进程，补齐控制中断与输出收尾；原生宿主验证仍待完成。",
-          "en-US": "Manage Windows development descendants through persistent Job ownership with control cancellation and output cleanup; native-host verification remains pending."
-        },
-        {
-          "zh-CN": "Linux 本地 deb 与侧车证据整组提交，增加流式摘要、超时和取消清理；原生 dpkg 验证仍待完成。",
-          "en-US": "Commit Linux local deb packages and sidecar evidence as one collection with streaming hashes, timeouts, and cancellation cleanup; native dpkg verification remains pending."
-        },
-        {
-          "zh-CN": "统一 NSH GUI 本地打包的策略说明与初始化表单条件。",
-          "en-US": "Align NSH GUI local-packaging policy descriptions with initialization-form conditions."
         }
       ]
     }

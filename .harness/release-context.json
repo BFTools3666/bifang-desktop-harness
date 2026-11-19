@@ -1,17 +1,17 @@
 {
   "schemaVersion": 3,
-  "sourceHead": "345650e3c9dc2493e924fcd3ffd7bab9b48890bc",
-  "version": "202611161524",
-  "releaseDate": "2026-11-16",
-  "expectedTag": "v202611161524-20261116",
+  "sourceHead": "26a38fafdd40c857ea3f89d87e8ebbef2e77b540",
+  "version": "202611191015",
+  "releaseDate": "2026-11-19",
+  "expectedTag": "v202611191015-20261119",
   "defaultBranch": "master",
   "releaseReview": {
     "selection": "enabled",
     "status": "passed",
-    "scopeBase": "a968e0438da204b3f2ce944ed59a3180dde80627",
-    "sourceHead": "345650e3c9dc2493e924fcd3ffd7bab9b48890bc",
-    "scopeDiffSha256": "d471ddc88fc4bf5bca4e2284ed7dad5ce4beb4bba171c314f060c07ca9732f3a",
-    "reviewedSourceCommit": "345650e3c9dc2493e924fcd3ffd7bab9b48890bc",
+    "scopeBase": "fc52458c9dd2275ddabe91ff20113bb8b5d1b6ae",
+    "sourceHead": "26a38fafdd40c857ea3f89d87e8ebbef2e77b540",
+    "scopeDiffSha256": "8efe82e2e3b527102a5b3001d4064e645fdcefc9d594f7681aeb76fd0cf08d27",
+    "reviewedSourceCommit": "26a38fafdd40c857ea3f89d87e8ebbef2e77b540",
     "checks": [
       "behavior-correctness",
       "core-adapter-boundary",
@@ -19,7 +19,7 @@
       "responsibility-and-size",
       "temporary-markers"
     ],
-    "evidenceSummary": "核对从上次 Git 发布起的累计差异，覆盖 Skill 导航、初始化裁剪、升级过滤、NSH 候选契约、职责与规模及临时标记。中性 CLI 到共享 core 的调用和依赖检查通过。Node 回归 1226 项通过、17 项按条件跳过，Rust 1.100.0 格式、Clippy 与 7 项测试通过。发布校验的 36 条提示为建议行数阈值和既有测试样例标记。",
+    "evidenceSummary": "累计审查确认 NSH 0.6.0 固定依赖、CLI、Mixed 入口和各目标路由一致。业务状态继续委托共享 Rust core，模板中性资产通过格式检查、Clippy、7 项测试及 core-first 检查。NSH 类型检查、7 项渲染测试和 1 项 TUI 测试通过，旧 CLI 启动前被拦截。全量 Node 回归 1226 项通过、17 项按条件跳过。已复核 36 项非阻断提示，包含原样分发的官方资料、存量文件规模和检测测试夹具。",
     "reason": null,
     "remainingRisk": null
   }
