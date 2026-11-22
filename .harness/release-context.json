@@ -1,17 +1,17 @@
 {
   "schemaVersion": 3,
-  "sourceHead": "26a38fafdd40c857ea3f89d87e8ebbef2e77b540",
-  "version": "202611191015",
-  "releaseDate": "2026-11-19",
-  "expectedTag": "v202611191015-20261119",
+  "sourceHead": "72e86b9188f99997b89c73461719bd8c0cc388f5",
+  "version": "202611221943",
+  "releaseDate": "2026-11-22",
+  "expectedTag": "v202611221943-20261122",
   "defaultBranch": "master",
   "releaseReview": {
     "selection": "enabled",
     "status": "passed",
-    "scopeBase": "fc52458c9dd2275ddabe91ff20113bb8b5d1b6ae",
-    "sourceHead": "26a38fafdd40c857ea3f89d87e8ebbef2e77b540",
-    "scopeDiffSha256": "8efe82e2e3b527102a5b3001d4064e645fdcefc9d594f7681aeb76fd0cf08d27",
-    "reviewedSourceCommit": "26a38fafdd40c857ea3f89d87e8ebbef2e77b540",
+    "scopeBase": "7c377e3a61e6b6f81d53159880214e5e8b6519cc",
+    "sourceHead": "72e86b9188f99997b89c73461719bd8c0cc388f5",
+    "scopeDiffSha256": "f444ead2982b9d22da9542f5e504ac616f685ab0a3fe8369118fa68472821173",
+    "reviewedSourceCommit": "72e86b9188f99997b89c73461719bd8c0cc388f5",
     "checks": [
       "behavior-correctness",
       "core-adapter-boundary",
@@ -19,7 +19,7 @@
       "responsibility-and-size",
       "temporary-markers"
     ],
-    "evidenceSummary": "累计审查确认 NSH 0.6.0 固定依赖、CLI、Mixed 入口和各目标路由一致。业务状态继续委托共享 Rust core，模板中性资产通过格式检查、Clippy、7 项测试及 core-first 检查。NSH 类型检查、7 项渲染测试和 1 项 TUI 测试通过，旧 CLI 启动前被拦截。全量 Node 回归 1226 项通过、17 项按条件跳过。已复核 36 项非阻断提示，包含原样分发的官方资料、存量文件规模和检测测试夹具。",
+    "evidenceSummary": "已复核 Worktree 授权、宿主/显式目标路由、全局 Cargo 目录、下游传播及验收边界。macOS arm64 的 Rust 中性资产通过格式、Clippy、core-first 与 7 项测试。固定 NSH 0.6.0 省略目标后生成原生 arm64 包，通过 Rust 与渲染测试、类型和归档校验。候选矩阵完成静态和隔离回归；其他系统的运行未取证。已复核 37 条非阻断提示。",
     "reason": null,
     "remainingRisk": null
   }

@@ -2,6 +2,26 @@
   "schemaVersion": 2,
   "releases": [
     {
+      "releaseDate": "2026-11-22",
+      "version": "v202611221943",
+      "featureOptimizations": [
+        {
+          "zh-CN": "默认在当前 checkout 完成任务。需要独立环境时，请明确开启 Task 工作树，或在已允许内部 Worktree 的项目中明确请求本次使用。",
+          "en-US": "Tasks use the current checkout by default. Enable Task worktrees when you need a separate checkout, or explicitly request one for internal work in a project that allows it."
+        },
+        {
+          "zh-CN": "普通构建和发布后本地打包默认生成当前系统的原生产物。需要其他系统、架构或 Web 时，请明确指定目标。运行测试与验收在对应环境完成。",
+          "en-US": "Builds and post-release packaging default to the current operating system and native architecture. Specify the target when you need a different system, architecture, or a Web build. Runtime tests and acceptance run in the corresponding environment."
+        }
+      ],
+      "bugFixes": [
+        {
+          "zh-CN": "Rust 构建沿用全局 Cargo 目录。使用共享目录打包 Tauri Linux 试包时，Harness 按本次构建报告的路径查找 deb。",
+          "en-US": "Rust builds use Cargo’s global output directory. For a Tauri Linux test build using that shared directory, Harness locates the deb at the path reported by the current build."
+        }
+      ]
+    },
+    {
       "releaseDate": "2026-11-19",
       "version": "v202611191015",
       "featureOptimizations": [
@@ -237,34 +257,6 @@
         {
           "zh-CN": "补齐 macOS 深链接 URL 角色声明；组合工程的移动和 Web 包移除桌面专用宿主权限。",
           "en-US": "Complete the macOS deep-link URL role declaration and remove desktop-only host permissions from mobile and Web packages in combined projects."
-        }
-      ]
-    },
-    {
-      "releaseDate": "2026-11-07",
-      "version": "v202611070300",
-      "featureOptimizations": [
-        {
-          "zh-CN": "完善 NSH 初始化接线、侧栏与双语关于页，发布日志可在应用内展开查看。",
-          "en-US": "Complete NSH initialization wiring, sidebar behavior, and the bilingual About page with expandable in-app release notes."
-        },
-        {
-          "zh-CN": "接入 NSH 独立候选打包与最终产物证据；中性 macOS 和 Web 工程通过真实构建与界面 E2E。",
-          "en-US": "Add independent NSH candidate packaging and final artifact evidence; a neutral macOS and Web project passed real builds and UI E2E."
-        },
-        {
-          "zh-CN": "移除新项目的 TUI 初始化选项和专用技能；既有 TUI 下游资产仍受保护，升级前需单独迁移。",
-          "en-US": "Remove TUI initialization and its dedicated skill for new projects; existing TUI downstream assets remain protected and require a separate migration before upgrade."
-        }
-      ],
-      "bugFixes": [
-        {
-          "zh-CN": "修复较大发布日志触发进程环境变量长度限制的问题，并排除生成的 .nsh 缓存。",
-          "en-US": "Avoid process environment limits with large release notes and exclude generated .nsh caches."
-        },
-        {
-          "zh-CN": "纠正 iOS 本地 .app 与正式 IPA 的打包边界，避免将未签名试包误判为渠道产物。",
-          "en-US": "Clarify the boundary between local iOS .app packages and formal IPA distribution so unsigned trial packages are not treated as channel artifacts."
         }
       ]
     }
