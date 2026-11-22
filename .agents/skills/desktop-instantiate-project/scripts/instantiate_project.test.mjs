@@ -43,6 +43,9 @@ test('prepare_installs_fixed_identity_and_preserves_legal_and_vendor_bytes', t =
   const agents = fs.readFileSync(path.join(f.target, 'AGENTS.md'), 'utf8');
   assert.ok(agents.trimEnd().split('\n').length <= 120);
   assert.doesNotMatch(agents, /check_no_python/u);
+  assert.ok(agents.includes('[任务收尾清理](docs/ENGINEERING_RULES.md#54-任务收尾清理)'));
+  const rules = fs.readFileSync(path.join(f.target, 'docs/ENGINEERING_RULES.md'), 'utf8');
+  assert.match(rules, /^### 5\.4 任务收尾清理$/mu);
   for (const file of ["cargo_device_config.mjs", "cargo_device_config.test.mjs"]) {
     assert.ok(prepared.files.some(item => item.path === ".agents/skills/desktop-implement-change/scripts/" + file));
   }
