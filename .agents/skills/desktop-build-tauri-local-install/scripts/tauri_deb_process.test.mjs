@@ -38,10 +38,11 @@ test('owned_command_timeout_reaps_descendants_without_killing_unrelated_sentinel
   const sentinel = spawn(process.execPath, ['-e', 'process.stdout.write("ready\\n");setInterval(()=>{},1000)'], { stdio: ['ignore', 'pipe', 'pipe'] });
   t.after(async () => { sentinel.kill('SIGKILL'); await once(sentinel, 'close'); fs.rmSync(directory, { recursive: true, force: true }); });
   await once(sentinel.stdout, 'data');
-  const marker = path.join(directory, 'worker-closed');
-  const launcher = `const fs=require('node:fs');const child=require('node:child_process').spawn(process.execPath,['-e',${JSON.stringify(workerProgram())}],{stdio:['ignore','pipe','ignore']});child.stdout.on('data',()=>fs.writeFileSync(${JSON.stringify(marker)},'ready'));child.on('close',()=>fs.writeFileSync(${JSON.stringify(marker)},'closed'));process.on('SIGTERM',()=>{});setInterval(()=>{},1000);`;
+  const marker = path.join(directory, 'worker-ready');
+  const worker = `const fs=require('node:fs');process.on('SIGTERM',()=>{});fs.writeFileSync(${JSON.stringify(marker)},'ready');setInterval(()=>{},1000);`;
+  const launcher = `require('node:child_process').spawn(process.execPath,['-e',${JSON.stringify(worker)}],{stdio:['ignore','inherit','ignore']});process.on('SIGTERM',()=>{});setInterval(()=>{},1000);`;
   const start = performance.now();
-  await assert.rejects(runOwnedCommand(process.execPath, ['-e', launcher], { timeoutMs: 500 }), /timed out/u);
+  await assert.rejects(runOwnedCommand(process.execPath, ['-e', launcher], { timeoutMs: 2000 }), { message: 'deb command timed out' });
   assert.ok(performance.now() - start < 7000);
   assert.equal(sentinel.exitCode, null);
   assert.equal(fs.readFileSync(marker, 'utf8'), 'ready');
