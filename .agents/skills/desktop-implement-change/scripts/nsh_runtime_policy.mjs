@@ -1,5 +1,6 @@
 /** 初始化、开发、升级和交付共用的 NSH 版本及目标合同。 */
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
@@ -11,6 +12,7 @@ export const NSH_RUNTIME_ERROR = `Harness NSH 仅支持官方 v${NSH_STABLE_VERS
 export const NSH_TARGETS = Object.freeze(['desktop', 'mobile', 'web', 'tui']);
 export const NSH_PLATFORMS = Object.freeze(['windows', 'macos', 'linux', 'android', 'ios', 'web']);
 const desktopPlatforms = Object.freeze(['windows', 'macos', 'linux']);
+export const NSH_HOST_DESKTOP_PLATFORMS = Object.freeze({ win32: 'windows', darwin: 'macos', linux: 'linux' });
 export const NSH_TARGET_PLATFORMS = Object.freeze({
   desktop: desktopPlatforms,
   mobile: Object.freeze(['android', 'ios']),
@@ -41,6 +43,96 @@ export function assertNshCliVersion(output) {
   if (output.trim() !== NSH_CLI_VERSION) throw new Error(`NSH CLI and Cargo runtime revision do not match. Expected ${NSH_CLI_VERSION}.`);
 }
 
+/** 官方 CLI 在缺少继承变量时会覆盖 Cargo 全局配置并退回应用内 target。 */
+export function assertNshSharedCargoTarget(root, environment = process.env) {
+  const target = environment.CARGO_TARGET_DIR;
+  if (!target || !path.isAbsolute(target)) {
+    throw new Error('NSH requires CARGO_TARGET_DIR inherited from the system-wide Cargo target configuration');
+  }
+  const targetPath = fs.existsSync(target) ? fs.realpathSync(target) : target;
+  const relative = path.relative(root, targetPath);
+  if (!path.isAbsolute(relative) && relative !== '..' && !relative.startsWith('..' + path.sep)) {
+    throw new Error('NSH requires a shared Cargo target directory outside the project');
+  }
+}
+
+/** 按 Cargo 的旧文件名优先规则读取同一目录的配置。 */
+function cargoConfigIn(directory) {
+  for (const name of ['config', 'config.toml']) {
+    const file = path.join(directory, name);
+    if (fs.existsSync(file)) return file;
+  }
+}
+
+/** 读取 Cargo 的 build 或 include 内联表。 */
+function inlineCargoFields(value) {
+  if (!value.startsWith('{') || !value.endsWith('}')) return null;
+  return new Map(statements(value.slice(1, -1), ',').map(statement => {
+    const equals = statement.indexOf('=');
+    const keys = keyPath(statement.slice(0, equals).trim());
+    if (equals < 0 || keys?.length !== 1) throw new Error('invalid Cargo inline config field');
+    return [keys[0], statement.slice(equals + 1).trim()];
+  }));
+}
+
+/** NSH 子进程会直接运行未传目标的 Cargo 命令，要求配置保留默认宿主。 */
+export function assertNshDefaultCargoBuildTarget(directory, environment = process.env) {
+  const message = 'NSH host builds require the default Cargo host target without build.target or CARGO_BUILD_TARGET overrides';
+  if (environment.CARGO_BUILD_TARGET?.trim()) throw new Error(message);
+  const seen = new Set();
+  const visit = (file, optional = false) => {
+    let source;
+    try { source = fs.readFileSync(file, 'utf8'); }
+    catch (error) {
+      if (optional && error.code === 'ENOENT') return;
+      throw error;
+    }
+    const identity = fs.realpathSync(file);
+    if (seen.has(identity)) return;
+    seen.add(identity);
+    let section = [];
+    for (const statement of statements(source)) {
+      if (statement.startsWith('[')) {
+        section = keyPath(statement.slice(1, -1));
+        continue;
+      }
+      const equals = statement.indexOf('=');
+      if (equals < 0 || !section) continue;
+      const keys = keyPath(statement.slice(0, equals).trim());
+      if (!keys) continue;
+      const field = [...section, ...keys];
+      const value = statement.slice(equals + 1).trim();
+      if (equalPath(field, ['build', 'target']) || equalPath(field, ['build'])) {
+        const target = field.length === 2 ? value : inlineCargoFields(value)?.get('target');
+        if (target !== undefined && !/^\[\s*\]$/u.test(target)) throw new Error(message);
+      }
+      if (!equalPath(field, ['include']) || !value.startsWith('[') || !value.endsWith(']')) continue;
+      for (const item of statements(value.slice(1, -1), ',')) {
+        const fields = inlineCargoFields(item);
+        const includeFile = stringValue(fields ? fields.get('path') : item, 'config include.path');
+        visit(path.resolve(path.dirname(file), includeFile), fields?.get('optional') === 'true');
+      }
+    }
+  };
+  const global = cargoConfigIn(path.resolve(directory, environment.CARGO_HOME || path.join(os.homedir(), '.cargo')));
+  if (global) visit(global);
+  for (let current = directory; ; current = path.dirname(current)) {
+    const local = cargoConfigIn(path.join(current, '.cargo'));
+    if (local) visit(local);
+    if (current === path.dirname(current)) break;
+  }
+}
+
+/** 开发与目标测试只能在实际支持该桌面或终端目标的本机执行。 */
+export function assertNshNativeDevelopmentTarget(selection, target, host = process.platform) {
+  const current = NSH_HOST_DESKTOP_PLATFORMS[host];
+  const capability = target === 'tui' ? 'tui' : 'desktop';
+  if (!current || ![capability, current].includes(target) ||
+      !selection['nsh-targets'].includes(capability) || !selection['target-platforms'].includes(current)) {
+    throw new Error(`NSH ${target} requires a selected native host platform`);
+  }
+}
+
 /** 检查 Cargo 实际报告的成员和直接依赖，包括改名、开发和目标特定依赖。 */
 export function assertNshCargoRuntime(root, metadata) {
   const facts = metadata.metadata?.['agent-first-harness'];
@@ -66,13 +158,18 @@ export function assertNshCargoRuntime(root, metadata) {
   return app;
 }
 
-/** 只读确认本地 Cargo 元数据并定位 Mixed 成员。 */
-export function readNshCargoApp(root) {
+/** 只读查询 Cargo 实际使用的工作区。 */
+export function readNshCargoMetadata(root) {
   const result = spawnSync('cargo', ['metadata', '--offline', '--no-deps', '--format-version', '1'], {
     cwd: root, encoding: 'utf8', timeout: 30_000, maxBuffer: 16 * 1024 * 1024, windowsHide: true,
   });
   if (result.status !== 0) throw new Error(`Cargo metadata failed: ${result.error?.message ?? result.stderr.trim()}`);
-  return assertNshCargoRuntime(root, JSON.parse(result.stdout));
+  return JSON.parse(result.stdout);
+}
+
+/** 只读确认本地 Cargo 元数据并定位 Mixed 成员。 */
+export function readNshCargoApp(root) {
+  return assertNshCargoRuntime(root, readNshCargoMetadata(root));
 }
 
 /** 当前模板的 Mixed 入口由同一应用目录中的 nsh.json 和 App.tsx 构成。 */

@@ -5,6 +5,7 @@ import {
   appendFileSync,
   existsSync,
   lstatSync,
+  mkdirSync,
   readFileSync,
   readdirSync,
   realpathSync,
@@ -14,8 +15,8 @@ import {
 } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { arch, platform, release, type, version as osVersion } from "node:os";
-import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { arch, homedir, platform, release, type, version as osVersion } from "node:os";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { gunzipSync, inflateRawSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 
@@ -136,6 +137,42 @@ function checkRustRuntime() {
   validateRustRuntime(environment("RUST_MIN_VERSION"), run("rustc", ["--version"]).stdout, run("cargo", ["--version"]).stdout);
 }
 
+/** 在全新 CI 运行器配置用户级 Cargo 输出目录，保留环境和既有用户配置。 */
+function prepareRunnerCargo() {
+  if (process.env.GITHUB_ACTIONS !== "true") throw new WorkflowError("只允许 GitHub Actions 准备 CI 运行器的 Cargo 配置");
+  if (process.env.CARGO_TARGET_DIR || process.env.CARGO_BUILD_TARGET_DIR) return;
+  const cargoHome = resolve(process.env.CARGO_HOME || join(homedir(), ".cargo"));
+  if (existsSync(join(cargoHome, "config")) || existsSync(join(cargoHome, "config.toml"))) return;
+  mkdirSync(cargoHome, { recursive: true });
+  const targetDirectory = join(homedir(), "cargo-target");
+  writeFileSync(join(cargoHome, "config.toml"), `[build]\ntarget-dir = ${JSON.stringify(targetDirectory)}\n`, { flag: "wx" });
+}
+
+/** 确认 rustc 宿主目标与实际 CI 系统和架构一致。 */
+export function nativeRustTarget(rustcOutput, runnerOs, runnerArch) {
+  const host = /^host: ([a-z0-9_-]+)\r?$/mu.exec(rustcOutput)?.[1];
+  const cpu = { X64: "x86_64", ARM64: "aarch64" }[runnerArch];
+  const system = { Linux: "unknown-linux-gnu", macOS: "apple-darwin", Windows: "pc-windows-msvc" }[runnerOs];
+  if (!host || !cpu || !system || host !== `${cpu}-${system}`) {
+    throw new WorkflowError("rustc host 必须与运行器的原生系统和架构一致");
+  }
+  return host;
+}
+
+/** 以 Cargo 元数据解析全局输出根，并定位显式宿主目标的 release 目录。 */
+export function nativeReleaseDirectory(metadata, host) {
+  const { target_directory: targetDirectory, workspace_root: workspaceRoot } = metadata;
+  if (typeof targetDirectory !== "string" || !isAbsolute(targetDirectory)
+      || typeof workspaceRoot !== "string" || !isAbsolute(workspaceRoot)) {
+    throw new WorkflowError("Cargo 元数据缺少绝对的 workspace 或目标目录");
+  }
+  const relation = relative(workspaceRoot, targetDirectory);
+  if (!relation || (relation !== ".." && !relation.startsWith(`..${sep}`) && !isAbsolute(relation))) {
+    throw new WorkflowError("CI Cargo 必须使用工作区之外的全局目标目录");
+  }
+  return join(targetDirectory, host, "release");
+}
+
 /** 按根 Cargo 的显式选择验证锁文件，并向后续固定命令传递唯一允许的标志。 */
 function checkLockPolicy() {
   const { policy } = assertDependencyLocks(process.cwd(), { rustTestManifests: ["Cargo.toml"] });
@@ -192,7 +229,13 @@ function verifyVersion() {
   }
   const channel = environment("HARNESS_RELEASE_CHANNEL");
   if (!["release", "beta"].includes(channel)) throw new WorkflowError("发布渠道必须为 release 或 beta");
-  appendGithubFile("GITHUB_ENV", { PRODUCT_NAME: product, CANDIDATE_BINARY: channel === "beta" ? product + "-beta" : product });
+  const host = nativeRustTarget(run("rustc", ["-vV"]).stdout, environment("RUNNER_OS"), environment("RUNNER_ARCH"));
+  appendGithubFile("GITHUB_ENV", {
+    PRODUCT_NAME: product,
+    CANDIDATE_BINARY: channel === "beta" ? product + "-beta" : product,
+    HARNESS_RUST_HOST: host,
+    HARNESS_CARGO_RELEASE_DIR: nativeReleaseDirectory(metadata, host),
+  });
 }
 
 /** 验证并冻结发布更新日志摘要。 */
@@ -210,7 +253,7 @@ function hashReleaseNotes() {
 function listTests() {
   const result = run(
     "cargo",
-    ["test", "--workspace", "--all-targets", "--all-features", ...cargoLockArgs(), "--", "--list"],
+    ["test", "--workspace", "--all-targets", "--all-features", "--target", environment("HARNESS_RUST_HOST"), ...cargoLockArgs(), "--", "--list"],
     { check: false },
   );
   process.stdout.write(result.stdout);
@@ -369,9 +412,7 @@ function writeManifest() {
     throw new WorkflowError("发布上下文快照与候选渠道不一致");
   }
   const review = snapshot.releaseReview;
-  const rustc = run("rustc", ["-vV"]).stdout.split(/\r?\n/);
-  const target = rustc.find((line) => line.startsWith("host:"))?.split(":", 2)[1]?.trim();
-  if (!target) throw new WorkflowError("无法解析 rustc host target");
+  const target = environment("HARNESS_RUST_HOST");
   const manifest = {
     project: environment("PRODUCT_NAME"),
     version: environment("VERSION"),
@@ -455,6 +496,7 @@ export function main(argv = process.argv.slice(2)) {
       case "verify-checkout": verifyCheckout(); break;
       case "read-msrv": readMsrv(); break;
       case "check-rust-runtime": checkRustRuntime(); break;
+      case "prepare-runner-cargo": prepareRunnerCargo(); break;
       case "check-lock-policy": checkLockPolicy(); break;
       case "verify-version": verifyVersion(); break;
       case "hash-release-notes": hashReleaseNotes(); break;

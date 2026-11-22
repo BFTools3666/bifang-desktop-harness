@@ -131,7 +131,10 @@ export function validateCandidateWorkflowHelper(errors, helper = CANDIDATE_WORKF
     "snapshot.releaseChannel !== channel",
     "function verifyCheckout(",
     "function readMsrv(",
+    "function prepareRunnerCargo(",
     "function checkLockPolicy(",
+    "function nativeRustTarget(",
+    "function nativeReleaseDirectory(",
     "function hashReleaseNotes(",
     "function listTests(",
     "function verifyPostTest(",
@@ -240,6 +243,7 @@ export function validateWorkflow(errors, workflow = WORKFLOW) {
     "verify_release_context.mjs capture", "verify_release_context.mjs verify",
     "release_candidate_workflow.mjs read-msrv", "release_candidate_workflow.mjs verify-version",
     "release_candidate_workflow.mjs check-rust-runtime", "rustup toolchain install stable",
+    "release_candidate_workflow.mjs prepare-runner-cargo",
     "release_candidate_workflow.mjs check-lock-policy",
     "CARGO_LOCK_FLAG", "lock_args=(--locked)",
     "release_notes.mjs check --file release-notes.json", "release_candidate_workflow.mjs hash-release-notes",
@@ -262,6 +266,7 @@ export function validateWorkflow(errors, workflow = WORKFLOW) {
     "dist/", "path: release/", "ref: ${{ inputs.source_commit }}", "ref: ${{ github.event.repository.default_branch }}",
     "REPOSITORY_DEFAULT_BRANCH", "git push", "git update-ref", "fetch-depth: 1",
     "cargo fmt", "cargo clippy", `setup-${retiredRuntime}`, `${retiredRuntime}3`, `${retiredRuntime} -`,
+    "CARGO_TARGET_DIR:", "CARGO_BUILD_TARGET_DIR:", "--target-dir", "target/release/",
   ];
   for (const fragment of forbidden) {
     if (semanticText.toLowerCase().includes(fragment.toLowerCase())) {
@@ -327,7 +332,7 @@ export function validateWorkflow(errors, workflow = WORKFLOW) {
     namedIndex("确认已授权候选预检"), usesIndex(CHECKOUT_USE), usesIndex(SETUP_NODE_USE),
     namedIndex("验证 Node.js 运行时"), namedIndex("验证已检出源码"), namedIndex("捕获已发布上下文"),
     namedIndex("读取项目最低 Rust 版本"), namedIndex("安装当前 stable Rust"), namedIndex("验证 stable 满足项目兼容下限"),
-    namedIndex("验证项目依赖锁策略"), namedIndex("验证候选版本"),
+    namedIndex("准备运行器 Cargo 全局配置"), namedIndex("验证项目依赖锁策略"), namedIndex("验证候选版本"),
     namedIndex("验证发布更新日志"), Math.min(namedIndex("准备 Unix 发布目录"), namedIndex("准备 Windows 发布目录")),
     namedIndex("验证候选"), Math.min(namedIndex("尝试 Unix 签名"), namedIndex("尝试 Windows 签名")),
     Math.min(namedIndex("打包 Unix 候选"), namedIndex("打包 Windows 候选")), namedIndex("解析候选制品"),
@@ -365,23 +370,23 @@ export function validateWorkflow(errors, workflow = WORKFLOW) {
   const verify = stepBlock({ name: "验证候选" }).join("\n");
   requireOrder(errors, verify, [
     "release_candidate_workflow.mjs list-tests",
-    'cargo test --workspace --all-targets --all-features "${lock_args[@]}"',
+    'cargo test --workspace --all-targets --all-features --target "$HARNESS_RUST_HOST" "${lock_args[@]}"',
     "release_candidate_workflow.mjs verify-post-test",
-    'cargo build --workspace --release "${lock_args[@]}"',
+    'cargo build --workspace --release --target "$HARNESS_RUST_HOST" "${lock_args[@]}"',
   ], "workflow candidate verification sequence");
   const manifest = stepBlock({ name: "记录候选清单" }).join("\n");
   requireOrder(errors, manifest, ["verify_release_context.mjs verify", "release_candidate_workflow.mjs write-manifest"], "workflow manifest sequence");
 
   for (const [name, fragments] of Object.entries({
-    "打包 Unix 候选": ["release-notes.json", "tar -czf", '${GITHUB_WORKSPACE}/../.${PRODUCT_NAME}.release-candidate.XXXXXX'],
-    "打包 Windows 候选": ["release-notes.json", "Compress-Archive", "Split-Path -Parent $env:GITHUB_WORKSPACE"],
+    "打包 Unix 候选": ["release-notes.json", 'tar -czf "${stage}/${archive}" -C "$HARNESS_CARGO_RELEASE_DIR"', '${GITHUB_WORKSPACE}/../.${PRODUCT_NAME}.release-candidate.XXXXXX'],
+    "打包 Windows 候选": ["release-notes.json", "Compress-Archive", "Split-Path -Parent $env:GITHUB_WORKSPACE", "Join-Path $env:HARNESS_CARGO_RELEASE_DIR"],
   })) {
     const block = stepBlock({ name }).join("\n");
     for (const fragment of fragments) if (!block.includes(fragment)) fail(errors, `workflow ${name} packaging gate missing: ${fragment}`);
   }
   for (const name of ["尝试 Unix 签名", "尝试 Windows 签名"]) {
     const block = stepBlock({ name }).join("\n");
-    for (const fragment of ["probe", "sign", "verify", "SIGNING_STATUS", "SIGNING_EVIDENCE", "unsigned"]) {
+    for (const fragment of ["probe", "sign", "verify", "SIGNING_STATUS", "SIGNING_EVIDENCE", "HARNESS_CARGO_RELEASE_DIR", "unsigned"]) {
       if (!block.includes(fragment)) fail(errors, `workflow ${name} signing contract missing: ${fragment}`);
     }
   }

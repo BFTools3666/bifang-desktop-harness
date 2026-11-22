@@ -7,6 +7,8 @@ description: 对发布候选、用户明确要求完整验收或当前构建启�
 
 验证完整真实候选，不把开发检查、模拟实现或目录存在误报为可用。
 
+测试和运行验收只覆盖当前实际执行环境的系统。外平台候选可先校验字节、摘要和来源，运行证据由对应原生 runner 或实际目标系统提供。没有目标系统的证据时标记 `Unverified`，必需的运行检查仍阻断 `accepted`。
+
 ## 候选范围
 
 - CLI/Tauri 使用当前扁平 `release/` 的精确集合，Tauri 按该接口的方式核对前端测试及包内资源。
@@ -26,7 +28,7 @@ NSH 验收开始前，依据当前构建返回的 `target` 与 `buildRun` 或用
 
 1. 明确核心成功路径、最高风险失败路径、真实输入/输出和可观察结果，区分外部前置项与产品逻辑。
 2. 核对当前构建已经运行项目全部非空单元测试。Rust 证据必须覆盖 workspace/all-targets/all-features 的完整测试；Tauri GUI 还必须覆盖完整前端单元测试套件。只有源码提交、候选构建身份与对应测试证据完全匹配时才复用该证据；任何变化都必须返回构建 Skill 重建，不在验收中重复一套隐式构建流程。
-3. 运行候选自身所必需的真实产物存在性、接口/渠道和最终字节检查。所有 GUI 候选先核对 manifest 的 `releaseNotesVersion`、`releaseNotesSha256`、`releaseNotesPath: release-notes.json` 与根事实；Tauri 对可定位的实际应用资源运行 `node .agents/skills/desktop-build-tauri-release/scripts/verify_release_notes_resource.mjs bytes --source release-notes.json --bundled <discovered-resource>`。macOS Tauri DMG 必须针对 `release/` 中当前最终字节重新运行 `$desktop-build-tauri-release` 的 `scripts/verify-dmg-layout.sh <final-dmg> <project-root>/release-notes.json`，只读挂载并再次证明唯一 `.app/Contents/Resources/release-notes.json` 逐字节一致；不得自动接受软件许可或沿用旧 DMG 的布局证据，也不得沿用旧更新日志证据。xwin NSIS 保持 `runtimeVerification: Unverified`，不能据交叉构建成功或未安装资源目录检查推断 Windows 行为。
+3. 运行候选自身所必需的真实产物存在性、接口/渠道和最终字节检查。所有 GUI 候选先核对 manifest 的 `releaseNotesVersion`、`releaseNotesSha256`、`releaseNotesPath: release-notes.json` 与根事实；Tauri 对可定位的实际应用资源运行 `node .agents/skills/desktop-build-tauri-release/scripts/verify_release_notes_resource.mjs bytes --source release-notes.json --bundled <discovered-resource>`。macOS Tauri DMG 必须在 macOS 对应的验收环境针对 `release/` 中当前最终字节重新运行 `$desktop-build-tauri-release` 的 `scripts/verify-dmg-layout.sh <final-dmg> <project-root>/release-notes.json`，只读挂载并再次证明唯一 `.app/Contents/Resources/release-notes.json` 逐字节一致；不得自动接受软件许可或沿用旧 DMG 的布局证据，也不得沿用旧更新日志证据。xwin NSIS 保持 `runtimeVerification: Unverified`，不能据交叉构建成功或未安装资源目录检查推断 Windows 行为。
 4. 解析运行时检查：产品/渠道/安全硬要求优先；冒烟读取 `acceptance_smoke`；E2E 只读取当前构建的明确选择，`e2e_hint` 仅用于当时询问的建议默认值，不能在此替代或反转选择。发布语义审查只读取 manifest 的当次 `reviewSelection`；不得在验收阶段补问、推断或把 `disabled` 静默翻转，任何硬要求与关闭选择冲突时拒绝候选并返回新构建。
 5. 按每个 manifest 的 `reviewSelection` 核对发布语义审查，且机械安全门禁与最终人类签署不受该选择控制。
    - `enabled`：只接受 `reviewStatus: passed`。CLI/Tauri 核对顶层 `reviewEvidence` 和 `reviewedSourceCommit`。NSH 在 `releaseReview` 中核对 `checks`、`evidenceSummary` 与 `reviewedSourceCommit`。两种清单的审查证据均逐字段核对上下文。`sourceHead` 为候选 `sourceCommit` 的祖先，且审查后只改变两份冻结发布元数据。

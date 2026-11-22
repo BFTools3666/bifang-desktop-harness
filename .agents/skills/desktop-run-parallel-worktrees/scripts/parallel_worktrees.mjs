@@ -10,6 +10,8 @@ import process from "node:process";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 
+import { readPolicy } from "../../desktop-switch-post-release-action/scripts/post_release_action.mjs";
+
 const LIFECYCLE_SCRIPT_RELATIVE = path.join(".agents", "skills", "desktop-manage-git-lifecycle", "scripts", "git_lifecycle.mjs");
 const IDENTIFIER = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const OBJECT_ID = /^[0-9a-f]{40,64}$/;
@@ -335,7 +337,18 @@ export function findExactUnitWorktree(identity) {
   return record;
 }
 
-export function createUnit(identity, rawOwnership) {
+/** 从规范项目读取已确认的开关，并在建立容器或预留前核对本次明确的创建授权。 */
+function requireWorktreeCreationAuthorization(projectRoot, confirmed) {
+  if (!confirmed) throw new WorkflowError("worktree_request_required", "创建内部 Worktree 要求用户明确请求本次使用 Worktree，并传入 --confirmed-worktree-request", 4);
+  requirePlainDirectory(path.join(projectRoot, "docs"), "worktree_policy_invalid", "Agent 策略目录");
+  let fields;
+  try { ({ fields } = readPolicy(projectRoot, { validateActionSupport: false })); }
+  catch (error) { throw new WorkflowError("worktree_policy_invalid", `无法核对规范项目已确认的 Agent 策略：${error.message}`, 4); }
+  if (fields.get("parallel_worktree_subagents") !== "enabled") throw new WorkflowError("parallel_worktrees_disabled", "规范项目未开启 parallel_worktree_subagents", 4);
+}
+
+/** 为已授权单元从冻结的源提交创建并登记工作树，失败时仅回收已证实未登记的资源。 */
+function createUnit(identity, rawOwnership) {
   const source = identity.context.sourceWorktree;
   if (runGit(source, "status", "--porcelain=v1", "--untracked-files=all").stdout.trim()) throw new WorkflowError("source_worktree_dirty", "源 Task Worktree 存在已跟踪或未跟踪修改；不得自动贮藏或提交", 4);
   const head = runGit(source, "rev-parse", "--verify", "HEAD", { check: false });
@@ -452,6 +465,7 @@ function parseCommand(argv) {
   const options = { "project-root": { type: "string" } };
   if (command !== "inspect") Object.assign(options, { "source-worktree": { type: "string" }, task: { type: "string" }, unit: { type: "string" } });
   if (["create", "guard"].includes(command)) options["write-target"] = { type: "string", multiple: true, default: [] };
+  if (command === "create") options["confirmed-worktree-request"] = { type: "boolean", default: false };
   let values;
   try { ({ values } = parseArgs({ args: argv.slice(1), options, strict: true })); }
   catch (error) { throw new WorkflowError("invalid_arguments", error.message); }
@@ -465,8 +479,9 @@ export function execute(argv) {
   if (command === "inspect") { requireExactCwd(projectRoot, "project_cwd_mismatch", "inspect 操作"); return { ok: true, operation: "inspect", ...inspectProject(projectRoot, commonDir) }; }
   const task = validateIdentifier("任务", values.task);
   const context = canonicalSourceContext(projectRoot, commonDir, values["source-worktree"]);
-  const identity = unitIdentity(context, task, values.unit, command === "create");
   if (["create", "remove"].includes(command)) requireExactCwd(context.sourceWorktree, "source_cwd_mismatch", `${command} 操作`);
+  if (command === "create") requireWorktreeCreationAuthorization(projectRoot, values["confirmed-worktree-request"]);
+  const identity = unitIdentity(context, task, values.unit, command === "create");
   let result;
   if (command === "create") result = createUnit(identity, values["write-target"]);
   else if (command === "guard") result = guardUnit(identity, values["write-target"]);

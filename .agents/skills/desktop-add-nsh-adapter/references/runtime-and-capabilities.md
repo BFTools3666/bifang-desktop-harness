@@ -33,7 +33,7 @@ Mixed 成员的 `nsh.json` 设置 `rust: "."`，不设置 `root`。Rust 桥接�
 
 产品可按平台使用系统 Switch、DateTimePicker、系统分享面板、iOS Sheet detents 与弹簧过渡。官方 updater 支持渠道、按语言发布说明和退出时安装。模板的关于页通过 `nsh/base` 的 `Collapsible` 展示随应用嵌入的离线双语日志。[移动模块](https://github.com/longbridge/nsh/blob/v0.6.0/website/modules/nsh-mobile.md) · [官方发行说明](https://github.com/longbridge/nsh/releases/tag/v0.6.0)
 
-模板生成的开发脚本先读取实际 Cargo 依赖并校验 CLI 版本。由项目根使用 `npm run dev`，或者用 `dev:desktop`、`dev:android`、`dev:ios`、`dev:web`、`dev:tui` 指定已选开发目标。iOS 模拟器选择通过 `npm run dev:ios -- --device <名称或 UDID>`。用 `npm run nsh:check` 检查类型，`npm run nsh:build` 编译应用资源与字节码，`npm run nsh:test` 执行全套 headless 渲染测试；`nsh:test:<目标>` 使用目标运行器。NSH 的移动和 Web 开发服务可供局域网设备连接，在可信网络启动。
+模板生成的开发脚本先检查系统继承的全局 `CARGO_TARGET_DIR`、实际 Cargo 依赖与 CLI 版本。项目根的 `npm run dev` 默认使用当前系统已选的 desktop 或 TUI，只有移动/Web 的项目须显式执行对应的 `dev:android`、`dev:ios` 或 `dev:web`。iOS 模拟器选择通过 `npm run dev:ios -- --device <名称或 UDID>`。用 `npm run test` 执行当前系统的 Rust 测试，`npm run nsh:check` 检查类型，`npm run nsh:build` 编译应用资源与字节码，`npm run nsh:test` 在当前系统执行 headless 渲染测试。模板的 `nsh:test:<目标>` 适用于桌面和终端，先核对当前系统与项目选择。移动和 Web 运行验收使用实际目标运行环境。NSH 的移动和 Web 开发服务可供局域网设备连接，在可信网络启动。
 
 若 iOS 模拟器开发首次因 QuickJS bindgen 找不到 SDK 头文件失败，用 `xcrun --sdk iphonesimulator --show-sdk-path` 查找 SDK，在当前命令环境为 `BINDGEN_EXTRA_CLANG_ARGS_aarch64_apple_ios_sim` 设置 `-isysroot '<SDK 路径>'` 后重试。受管 iOS 打包入口会按目标补充该参数。
 

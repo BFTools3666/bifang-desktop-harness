@@ -144,7 +144,7 @@ test('add_only_preserves_existing_core_and_refuses_symlink_manifests',()=>fixtur
   assert.deepEqual(JSON.parse(metadata.stdout).metadata['agent-first-harness']['version-mirrors'],['sample_tool_nsh/nsh.json']);
   assert.deepEqual(JSON.parse(metadata.stdout).metadata['agent-first-harness']['nsh-targets'],['desktop']);
   assert.equal(JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).scripts['nsh:check'],'node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs && nsh check sample_tool_nsh');
-  assert.match(JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).scripts.dev,/check_nsh_toolchain\.mjs && nsh run sample_tool_nsh$/u);
+  assert.match(JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).scripts.dev,/check_nsh_toolchain\.mjs desktop && nsh run sample_tool_nsh$/u);
   assert.throws(()=>addNshAdapter(root,desktopOptions),/without an interface/u);
 }));
 
@@ -211,8 +211,8 @@ test('tui_workspace_installs_official_skills_and_terminal_commands',()=>fixture(
   const root=path.join(parent,'tui');
   createNshWorkspace(root,input);
   const scripts=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).scripts;
-  assert.equal(scripts.dev,'node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs && nsh run sample_tool_nsh --target tui');
-  assert.equal(scripts['nsh:test:tui'],'node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs && nsh test sample_tool_nsh/App.test.tsx --target tui');
+  assert.equal(scripts.dev,'node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs tui && nsh run sample_tool_nsh --target tui');
+  assert.equal(scripts['nsh:test:tui'],'node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs tui && nsh test sample_tool_nsh/App.test.tsx --target tui');
   assert.equal(scripts['nsh:package'],undefined);
   assert.equal(fs.existsSync(path.join(root,'docs/GUI_APP_PROFILE.md')),false);
   assert.equal(fs.existsSync(path.join(root,'sample_tool_nsh/desktop.tsx')),false);

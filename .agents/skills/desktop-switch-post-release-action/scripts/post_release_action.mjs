@@ -422,19 +422,18 @@ export function localPackageSupported(interfaces, platforms, guiFramework = "tau
   return interfaces.includes("cli") || interfaces.includes("gui") && platforms.some(platform => ["macos", "windows"].includes(platform));
 }
 
-/** 发布后的单次本机候选路由；持久动作不暗含全平台或全部接口构建。 */
-export function selectLocalPackageRoute({ interfaces, platforms, guiFramework = "tauri", nshTargets = [], hostPlatform, hostArch = "x64", requestedInterface = null, requestedTarget = null }) {
+/** 列出当前宿主可构建的候选，包含必须由用户明确指定的目标。 */
+function availableLocalPackageRoutes({ interfaces, platforms, guiFramework = "tauri", nshTargets = [], hostPlatform, hostArch = "x64" }) {
   if (!Array.isArray(interfaces) || !Array.isArray(platforms) || !["macos", "windows", "linux"].includes(hostPlatform)) {
     throw new ActionError("本地候选路由需要已确认接口、平台和当前宿主");
   }
   if (guiFramework !== "tauri") throw new ActionError('Cargo gui-framework 无效。DESKTOP 仅支持 Tauri，NSH 使用顶层 interfaces = ["nsh"]');
-  if ((requestedInterface === null) !== (requestedTarget === null)) throw new ActionError("明确改选本地候选时须同时指定接口与目标");
   const selected = new Set(platforms);
   const onHost = selected.has(hostPlatform);
   const result = (interfaceName, target, skill) => ({ interface: interfaceName, target, skill });
   const routes = [];
   if (interfaces.includes("nsh")) {
-    if (!localPackageSupported(interfaces, platforms, guiFramework, nshTargets)) return null;
+    if (!localPackageSupported(interfaces, platforms, guiFramework, nshTargets)) return routes;
     if (nshTargets.includes("desktop") && onHost) routes.push(result("nsh", hostPlatform, "desktop-build-nsh-release"));
     if (nshTargets.includes("mobile") && hostPlatform === "macos" && selected.has("ios")) {
       routes.push(result("nsh", "ios", "desktop-build-nsh-release"), result("nsh", "ios-simulator", "desktop-build-nsh-release"));
@@ -446,13 +445,23 @@ export function selectLocalPackageRoute({ interfaces, platforms, guiFramework = 
       routes.push(result("gui", hostPlatform, "desktop-build-tauri-release"));
     }
     if (interfaces.includes("cli") && onHost) routes.push(result("cli", hostPlatform, "desktop-build-rust-release"));
+    if (interfaces.includes("gui") && hostPlatform === "macos" && selected.has("windows")) {
+      routes.push(result("gui", "windows", "desktop-build-tauri-release"));
+    }
   }
+  return routes;
+}
+
+/** 发布后默认只选当前系统，跨平台产物须明确给出接口和目标。 */
+export function selectLocalPackageRoute({ requestedInterface = null, requestedTarget = null, ...facts }) {
+  if ((requestedInterface === null) !== (requestedTarget === null)) throw new ActionError("明确指定本地候选时须同时指定接口与目标");
+  const routes = availableLocalPackageRoutes(facts);
   if (requestedInterface !== null) {
     const requested = routes.find(route => route.interface === requestedInterface && route.target === requestedTarget);
     if (!requested) throw new ActionError("请求的本地候选接口/目标不是当前宿主可构建的已选正式目标");
     return requested;
   }
-  return routes[0] ?? null;
+  return routes.find(route => route.target === facts.hostPlatform) ?? null;
 }
 
 /** 从当前仓库读取本机候选唯一目标，不改变策略或 Git 发布事实。 */
@@ -480,7 +489,7 @@ export function localPackageRoute(rawRoot, { requestedInterface = null, requeste
     requestedInterface,
     requestedTarget,
   });
-  if (route === null) throw new ActionError("当前宿主没有已选且受支持的本地正式候选目标；Git 发布已完成，发布后打包仍阻断");
+  if (route === null) throw new ActionError("当前宿主没有已选且受支持的本地正式候选目标；Git 发布已完成，发布后打包需明确指定可构建目标或在目标系统执行");
   return { status: "selected", ...route };
 }
 
@@ -503,7 +512,7 @@ function assertLocalPackageSupported(root) {
     assertDependencyLocks(root, { rustTestManifests: ["Cargo.toml"] });
   }
   else if (interfaces.includes("cli")) assertDependencyLocks(root, { rustTestManifests: ["Cargo.toml"] });
-  const route = selectLocalPackageRoute({
+  const routes = availableLocalPackageRoutes({
     interfaces,
     platforms,
     guiFramework: framework,
@@ -511,7 +520,7 @@ function assertLocalPackageSupported(root) {
     hostPlatform: { darwin: "macos", win32: "windows", linux: "linux" }[process.platform],
     hostArch: process.arch,
   });
-  if (route === null) throw new ActionError("当前宿主没有已选且受支持的本地正式候选目标；请选择 push_release_branch");
+  if (routes.length === 0) throw new ActionError("当前宿主没有已选且受支持的本地正式候选目标；请选择 push_release_branch");
 }
 
 function state(policy) {

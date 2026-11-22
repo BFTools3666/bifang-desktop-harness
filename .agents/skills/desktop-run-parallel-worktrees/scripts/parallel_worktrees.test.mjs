@@ -10,6 +10,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const SCRIPT = fileURLToPath(new URL("./parallel_worktrees.mjs", import.meta.url));
+const POLICY_TEMPLATE = fileURLToPath(new URL("../../../../docs/AGENT_POLICY.md", import.meta.url));
 const MOCK_LIFECYCLE = `#!/usr/bin/env node
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -60,11 +61,11 @@ function runGit(root, ...args) {
   return result;
 }
 
-function fixture(t, { realLifecycle = false } = {}) {
+function fixture(t, { realLifecycle = false, linkedSource = true, parallelWorktrees = "enabled" } = {}) {
   const tempRoot = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "parallel_worktrees_")));
   t.after(() => fs.rmSync(tempRoot, { recursive: true, force: true }));
   const root = path.join(tempRoot, "sample_project");
-  const source = path.join(tempRoot, "feature_task");
+  const source = linkedSource ? path.join(tempRoot, "feature_task") : root;
   fs.mkdirSync(root);
   runGit(root, "init", "-b", "main");
   runGit(root, "config", "user.name", "Harness Test");
@@ -87,20 +88,29 @@ function fixture(t, { realLifecycle = false } = {}) {
     }
   }
   else fs.writeFileSync(lifecycleScript, MOCK_LIFECYCLE);
+  if (parallelWorktrees !== null) {
+    const policy = fs.readFileSync(POLICY_TEMPLATE, "utf8")
+      .replace(/^confirmed_by: pending$/mu, "confirmed_by: Harness Test")
+      .replace(/^confirmed_at: pending$/mu, "confirmed_at: 2026-11-22")
+      .replace(/^parallel_worktree_subagents: disabled$/mu, `parallel_worktree_subagents: ${parallelWorktrees}`);
+    fs.mkdirSync(path.join(root, "docs"));
+    fs.writeFileSync(path.join(root, "docs", "AGENT_POLICY.md"), policy);
+  }
   fs.writeFileSync(path.join(root, "README.md"), "baseline\n");
-  runGit(root, "add", "README.md", ".agents");
+  runGit(root, "add", "--all");
   runGit(root, "commit", "-m", "baseline");
-  runGit(root, "worktree", "add", "-b", "feature-current-20260909", source, "HEAD");
+  if (linkedSource) runGit(root, "worktree", "add", "-b", "feature-current-20260909", source, "HEAD");
   const ctx = { tempRoot, root, source };
   ctx.git = (cwd, ...args) => runGit(cwd ?? root, ...args);
   ctx.commonDir = () => {
     const raw = runGit(root, "rev-parse", "--git-common-dir").stdout.trim();
     return fs.realpathSync(path.isAbsolute(raw) ? raw : path.join(root, raw));
   };
-  ctx.helper = (args, { cwd, projectRoot, sourceWorktree, nodeArgs = [] } = {}) => {
+  ctx.helper = (args, { cwd, projectRoot, sourceWorktree, nodeArgs = [], confirmedWorktreeRequest = true } = {}) => {
     const command = args[0];
     const invocation = [...nodeArgs, SCRIPT, ...args, "--project-root", projectRoot ?? root];
     if (command !== "inspect") invocation.push("--source-worktree", sourceWorktree ?? source);
+    if (command === "create" && confirmedWorktreeRequest) invocation.push("--confirmed-worktree-request");
     const result = spawnSync(process.execPath, invocation, { encoding: "utf8", cwd: cwd ?? (command === "inspect" ? root : (sourceWorktree ?? source)) });
     return [result, JSON.parse(result.stdout)];
   };
@@ -111,7 +121,7 @@ function fixture(t, { realLifecycle = false } = {}) {
   };
   ctx.spawnCreate = (unit, ...ownership) => ctx.spawnCreateWithNodeArgs([], unit, ...ownership);
   ctx.spawnCreateWithNodeArgs = (nodeArgs, unit, ...ownership) => {
-    const args = [...nodeArgs, SCRIPT, "create", "--project-root", root, "--source-worktree", source, "--task", "feature", "--unit", unit];
+    const args = [...nodeArgs, SCRIPT, "create", "--project-root", root, "--source-worktree", source, "--task", "feature", "--unit", unit, "--confirmed-worktree-request"];
     for (const target of ownership) args.push("--write-target", target);
     const child = spawn(process.execPath, args, { cwd: source, stdio: ["ignore", "pipe", "pipe"] });
     t.after(() => { if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL"); });
@@ -137,6 +147,49 @@ function assertNoUnitCreateSideEffects(ctx, unit) {
   const branch = spawnSync("git", ["-C", ctx.root, "show-ref", "--verify", "--quiet", `refs/heads/codex/unit-feature-${unit}`]);
   assert.notEqual(branch.status, 0);
 }
+
+/** 创建权限来自实际确认和项目策略，任一缺失时保持工作树、分支、容器与预留不变。 */
+test("create_requires_explicit_request_and_confirmed_policy_before_writing", (t) => {
+  for (const [parallelWorktrees, confirmedWorktreeRequest, code] of [
+    ["enabled", false, "worktree_request_required"],
+    ["disabled", true, "parallel_worktrees_disabled"],
+    [null, true, "worktree_policy_invalid"],
+    ["pending", true, "worktree_policy_invalid"],
+  ]) {
+    const ctx = fixture(t, { linkedSource: false, parallelWorktrees });
+    const before = runGit(ctx.root, "worktree", "list", "--porcelain").stdout;
+    const [result, payload] = ctx.helper(["create", "--task", "feature", "--unit", "core", "--write-target", "src"], { confirmedWorktreeRequest });
+    assert.equal(result.status, 4, result.stdout + result.stderr);
+    assert.equal(payload.error.code, code);
+    assert.equal(runGit(ctx.root, "worktree", "list", "--porcelain").stdout, before);
+    assert.equal(fs.existsSync(path.join(ctx.tempRoot, ".codex-worktrees")), false);
+    assert.equal(fs.existsSync(path.join(ctx.commonDir(), "codex-parallel-worktrees")), false);
+    assertNoUnitCreateSideEffects(ctx, "core");
+  }
+});
+
+/** 已冻结的登记单元可继续 guard/postflight/收口，规范项目更新只限制今后创建。 */
+test("registered_unit_can_finish_after_parallel_worktrees_are_disabled", (t) => {
+  const ctx = fixture(t);
+  const [created, payload] = ctx.create("registered", "src");
+  assert.equal(created.status, 0, created.stdout + created.stderr);
+  const policy = path.join(ctx.root, "docs", "AGENT_POLICY.md");
+  fs.writeFileSync(policy, fs.readFileSync(policy, "utf8").replace(/^parallel_worktree_subagents: enabled$/mu, "parallel_worktree_subagents: disabled"));
+  const [next, rejected] = ctx.create("new", "docs");
+  assert.equal(next.status, 4, next.stdout + next.stderr);
+  assert.equal(rejected.error.code, "parallel_worktrees_disabled");
+  assertNoUnitCreateSideEffects(ctx, "new");
+  const unitArgs = ["--task", "feature", "--unit", "registered"];
+  const [guard, guarded] = ctx.helper(["guard", ...unitArgs, "--write-target", "src"], { cwd: payload.worktreePath });
+  assert.equal(guard.status, 0, guard.stdout + guard.stderr);
+  assert.equal(guarded.guarded, true);
+  const [verify, verified] = ctx.helper(["verify", ...unitArgs], { cwd: payload.worktreePath });
+  assert.equal(verify.status, 0, verify.stdout + verify.stderr);
+  assert.equal(verified.verified, true);
+  const [remove, removed] = ctx.helper(["remove", ...unitArgs]);
+  assert.equal(remove.status, 0, remove.stdout + remove.stderr);
+  assert.equal(removed.worktreeRetained, true);
+});
 
 /** 有界等待隔离测试 marker，不依赖子进程调度先后或固定睡眠。 */
 async function waitForFile(file) {

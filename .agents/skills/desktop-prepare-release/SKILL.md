@@ -7,6 +7,8 @@ description: 整理并验证当前源码，提交发布元数据，合并本地�
 
 维护 helper 只使用 Node.js `>=24.0.0` 标准库。明确“发布”授权本次已复核源码的必要提交、普通合并、本地版本 tag 和精确复核。本地默认主分支和版本 tag 指向同一最终提交后，Git 发布即结束；该命令不访问远端、不推送、不打包、不删除登记资源。完成初始化的下游在发布开始时把 `docs/AGENT_POLICY.md` 中已确认的 `post_release_action` 冻结到 Git common-dir 生命周期记录，发布后按该次冻结值完成所选路径及实际结果复核；该选择是未来发布后对应动作的持久授权。Harness 源的 `pending` 是待复制模板字段，其源码归档或推送仍由用户在当次发布后决定。
 
+发布后本地打包默认只选择当前系统和原生架构的候选。只有本次请求已经明确指定其他目标时，才把精确接口与目标交给只读 `route`；目标系统的运行测试与验收在对应实际系统执行。默认目标缺失或失败时报告后续打包受阻，保留已完成的 Git 发布。
+
 ## 正式发布流程
 
 1. 读取 `docs/RELEASE.md`、版本事实源、最新 Product Spec 和本次真实触发的 Changelog/Verification。用 `$desktop-manage-git-lifecycle inspect` 精确核对登记分支、Worktree、上次发布与未完成 journal。根同时包含 Harness `Version.md` 和活动 `$desktop-instantiate-project` 时按 Harness 源处理，否则按已初始化下游处理。任何正在进行的旧双模式发布不能静默改作单一路径。

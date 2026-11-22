@@ -1,6 +1,6 @@
 ---
 name: desktop-task-workflow
-description: 统一管理项目可选的左侧 Task、Worktree、内部并行、授权继承和恢复；自动 Task 默认关闭，已授权范围自主执行，独立工作树按所有权并行。
+description: 统一管理项目可选的左侧 Task、Worktree、内部并行、授权继承和恢复；自动 Task 与两类 Worktree 默认关闭，已授权范围自主执行。
 ---
 
 # Task 与工作树工作流
@@ -12,8 +12,8 @@ description: 统一管理项目可选的左侧 Task、Worktree、内部并行、
 1. 读取用户级 `AGENTS.md`、项目入口及 Agent Policy 字段语义，复用当前请求已经给出的授权。用户明确修订旧规则时采用新规则，不为历史全局 Task Tree 要求绕过项目开关。
 2. `user_owned_tasks` 是自动创建左侧子会话的唯一项目开关，默认 `disabled`。关闭时在当前聊天完成普通工作，不自动创建 Task 子树；用户明确要求新建一个 Task 时仅创建该结果，不永久打开开关。Task Tree 不是已经核实的 Codex 应用设置名，不能据此声称修改了应用配置。
 3. 用户明确“开启左侧 Task”“关闭左侧 Task”或“开启/关闭自动 Task 拆分”时，由 `$desktop-configure-agent-policy` 原子记录 `user_owned_tasks` 和确认事实；已有明确选择不重复询问。初始化把选择一次写入策略。仅有未落盘的旧全局默认不视为当前项目已启用。
-4. `task_worktrees` 仅选择 Git 左侧 Task 的环境，默认 `disabled`；开启用 `environment.type=worktree`，关闭或非 Git 用 `environment.type=local`。它不触发 Task 创建。派发冻结环境，切换只影响后续 Task，不迁移既有 Task/Worktree。
-5. `parallel_worktree_subagents` 仅控制当前结果内部的写入型 Subagent Worktree，不创建左侧 Task、不占项目编号，也不改变前两项选择。只有当前请求授权并行且该字段启用时执行；已授权的整批并行不逐单元重复审批。
+4. `task_worktrees` 仅选择 Git 左侧 Task 的环境，默认 `disabled`。仅用户为项目明确启用后才用 `environment.type=worktree`，关闭时或在非 Git 项目用 `environment.type=local`。旧 schema 3/4 的 `selection_required` 未授权创建 Worktree，按 Agent Policy 的既有补选门禁处理新 Git Task。创建 Task 不隐含开启 Worktree。派发冻结环境，切换只影响后续 Task，不迁移既有 Task/Worktree。
+5. `parallel_worktree_subagents` 仅控制当前结果内部的写入型 Subagent Worktree，默认 `disabled`。项目明确开启且用户在当前请求明确要求使用 Worktree 时才创建；普通并行请求、工具可用性或当前目录恰为已有 Worktree 都不构成创建授权。已获授权的一批单元不逐个询问，不创建左侧 Task、不占项目编号，也不改变其他开关。
 
 ## 按操作加载
 
@@ -40,6 +40,6 @@ Skill、Task 描述和普通文件不提供宿主提权或批准 API。不得伪
 
 ## 兼容与交付
 
-`$desktop-manage-user-tasks`、`$desktop-manage-task-worktrees` 和 `$desktop-run-parallel-worktrees` 只保留兼容路由，详细合同不再分别复制。内部并行 helper 仍位于原 `desktop-run-parallel-worktrees/scripts/` 路径，现有调用继续工作。
+`$desktop-manage-user-tasks`、`$desktop-manage-task-worktrees` 和 `$desktop-run-parallel-worktrees` 只保留兼容路由，详细合同不再分别复制。内部并行 helper 保留原 `desktop-run-parallel-worktrees/scripts/` 路径。`create` 调用按工作树执行合同显式传入创建授权，已有单元仍按原身份检查和收口。
 
 报告真实 Task/环境身份、最终确认进度、结果、分支/提交、实际检查和剩余限制。queued 只表示 setup，失败保留原 Task 与证据；不凭相似标题接管、不重复创建、不把未执行检查写为通过。

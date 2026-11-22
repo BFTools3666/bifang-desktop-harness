@@ -41,7 +41,7 @@ description: 在已初始化或首次接入的既有下游项目中安全更新�
    ```
 
    初始基线过程绝不豁免符号链接或特殊文件问题、受保护或墓碑路径、存在差异的受管理重叠项，或未经复核的混合路径。
-9. 已批准的 Harness 升级直接按复核后的计划应用，不自动创建 Work Plan、Todo、并行 Worktree/Subagent 或完整验收步骤。混合所有权文件必须串行处理；只有用户明确要求并行且适用时才调用 `$desktop-run-parallel-worktrees`。
+9. 已批准的 Harness 升级直接按复核后的计划应用，不自动创建 Work Plan、Todo、并行 Worktree/Subagent 或完整验收步骤。混合所有权文件必须串行处理。只有用户明确要求并行 Worktree 且项目许可时才调用 `$desktop-run-parallel-worktrees`。
 10. 用户批准试运行后，只应用安全的受管理操作：
 
     ```text

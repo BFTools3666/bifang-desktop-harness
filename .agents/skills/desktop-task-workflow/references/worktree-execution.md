@@ -4,7 +4,7 @@
 
 ## 左侧 Task 环境
 
-Git Task 仅在 `task_worktrees: enabled` 时使用精确项目的 `environment.type=worktree`；关闭时使用 `environment.type=local`。非 Git 固定 Local。自动建 Task 关闭时直接在当前 checkout 工作，不能为创建 Worktree 隐式打开 `user_owned_tasks`。
+新 Git Task 仅在用户明确启用项目 `task_worktrees: enabled` 后使用精确项目的 `environment.type=worktree`；默认关闭时使用 `environment.type=local`。非 Git 固定 Local。旧 schema 3/4 的 `selection_required` 不能给新 Git Task 分配 Worktree，继续按 Agent Policy 的补选流程处理。自动建 Task 关闭时直接在当前 checkout 工作，不能为创建 Worktree 隐式打开 `user_owned_tasks`。
 
 Worktree 模式使用用户明确指定的已提交起点；未指定时取保存项目默认主分支的已提交 HEAD，不硬编码 `main/master`，不主动 fetch/pull。有前序结果时使用精确结果 SHA，不回到尚未整合的旧默认分支。派发记录 cwd、common-dir、registry、branch/HEAD 和输入 SHA；新环境必须 clean。Codex Worktree 可能 detached，产品写入前由 `$desktop-manage-git-lifecycle start --summary <feature-summary>` 建立并登记当前分支/Worktree。
 
@@ -16,7 +16,7 @@ Local 模式 cwd 精确等于保存项目规范化路径，Git 顶层、common-d
 
 ## 内部单元的授权与准备
 
-`parallel_worktree_subagents: enabled` 加当前请求已经明确授权并行，才创建内部写入单元。它与 `user_owned_tasks`、`task_worktrees` 独立：父结果可在合法 Local，也可在左侧 Task Worktree；内部单元不触发左侧子树。只有单 Agent 更适合的重叠部分串行，其余独立部分继续并行。
+内部 Worktree 默认关闭。规范主 checkout 中已确认的 `parallel_worktree_subagents: enabled` 与本次用户明确请求使用 Worktree 同时成立时，才创建内部写入单元；一般并行授权不等于 Worktree 授权。它与 `user_owned_tasks`、`task_worktrees` 独立：父结果可在合法 Local，也可在左侧 Task Worktree；内部单元不触发左侧子树。只有单 Agent 更适合的重叠部分串行，其余独立部分继续并行。
 
 给每个单元定义 ASCII task/unit 技术标识、结果、一个或多个非空 repo-relative 写入所有权、依赖、必要检查与整合顺序。task 标识使用父结果的 `feature-summary`，不从 Task 显示标题生成。拒绝 `.`、绝对/越界路径、符号链接逃逸、同单元冗余祖先/后代和活动单元间重叠所有权。
 
@@ -24,11 +24,13 @@ Local 模式 cwd 精确等于保存项目规范化路径，Git 顶层、common-d
 
 ## 创建与短锁
 
-helper 保留原路径：`.agents/skills/desktop-run-parallel-worktrees/scripts/parallel_worktrees.mjs`。从 source 的精确 cwd 为每个单元执行，多个所有权重复传 `--write-target`：
+helper 保留原路径：`.agents/skills/desktop-run-parallel-worktrees/scripts/parallel_worktrees.mjs`。复用本次用户明确授权并从 source 的精确 cwd 为每个单元执行，多个所有权重复传 `--write-target`：
 
 ```text
-node <absolute-project-root>/.agents/skills/desktop-run-parallel-worktrees/scripts/parallel_worktrees.mjs create --project-root <absolute-project-root> --source-worktree <absolute-source-worktree> --task <task> --unit <unit> --write-target <owned-path> [--write-target <owned-path> ...]
+node <absolute-project-root>/.agents/skills/desktop-run-parallel-worktrees/scripts/parallel_worktrees.mjs create --project-root <absolute-project-root> --source-worktree <absolute-source-worktree> --task <task> --unit <unit> --confirmed-worktree-request --write-target <owned-path> [--write-target <owned-path> ...]
 ```
+
+`--confirmed-worktree-request` 记录调用方已核实的本次明确请求。helper 在建立容器、预留或写 Git 之前核对该参数和主 checkout 的项目策略。任一缺失、策略无效或未开启时拒绝创建；后续关闭开关也可按冻结身份检查和收口已登记单元。
 
 对无依赖单元并行启动 `create`，同步等待整批结果。共享短锁仅保护所有权预留/状态发布；基于冻结 SHA 的 `git worktree add` 在锁外进行。锁竞争自动有界等待，不能把正常并发转为人工审批；真实超时或不安全锁才报告稳定错误。Git 生命周期共用状态写入继续短时互斥，不把 checkout、业务操作、测试或等待子 Agent 放进项目长锁。
 

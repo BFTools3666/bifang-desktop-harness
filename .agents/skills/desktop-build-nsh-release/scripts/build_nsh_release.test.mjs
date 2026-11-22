@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import test from 'node:test';
 import { spawnSync } from 'node:child_process';
-import { assertNshToolchain,buildNshRelease,inventory,packageFacts,passingNshCases,releaseNoteBuildInputs,safeOutputPath,validateNshArtifacts } from './build_nsh_release.mjs';
+import { assertNshToolchain,buildNshRelease,inventory,packageFacts,passingNshCases,releaseNoteBuildInputs,resolveNshPackageTarget,safeOutputPath,validateNshArtifacts } from './build_nsh_release.mjs';
 import { renderDocument } from '../../desktop-prepare-release/scripts/release_notes.mjs';
 
 /** 临时包只用于拒绝畸形输入，不能充当运行验证。 */
@@ -92,13 +92,25 @@ test('unsupported_target_rejects_before_creating_build_state',()=>fixture(root=>
   assert.equal(fs.readdirSync(root).length,0);
 }));
 
+test('default NSH packaging resolves only the current desktop platform', () => {
+  for (const [host, expected] of [['darwin', 'macos'], ['win32', 'windows'], ['linux', 'linux']]) {
+    assert.equal(resolveNshPackageTarget(undefined, host), expected);
+    assert.equal(resolveNshPackageTarget('web', host), 'web');
+    assert.equal(resolveNshPackageTarget('android', host), 'android');
+  }
+  assert.throws(() => resolveNshPackageTarget('windows', 'darwin'), /native host/u);
+  assert.throws(() => resolveNshPackageTarget('ios', 'linux'), /native host/u);
+  assert.equal(resolveNshPackageTarget('ios-simulator', 'darwin'), 'ios-simulator');
+  assert.throws(() => resolveNshPackageTarget(undefined, 'freebsd'), /no default/u);
+});
+
 test('output_and_artifact_links_cannot_escape_root',()=>fixture(root=>{
   const outside=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'nsh-outside-')));
   try{
     fs.symlinkSync(outside,path.join(root,'release'));
     assert.throws(()=>safeOutputPath(root,path.join(root,'release','candidate')),/symlink/u);
-    fs.mkdirSync(path.join(root,'target'));fs.symlinkSync(outside,path.join(root,'target/nsh-packaging'));
-    assert.throws(()=>safeOutputPath(root,path.join(root,'target/nsh-packaging','batch')),/symlink/u);
+    fs.mkdirSync(path.join(root,'.nsh'));fs.symlinkSync(outside,path.join(root,'.nsh/packages'));
+    assert.throws(()=>safeOutputPath(root,path.join(root,'.nsh/packages','batch')),/symlink/u);
     fs.writeFileSync(path.join(outside,'payload'),'bytes');
     fs.symlinkSync(path.join(outside,'payload'),path.join(root,'escaped'));
     assert.throws(()=>inventory(root),/escapes/u);

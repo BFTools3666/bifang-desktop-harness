@@ -2,12 +2,12 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { validateRustRuntime, validateMatrixSelection } from "./release_candidate_workflow.mjs";
+import { nativeReleaseDirectory, nativeRustTarget, validateRustRuntime, validateMatrixSelection } from "./release_candidate_workflow.mjs";
 
 const DIRECTORY = dirname(fileURLToPath(import.meta.url));
 const WORKFLOW = resolve(DIRECTORY, "../assets/github-release-candidate.yml");
@@ -54,9 +54,47 @@ test("project_cargo_commands_apply_only_the_checked_lock_policy", () => {
   assert.match(helper, /assertDependencyLocks\(process\.cwd\(\), \{ rustTestManifests: \["Cargo\.toml"\] \}\)/u);
   assert.match(helper, /CARGO_LOCK_FLAG: policy === "tracked" \? "--locked" : ""/u);
   assert.match(helper, /"metadata", "--format-version", "1", "--no-deps", \.\.\.cargoLockArgs\(\)/u);
-  assert.match(helper, /"--all-features", \.\.\.cargoLockArgs\(\), "--", "--list"/u);
-  assert.match(text, /cargo test --workspace --all-targets --all-features "\$\{lock_args\[@\]\}"/u);
-  assert.match(text, /cargo build --workspace --release "\$\{lock_args\[@\]\}"/u);
+  assert.match(helper, /"--target", environment\("HARNESS_RUST_HOST"\), \.\.\.cargoLockArgs\(\), "--", "--list"/u);
+  assert.match(text, /cargo test --workspace --all-targets --all-features --target "\$HARNESS_RUST_HOST" "\$\{lock_args\[@\]\}"/u);
+  assert.match(text, /cargo build --workspace --release --target "\$HARNESS_RUST_HOST" "\$\{lock_args\[@\]\}"/u);
+});
+
+test("matrix uses the verified runner target and inherited Cargo directory for every artifact", () => {
+  assert.doesNotMatch(text, /CARGO_TARGET_DIR:|--target-dir|target\/release/u);
+  assert.match(text, /prepare-runner-cargo/u);
+  assert.match(text, /tar -czf .* -C "\$HARNESS_CARGO_RELEASE_DIR"/u);
+  assert.match(text, /Join-Path \$env:HARNESS_CARGO_RELEASE_DIR/u);
+  const host = nativeRustTarget("rustc 1.96.0\nhost: aarch64-apple-darwin\n", "macOS", "ARM64");
+  const workspace = join(tmpdir(), "workspace");
+  const shared = join(tmpdir(), "configured shared cargo output");
+  assert.equal(nativeReleaseDirectory({ target_directory: shared, workspace_root: workspace }, host), join(shared, host, "release"));
+  assert.throws(() => nativeRustTarget("host: x86_64-apple-darwin\n", "macOS", "ARM64"), /rustc host/u);
+  assert.throws(() => nativeRustTarget("host: aarch64-apple-darwin\n", "Windows", "ARM64"), /rustc host/u);
+  for (const directory of [workspace, join(workspace, "target"), "relative/target"]) {
+    assert.throws(() => nativeReleaseDirectory({ target_directory: directory, workspace_root: workspace }, host), /Cargo/u);
+  }
+});
+
+test("a fresh CI runner receives a user config without overriding existing Cargo choices", t => {
+  const sandbox = mkdtempSync(join(tmpdir(), "workflow-runner-cargo-"));
+  t.after(() => rmSync(sandbox, { recursive: true, force: true }));
+  const cargoHome = join(sandbox, "cargo-home");
+  const config = join(cargoHome, "config.toml");
+  const ci = { GITHUB_ACTIONS: "true", CARGO_HOME: cargoHome, CARGO_TARGET_DIR: "", CARGO_BUILD_TARGET_DIR: "" };
+  const local = invoke("prepare-runner-cargo", sandbox, { ...ci, GITHUB_ACTIONS: "false" });
+  assert.equal(local.status, 1);
+  assert.equal(existsSync(cargoHome), false);
+  const inherited = invoke("prepare-runner-cargo", sandbox, { ...ci, CARGO_TARGET_DIR: join(sandbox, "inherited") });
+  assert.equal(inherited.status, 0, inherited.stderr);
+  assert.equal(existsSync(cargoHome), false);
+  const fresh = invoke("prepare-runner-cargo", sandbox, ci);
+  assert.equal(fresh.status, 0, fresh.stderr);
+  assert.equal(readFileSync(config, "utf8"), `[build]\ntarget-dir = ${JSON.stringify(join(homedir(), "cargo-target"))}\n`);
+  const configured = `[build]\ntarget-dir = ${JSON.stringify(join(sandbox, "custom global location"))}\n`;
+  writeFileSync(config, configured);
+  const repeated = invoke("prepare-runner-cargo", sandbox, ci);
+  assert.equal(repeated.status, 0, repeated.stderr);
+  assert.equal(readFileSync(config, "utf8"), configured);
 });
 
 // 候选门禁在缺省时不要求锁文件，显式跟踪时拒绝缺失和未跟踪锁。

@@ -11,13 +11,26 @@ import { loadDocument,renderDocument } from '../../desktop-prepare-release/scrip
 import { check as checkVersion } from '../../desktop-manage-version/scripts/version_gate.mjs';
 import { readDependencyLockPolicy } from '../../desktop-implement-change/scripts/project_lock_policy.mjs';
 import { nshRevisionForTargets, validNshIdentity } from '../../desktop-add-nsh-adapter/scripts/nsh_runtime_revision.mjs';
-import { assertNshCargoRuntime, assertNshCliVersion, assertNshWorkspacePin, readNshMixedConfig } from '../../desktop-implement-change/scripts/nsh_runtime_policy.mjs';
+import { assertNshCargoRuntime, assertNshCliVersion, assertNshDefaultCargoBuildTarget, assertNshSharedCargoTarget, assertNshWorkspacePin, NSH_HOST_DESKTOP_PLATFORMS, readNshMixedConfig } from '../../desktop-implement-change/scripts/nsh_runtime_policy.mjs';
 import { iosPackagingIdentity,restoreIosDisplayIdentity } from './nsh_ios_identity.mjs';
 import { NSH_BUILD_CACHE_NAMES, prepareNshPortableEntry } from './nsh_portable_entry.mjs';
 
 import { addNshIosBindgenSdk, resolveNshPackageOptions } from './nsh_package_options.mjs';
 
 const targets = ['macos','windows','linux','android','ios','ios-simulator','web'];
+
+/** 缺省目标取当前桌面系统，移动、Web 与其他桌面系统都不会作为回退。 */
+export function resolveNshPackageTarget(requested, host = process.platform) {
+  const native = NSH_HOST_DESKTOP_PLATFORMS[host];
+  if (requested === undefined && !native) throw new Error('no default NSH packaging target for this host; request a supported --target');
+  const target = requested === undefined ? native : requested;
+  if (!targets.includes(target)) throw new Error('unsupported NSH packaging target');
+  if ((['macos', 'windows', 'linux'].includes(target) && target !== native) ||
+      (['ios', 'ios-simulator'].includes(target) && host !== 'darwin')) {
+    throw new Error('target requires its native host');
+  }
+  return target;
+}
 
 /** 仅允许受支持目标使用相同正式提交的 CLI 与 Cargo 运行时。 */
 export function assertNshToolchain(root,selected,cliVersion) {
@@ -190,22 +203,21 @@ export function packageFacts(root,metadata,target) {
 }
 /** 构建前解析候选选择，测试和封包不掺入运行验收。 */
 export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,...packageInput}) {
-  if(!targets.includes(target)) throw new Error('unsupported NSH packaging target');
+  target = resolveNshPackageTarget(target);
   root=fs.realpathSync(root);
   if(!['local','candidate'].includes(mode)) throw new Error('mode must be local or candidate');
   if(mode==='candidate' && !['enabled','disabled'].includes(e2e)) throw new Error('candidate requires explicit e2e');
   if(mode==='candidate' && e2e==='disabled' && [e2eReason,e2eRisk].some(value=>typeof value!=='string' || !value.trim())) throw new Error('disabled E2E requires reason and remaining risk');
   if(readDependencyLockPolicy(root)==='tracked') throw new Error('NSH generated runtime workspace does not propagate tracked locks; packaging is blocked until a frozen resolution route is implemented');
-  safeOutputPath(root,path.join(root,'target'));safeOutputPath(root,path.join(root,'release'));
   const context = mode === 'candidate' ? checkContext({projectRoot:root},{published:true}) : null;
   const releaseChannel = context?.releaseChannel ?? 'dev';
   const testEnv = { ...releaseNoteBuildInputs(null, null).env, HARNESS_RELEASE_CHANNEL: releaseChannel };
   delete testEnv.NSH_KEYSTORE_PASSWORD;
   const metadata=JSON.parse(run('cargo',['metadata','--offline','--no-deps','--format-version','1'],root,testEnv,true));
   const facts=packageFacts(root,metadata,target);
+  assertNshSharedCargoTarget(root, testEnv);
+  assertNshDefaultCargoBuildTarget(facts.gui, testEnv);
   const desktop = facts.policy['nsh-targets'].includes('desktop');
-  const nativeHost={macos:'darwin',windows:'win32',linux:'linux',ios:'darwin','ios-simulator':'darwin'}[target];
-  if(nativeHost && nativeHost!==process.platform) throw new Error('target requires its native host');
   const version=run('nsh',['--version'],root,testEnv,true);
   assertNshToolchain(root, facts.policy['nsh-targets'], version);
   const packageOptions = resolveNshPackageOptions(root, target, packageInput);
@@ -240,13 +252,14 @@ export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,
 
   const before = sourceSnapshot(root);
   const batch = `nsh-${target}-${randomUUID()}`;
-  const parent = safeOutputPath(root, path.join(root, mode === 'candidate' ? 'release' : 'target/nsh-packaging'));
+  const parent = safeOutputPath(root, path.join(root, mode === 'candidate' ? 'release' : '.nsh/packages'));
   fs.mkdirSync(parent, {recursive:true});
   const stage = fs.mkdtempSync(path.join(parent, '.nsh-package-'));
   try {
-    const tests = run('cargo', ['test','--workspace','--all-targets','--all-features','--','--list'], root, testEnv, true);
+    const testArgs = ['test','--workspace','--all-targets','--all-features','--target','host-tuple'];
+    const tests = run('cargo', [...testArgs,'--','--list'], root, testEnv, true);
     if (!/^.+: test$/mu.test(tests)) throw new Error('nonempty workspace tests required');
-    run('cargo', ['test','--workspace','--all-targets','--all-features'], root, testEnv);
+    run('cargo', testArgs, root, testEnv);
     run('nsh', ['check'], facts.gui, testEnv);
     const report = path.join(stage, 'nsh-tests.xml');
     run('nsh', ['test', '.', '--junit', report], facts.gui, testEnv);

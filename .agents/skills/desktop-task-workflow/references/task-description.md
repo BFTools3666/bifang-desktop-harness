@@ -10,7 +10,7 @@ Task 绑定：
 - 稳定 Task key、项目内预留序号及初始标题。
 - Codex 项目名称、projectId、hostId 和保存项目完整路径。
 - user_owned_tasks 的已记录值与本次新建来源。
-- task_worktrees 的项目值、冻结环境和规范化 cwd。
+- task_worktrees 的项目值、已获授权的冻结环境和规范化 cwd。
 - Git 时记录 repository common-dir、起始 branch/HEAD；非 Git 为 Not applicable。
 - Git feature summary：独立 ASCII kebab-case 技术摘要，不从显示标题推导。
 

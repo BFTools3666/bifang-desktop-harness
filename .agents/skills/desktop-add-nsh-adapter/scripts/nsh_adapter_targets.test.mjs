@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 import { NSH_REVISION, normalizeNshOptions, nshDependencies, nshPackageScripts, nshRevisionForTargets, renderNshAdapterFiles } from './nsh_adapter_files.mjs';
+import { assertNshDefaultCargoBuildTarget, assertNshNativeDevelopmentTarget, assertNshSharedCargoTarget } from '../../desktop-implement-change/scripts/nsh_runtime_policy.mjs';
 
-const preflight = "node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs && ";
+const checkNsh = "node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs";
+const preflight = checkNsh + ' && ';
 const profile = Object.freeze({
   system_tray: 'disabled', system_notification: 'disabled', autostart: 'disabled',
   about_page: 'disabled', sponsor_page: 'disabled', single_instance: 'disabled',
@@ -26,6 +31,7 @@ test('supported NSH targets use only the released v0.6.0 runtime and scripts', (
     const scripts = nshPackageScripts(options.projectId, options.nshTargets, options.targetPlatforms);
     assert.equal(scripts['nsh:check'], preflight + 'nsh check sample_tool_nsh');
     assert.equal(scripts['nsh:test'], preflight + 'nsh test sample_tool_nsh');
+    assert.equal(scripts.test, 'cargo test --workspace --all-targets --all-features --target host-tuple');
     assert.equal(scripts['dev:tui'], undefined);
     assert.equal(scripts['nsh:test:tui'], undefined);
   }
@@ -44,14 +50,59 @@ test('generation_rejects_unsupported_nsh_targets', () => {
   }
 });
 
-test('selected iOS runs and tests on ios while terminal tests select an explicit file', () => {
+test('development defaults are native and iOS runs only through its explicit script', () => {
   const ios = nshPackageScripts('sample_tool', ['mobile'], ['ios']);
-  assert.equal(ios.dev, preflight + 'nsh run sample_tool_nsh --target ios');
+  assert.equal(ios.dev, undefined);
+  assert.equal(ios['dev:ios'], preflight + 'nsh run sample_tool_nsh --target ios');
   assert.equal(ios['dev:android'], undefined);
+  assert.equal(ios['nsh:test:ios'], undefined);
   const mixed = nshPackageScripts('sample_tool', ['desktop','mobile','web','tui'], ['macos','ios','android','web']);
+  assert.equal(mixed.dev, checkNsh + ' desktop && nsh run sample_tool_nsh');
   assert.equal(mixed['dev:web'], preflight + 'nsh run sample_tool_nsh --target web');
-  assert.equal(mixed['nsh:test:macos'], preflight + 'nsh test sample_tool_nsh/App.test.tsx --target macos');
-  assert.equal(mixed['nsh:test:tui'], preflight + 'nsh test sample_tool_nsh/App.test.tsx --target tui');
+  assert.equal(mixed['nsh:test:web'], undefined);
+  assert.equal(mixed['nsh:test:android'], undefined);
+  assert.equal(mixed['nsh:test:macos'], checkNsh + ' macos && nsh test sample_tool_nsh/App.test.tsx --target macos');
+  assert.equal(mixed['nsh:test:tui'], checkNsh + ' tui && nsh test sample_tool_nsh/App.test.tsx --target tui');
+});
+
+test('native development checks both the execution host and project selection', () => {
+  const selection = { 'nsh-targets': ['desktop', 'tui'], 'target-platforms': ['macos', 'windows'] };
+  assert.doesNotThrow(() => assertNshNativeDevelopmentTarget(selection, 'macos', 'darwin'));
+  assert.doesNotThrow(() => assertNshNativeDevelopmentTarget(selection, 'desktop', 'win32'));
+  assert.doesNotThrow(() => assertNshNativeDevelopmentTarget(selection, 'tui', 'darwin'));
+  assert.throws(() => assertNshNativeDevelopmentTarget(selection, 'windows', 'darwin'), /native host/u);
+  assert.throws(() => assertNshNativeDevelopmentTarget(selection, 'tui', 'linux'), /native host/u);
+});
+
+test('the upstream NSH app-local Cargo fallback is rejected', () => {
+  const root = path.join(os.tmpdir(), 'nsh-test-project');
+  const sharedTarget = path.join(os.tmpdir(), 'shared-cargo-target');
+  assert.doesNotThrow(() => assertNshSharedCargoTarget(root, { CARGO_TARGET_DIR: sharedTarget }));
+  assert.throws(() => assertNshSharedCargoTarget(root, {}), /system-wide/u);
+  assert.throws(() => assertNshSharedCargoTarget(root, { CARGO_TARGET_DIR: 'target' }), /system-wide/u);
+  assert.throws(() => assertNshSharedCargoTarget(root, { CARGO_TARGET_DIR: path.join(root, 'target') }), /outside the project/u);
+});
+
+test('NSH refuses an implicit target configured for upstream Cargo subprocesses', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nsh-cargo-config-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const cargoHome = path.join(root, 'global');
+  const member = path.join(root, 'workspace', 'app');
+  fs.mkdirSync(cargoHome);
+  fs.mkdirSync(member, { recursive: true });
+  const environment = { CARGO_HOME: cargoHome };
+  const global = path.join(cargoHome, 'config.toml');
+  fs.writeFileSync(global, '[build]\ntarget-dir = "shared"\n');
+  assert.doesNotThrow(() => assertNshDefaultCargoBuildTarget(member, environment));
+  assert.throws(() => assertNshDefaultCargoBuildTarget(member, { ...environment, CARGO_BUILD_TARGET: 'wasm32-unknown-unknown' }), /host target/u);
+  fs.writeFileSync(global, 'include = [{ path = "absent.toml", optional = true }, "target.toml"]\n');
+  const included = path.join(cargoHome, 'target.toml');
+  fs.writeFileSync(included, '"build"."target" = ["wasm32-unknown-unknown"]\n');
+  assert.throws(() => assertNshDefaultCargoBuildTarget(member, environment), /host target/u);
+  fs.writeFileSync(included, '[target.wasm32-unknown-unknown]\nrunner = "tools/runner"\n');
+  fs.mkdirSync(path.join(member, '.cargo'));
+  fs.writeFileSync(path.join(member, '.cargo', 'config'), 'build = { target = "wasm32-unknown-unknown" }\n');
+  assert.throws(() => assertNshDefaultCargoBuildTarget(member, environment), /host target/u);
 });
 
 test('renderer preserves literal dollar replacements and token-shaped names', () => {

@@ -128,7 +128,7 @@ test("local_package_selection_requires_a_route_on_the_current_host", (t) => {
   assert.equal(f.run("check").status, "configured");
 });
 
-/** 同一发布后动作在本机只解析一个候选；多接口和 NSH 多目标顺序固定。 */
+/** 发布后默认只选本机；其他目标即使可编译也必须明确指定。 */
 test("local_package_route_is_single_target_and_requires_explicit_reselection", (t) => {
   const choose = (values) => selectLocalPackageRoute({ hostPlatform: "macos", hostArch: "arm64", ...values });
   assert.deepEqual(choose({ interfaces: ["cli", "gui"], platforms: ["macos", "windows", "linux"] }),
@@ -140,10 +140,12 @@ test("local_package_route_is_single_target_and_requires_explicit_reselection", (
   assert.deepEqual(choose(nsh), { interface: "nsh", target: "macos", skill: "desktop-build-nsh-release" });
   assert.deepEqual(selectLocalPackageRoute({ ...nsh, hostPlatform: "windows" }),
     { interface: "nsh", target: "windows", skill: "desktop-build-nsh-release" });
-  assert.deepEqual(selectLocalPackageRoute({ ...nsh, nshTargets: ["mobile", "web"], platforms: ["android", "ios", "web"], hostPlatform: "linux" }),
-    { interface: "nsh", target: "android", skill: "desktop-build-nsh-release" });
-  assert.deepEqual(choose({ ...nsh, nshTargets: ["web"], platforms: ["web"] }),
-    { interface: "nsh", target: "web", skill: "desktop-build-nsh-release" });
+  assert.equal(selectLocalPackageRoute({ ...nsh, nshTargets: ["mobile", "web"], platforms: ["android", "ios", "web"], hostPlatform: "linux" }), null);
+  assert.equal(choose({ ...nsh, nshTargets: ["web"], platforms: ["web"] }), null);
+  assert.equal(choose({ interfaces: ["gui"], platforms: ["windows"] }), null);
+  assert.equal(selectLocalPackageRoute({ interfaces: ["gui"], platforms: ["windows"], hostPlatform: "windows", hostArch: "arm64" }), null);
+  assert.deepEqual(choose({ interfaces: ["gui"], platforms: ["windows"], requestedInterface: "gui", requestedTarget: "windows" }),
+    { interface: "gui", target: "windows", skill: "desktop-build-tauri-release" });
   assert.throws(() => choose({ ...nsh, guiFramework: "nsh" }), /DESKTOP 仅支持 Tauri/u);
   for (const nshTargets of [null, [], ["tui"], ["desktop", "desktop"], ["web", "unknown"]]) {
     assert.equal(choose({ ...nsh, nshTargets }), null);
@@ -152,6 +154,9 @@ test("local_package_route_is_single_target_and_requires_explicit_reselection", (
     { interface: "nsh", target: "web", skill: "desktop-build-nsh-release" });
   assert.deepEqual(choose({ ...nsh, requestedInterface: "nsh", requestedTarget: "ios-simulator" }),
     { interface: "nsh", target: "ios-simulator", skill: "desktop-build-nsh-release" });
+  assert.deepEqual(choose({ ...nsh, requestedInterface: "nsh", requestedTarget: "android" }),
+    { interface: "nsh", target: "android", skill: "desktop-build-nsh-release" });
+  assert.throws(() => selectLocalPackageRoute({ ...nsh, hostPlatform: "linux", requestedInterface: "nsh", requestedTarget: "ios" }), /当前宿主可构建/u);
   assert.throws(() => choose({ ...nsh, requestedInterface: "cli", requestedTarget: "macos" }), /当前宿主可构建/u);
   assert.throws(() => choose({ ...nsh, requestedInterface: "nsh" }), /同时指定/u);
   const f = fixture(t);
@@ -200,6 +205,13 @@ test("nsh_mixed_local_package_requires_current_runtime_and_tsx", (t) => {
   assert.equal(f.run("check").post_release_action,"local_package");
   assert.equal(f.run("set",setOptions("local_package","local_package")).post_release_action,"local_package");
   assert.equal(fs.readFileSync(f.policy,"utf8"),policyBeforeTui);
+
+  fs.writeFileSync(cargo, unlocked.replace('target-platforms = ["macos", "web"]', 'target-platforms = ["web"]')
+    .replace('nsh-targets = ["desktop", "web"]', 'nsh-targets = ["web"]'));
+  assert.equal(f.run("check").post_release_action, "local_package");
+  assert.match(f.run("route", [], 2).error, /没有已选且受支持的本地正式候选目标/u);
+  assert.equal(f.run("route", ["--interface", "nsh", "--target", "web"]).target, "web");
+  assert.equal(fs.readFileSync(f.policy, "utf8"), policyBeforeTui);
 
   fs.writeFileSync(cargo, unlocked.replace("0.6.0", "0.5.1"));
   assert.match(f.run("route", [], 2).error, /仅支持官方 v0\.6\.0/u);

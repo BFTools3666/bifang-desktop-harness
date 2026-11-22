@@ -48,7 +48,6 @@ jobs:
       E2E_SELECTION: ${{ inputs.e2e_selection }}
       RELEASE_CONTEXT_SNAPSHOT: ${{ runner.temp }}/release-context-snapshot.json
       BUILD_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
-      CARGO_TARGET_DIR: target
     steps:
       - name: 确认已授权候选预检
         shell: bash
@@ -97,6 +96,9 @@ jobs:
       - name: 验证 stable 满足项目兼容下限
         shell: bash
         run: node .agents/skills/desktop-prepare-cross-platform-release/scripts/release_candidate_workflow.mjs check-rust-runtime
+      - name: 准备运行器 Cargo 全局配置
+        shell: bash
+        run: node .agents/skills/desktop-prepare-cross-platform-release/scripts/release_candidate_workflow.mjs prepare-runner-cargo
       - name: 验证项目依赖锁策略
         shell: bash
         run: node .agents/skills/desktop-prepare-cross-platform-release/scripts/release_candidate_workflow.mjs check-lock-policy
@@ -127,17 +129,17 @@ jobs:
             exit 1
           fi
           node .agents/skills/desktop-prepare-cross-platform-release/scripts/release_candidate_workflow.mjs list-tests
-          cargo test --workspace --all-targets --all-features "${lock_args[@]}"
+          cargo test --workspace --all-targets --all-features --target "$HARNESS_RUST_HOST" "${lock_args[@]}"
           node .agents/skills/desktop-prepare-cross-platform-release/scripts/release_candidate_workflow.mjs verify-post-test
-          cargo build --workspace --release "${lock_args[@]}"
+          cargo build --workspace --release --target "$HARNESS_RUST_HOST" "${lock_args[@]}"
       - name: 尝试 Unix 签名
         if: runner.os != 'Windows' && success()
         shell: bash
         run: |
           set -euo pipefail
-          binary="target/release/${CANDIDATE_BINARY}"
+          binary="${HARNESS_CARGO_RELEASE_DIR}/${CANDIDATE_BINARY}"
           if [[ "$CANDIDATE_BINARY" != "$PRODUCT_NAME" ]]; then
-            cp "target/release/${PRODUCT_NAME}" "$binary"
+            cp "${HARNESS_CARGO_RELEASE_DIR}/${PRODUCT_NAME}" "$binary"
           fi
           hook=".release-signing/sign-candidate.sh"
           status="unsigned"
@@ -172,9 +174,9 @@ jobs:
         if: runner.os == 'Windows' && success()
         shell: pwsh
         run: |
-          $binary = "target/release/$env:CANDIDATE_BINARY.exe"
+          $binary = Join-Path $env:HARNESS_CARGO_RELEASE_DIR "$env:CANDIDATE_BINARY.exe"
           if ($env:CANDIDATE_BINARY -ne $env:PRODUCT_NAME) {
-            Copy-Item -LiteralPath "target/release/$env:PRODUCT_NAME.exe" -Destination $binary -ErrorAction Stop
+            Copy-Item -LiteralPath (Join-Path $env:HARNESS_CARGO_RELEASE_DIR "$env:PRODUCT_NAME.exe") -Destination $binary -ErrorAction Stop
           }
           $hook = ".release-signing/sign-candidate.ps1"
           $status = "unsigned"
@@ -206,14 +208,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          binary="target/release/${CANDIDATE_BINARY}"
+          binary="${HARNESS_CARGO_RELEASE_DIR}/${CANDIDATE_BINARY}"
           test -f "$binary"
           platform="$(printf '%s' "$RUNNER_OS" | tr '[:upper:]' '[:lower:]')"
           arch="$(printf '%s' "$RUNNER_ARCH" | tr '[:upper:]' '[:lower:]')"
           archive="${CANDIDATE_BINARY}-v${VERSION}-${platform}-${arch}.tar.gz"
           stage="$(mktemp -d "${GITHUB_WORKSPACE}/../.${PRODUCT_NAME}.release-candidate.XXXXXX")"
           chmod 700 "$stage"
-          tar -czf "${stage}/${archive}" -C target/release "$CANDIDATE_BINARY" -C "$GITHUB_WORKSPACE" release-notes.json
+          tar -czf "${stage}/${archive}" -C "$HARNESS_CARGO_RELEASE_DIR" "$CANDIDATE_BINARY" -C "$GITHUB_WORKSPACE" release-notes.json
           if command -v sha256sum >/dev/null 2>&1; then
             (cd "$stage" && sha256sum "$archive" > "${archive}.sha256")
           else
@@ -225,7 +227,7 @@ jobs:
         if: runner.os == 'Windows' && success()
         shell: pwsh
         run: |
-          $binary = "target/release/$env:CANDIDATE_BINARY.exe"
+          $binary = Join-Path $env:HARNESS_CARGO_RELEASE_DIR "$env:CANDIDATE_BINARY.exe"
           if (-not (Test-Path -LiteralPath $binary -PathType Leaf)) { throw "缺少发布二进制文件：$binary" }
           $platform = $env:RUNNER_OS.ToLowerInvariant()
           $arch = $env:RUNNER_ARCH.ToLowerInvariant()

@@ -7,7 +7,7 @@ description: 用户明确修改已初始化下游的永久 Agent 能力偏好时
 
 只处理 `superpowers`、`user_owned_tasks`、`task_worktrees`、`parallel_worktree_subagents`、`acceptance_smoke`、`e2e_hint` 的明确永久选择。读取 `docs/AGENT_POLICY.md` 的字段语义和“初始化与持久化”；Harness 源 pending 模板、初始化、临时任务选择不由本入口写入。
 
-`user_owned_tasks` 是项目唯一自动创建左侧子会话的开关，默认关闭；用户明确选择后由本入口记录，历史全局 Task Tree 要求不绕过项目值。Task 与 Worktree 详细行为统一委托 [$desktop-task-workflow](../desktop-task-workflow/SKILL.md)。明确新建一个 Task 只授权该结果，不自动永久打开开关，也不改无关能力。
+`user_owned_tasks` 是项目唯一自动创建左侧子会话的开关，默认关闭；用户明确选择后由本入口记录，历史全局 Task Tree 要求不绕过项目值。两项 Worktree 开关也默认关闭，永久启用要求用户明确选择对应开关。Task 与 Worktree 详细行为统一委托 [$desktop-task-workflow](../desktop-task-workflow/SKILL.md)。明确新建一个 Task 只授权该结果，不自动永久打开开关，也不改无关能力。
 
 ## 执行
 

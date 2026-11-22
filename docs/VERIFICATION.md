@@ -18,7 +18,7 @@
 - Harness 根目录没有具体下游产品；完整验收针对可执行治理闭环、校验器和维护脚本，不把随附的中性资产当作产品候选。真实下游产品与未运行平台按事实标为 `Unverified`。
 - 对代码行为变化，零个相关测试不构成通过；非代码候选可以使用计划中声明的相称替代证据。
 - Git 生命周期回归必须证明：schema v4 在任何 `release` 副作用前锁定 `releaseContextSha256` 与当次 `postReleaseAction`，摘要不一致的重试零副作用；合法且静止的 schema v2/v3 状态可迁移，旧发布动作标为未绑定，进行中的旧发布/推送失败关闭。单一 `release` 只合并本地默认主分支、创建并复读本地 tag，零远端访问、零打包且保留登记 Worktree/分支；`push-release` 只在该次冻结的 `push_release_branch` 路径中把 HEAD 置于本地小写渠道分支（`release` 或 `beta`），并将远端默认主分支、同名渠道分支和 tag 推向具名远端逐项复读；失败不撤销本地 Git 发布，但后续流程未完成。多远端测试继续使用隔离裸远端证明只有 `publish` 接受重复 `--also-remote <name>`，全部目标在首个 push 前解析，并在首个 push 前把冻结 HEAD、有序目标和确认进度写入 `pendingPublish`；每项确认后立即保存，全部确认即清除。还必须覆盖不可解析目标时零 push、补充远端不改绑且不参与 release/tag/资源保留清单、跨远端部分成功报告、同目标重试不重新 fetch/merge/重算 HEAD、已确认目标漂移停止，以及非零 push 仅按复读证据判定；测试不得创建/配置真实用户远端或凭据。
-- 只对真实运行的系统和工具链给出通过结论；其他平台与宿主标记为 `Unverified`。
+- 测试、冒烟、E2E 和运行验收只对实际执行环境所属的系统开展。交叉编译、打包和制品摘要检查不能作为目标系统的运行证据。明确请求的多系统任务按每个原生 runner 或实际目标运行环境分别取证。其他平台与宿主标记为 `Unverified`。
 - 人工批准不能把失败或未执行的检查改判为通过；发布、不可逆交付或项目/渠道要求的复核只能由人类签署，日常开发不强制人工签名。
 
 - 通知启用时，初始化结构回归必须锁定 macOS 的授权状态查询、仅 `NotDetermined` 时请求、复读、授权后持久化和拒绝/受限/仍未授权时固定 Notifications 系统设置恢复路径；调试 E2E 不污染真实授权，最终安装候选才验证实际设置跳转和失败可见性。`system_notification = enabled` 的 macOS 最终候选必须先证明 `.app` 已按 enabled 路线签名；`disabled/not-requested` 或实际 unsigned 是不可验收的运行前提冲突，不能被 E2E `disabled`、waiver 或 `Unverified` 掩盖，也不能在验收阶段补签。
@@ -31,7 +31,7 @@
 | Skills | 硬契约校验；当次发布审查启用时再做语义审查 | Skills、UI 元数据、参考资料、脚本和资产与事实源一致；独立 WEB Skill 不得存在，`$desktop-upgrade-harness` 必须存在并保留 |
 | 持久 Agent 策略 | 模式定义正负向单元测试 + 初始化契约 | 新初始化按固定默认值物化六项策略，不单独询问；按 [Agent Policy](AGENT_POLICY.md#初始化与持久化) 以 schema v5 原子写入六项能力、`post_release_action: pending` 和完整汇总的真实确认元数据，仅发布动作可保持 `pending` 到首次发布前；合法 schema 3/4 严格读取兼容，缺少工作树选择时为 `selection_required`，schema 3 先补发布动作至 4，schema 4 仅在明确补选后迁移至 5；后续同值切换零写入，Task 开关只影响后续结果边界，`task_worktrees` 切换只影响后续 Git Task 环境且不迁移既有 Task/Worktree，每次构建仍单独解析 E2E |
 | 收敛开发与按需计划 | 无计划日常开发、用户要求的精简 Todo、完整候选正负向单元测试 | 日常开发无 Work Plan；持久 Todo 只在明确协调需要时存在；有活动计划时非 `done` 项禁止进入 `accepted` |
-| 并行协作 | Worktree 助手隔离单元测试 + 校验器契约检查 | 只有用户明确要求、持久策略启用且至少两个写入范围独立时采用；否则单 Agent |
+| 并行 Worktree | Worktree 助手隔离单元测试 + 校验器契约检查 | 默认关闭。只有用户明确要求使用 Worktree、项目策略启用且至少两个写入范围独立时采用 |
 | Git 生命周期 | 本地仓库 + 隔离裸远端回归；`start`/`track-worktree`/`publish`/单一 `release`/独立 `push-release` 真实 ref 断言 | 新功能/Bug 自动建本地分支；`publish` 保持主/补充远端推送、预解析、部分成功报告与冻结目标集合及顺序的幂等重试。`release` 必须传精确 `--release-context-sha256 <sha256>` 并在任何 Git 副作用前绑定 tracked 上下文，只合并本地默认主分支并创建、复读本地 tag；全过程零远端访问、零打包、零资源清理。`push-release` 对下游只接受该次冻结的 `push_release_branch`，对 Harness 源只接受当次用户授权且已发布提交中的时间版本与源入口核对；两者均将远端默认主分支、同名渠道分支和 tag 同步并复读为同一已发布 HEAD，拒绝本地或远端所选渠道的大小写变体。覆盖 schema v4 上下文锁定、静止 v2/v3 迁移、未完成旧模式 journal 拒绝、摘要漂移零副作用、tag 冲突、dirty Worktree 和未登记资源保留 |
 | Harness 版本 | 校验器正向与非法日期负向测试 | `Version.md` 的当前版本是上海时区合法 `YYYYMMDDHHMM`，当前摘要一致且下游 SemVer 不受污染 |
 | 当前描述 | 校验器正向与隔离负向注入 | 已替代的接口、Git、目录、命名和前端默认不得回归 |

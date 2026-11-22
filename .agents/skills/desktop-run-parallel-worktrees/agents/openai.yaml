@@ -1,4 +1,4 @@
 interface:
   display_name: "运行并行 Worktree"
   short_description: "兼容内部工作树并行单元，统一委托授权继承和自动检查整合流程"
-  default_prompt: "使用 $desktop-run-parallel-worktrees 兼容入口并路由到 $desktop-task-workflow，在本结果已授权范围按不重叠所有权并行创建和执行内部 Worktree，自动检查并保留登记资源，不创建左侧子会话。"
+  default_prompt: "使用 $desktop-run-parallel-worktrees 兼容入口并路由到 $desktop-task-workflow。仅当项目明确开启且用户本次明确请求 Worktree 时，才按不重叠所有权创建内部单元。自动检查并保留已有登记资源。"

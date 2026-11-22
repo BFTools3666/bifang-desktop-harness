@@ -11,12 +11,12 @@ description: 为已初始化下游明确选择或切换未来 Git 发布完成�
 
 | 用户选项 | 持久值 | 未来 Git 发布完成后的流程 |
 |---|---|---|
-| 本地打包 | `local_package` | Git 发布后在当前宿主按固定路由生成并校验一个已选接口/目标的正式候选；其他接口、平台与验收另行处理。 |
+| 本地打包 | `local_package` | Git 发布后默认生成并校验一个当前系统的正式候选。其他目标须由用户当次明确指定，并在实际目标系统完成所需的运行验收。 |
 | 提交远程 | `push_release_branch` | 按发布流程把已发布代码提交到本次选中的 `release` 或 `beta` 分支并同步用户已配置远端的默认主分支、同名渠道分支和 tag；三者复读为同一已发布 HEAD 后该流程结束。 |
 
 新下游初始化保持 `pending`，首次发布前才询问并记录；不得用默认值替用户作选择。用户已选择后可再次调用本 Skill 改变未来流程。选择不回溯改变已完成发布或候选。
 
-DESKTOP 使用 Tauri。旧 GUI 缺省兼容 Tauri；显式不受支持的框架值拒绝。选择 `local_package` 前须按当前宿主与架构解析至少一个已选正式候选。Tauri 使用 `$desktop-build-tauri-release` 生成本机 macOS 或 Windows x64 候选；Linux 宿主上的纯 Tauri GUI 须选择 `push_release_branch`。
+DESKTOP 使用 Tauri。旧 GUI 缺省兼容 Tauri；显式不受支持的框架值拒绝。选择 `local_package` 前须核对当前宿主可构建的已选目标。若只具备跨平台路线，后续每次打包须明确指定目标或在目标系统执行。Tauri 使用 `$desktop-build-tauri-release` 生成本机 macOS 或 Windows x64 候选；Linux 宿主上的纯 Tauri GUI 须选择 `push_release_branch`。
 
 ## 执行
 
@@ -39,4 +39,4 @@ DESKTOP 使用 Tauri。旧 GUI 缺省兼容 Tauri；显式不受支持的框架�
 
 ## 按已发布快照路由
 
-发布后实际执行 `local_package` 时，先由 `$desktop-manage-git-lifecycle` 运行 `check-post-release --action local_package`，再调用 `node .agents/skills/desktop-switch-post-release-action/scripts/post_release_action.mjs route --project-root "<absolute-downstream-root>"`。输出唯一 `interface`、`target`、`skill`；固定优先序是当前宿主 GUI/NSH desktop、CLI、NSH iOS（仅 macOS）、Android、Web。若用户在已选候选失败后明确要求另一个已选且当前宿主可构建的目标，用 `route --project-root "<absolute-downstream-root>" --interface <接口> --target <目标>` 验证；不得因构建错误自动改选。没有可用目标时保持 Git 发布已完成、发布后打包阻断。成功条件是同 HEAD、发布上下文、目标绑定的正式候选真实文件、摘要与 manifest 通过构建 Skill 的复核；`milestoneAcceptance: pending` 不表示验收通过。既有候选也只能按相同证据复用，不能依据目录存在或时间戳复用。
+发布后实际执行 `local_package` 时，先由 `$desktop-manage-git-lifecycle` 运行 `check-post-release --action local_package`，再调用 `node .agents/skills/desktop-switch-post-release-action/scripts/post_release_action.mjs route --project-root "<absolute-downstream-root>"`。输出唯一 `interface`、`target`、`skill`；固定优先序是当前系统的 GUI/NSH desktop、CLI。本次用户明确指定其他已选且当前宿主可构建的目标时，用 `route --project-root "<absolute-downstream-root>" --interface <接口> --target <目标>` 验证。该入口也用于本次明确指定的目标，包含 Tauri xwin 或 NSH 移动/Web。缺少默认目标或构建失败均不会自动改选。没有可用目标时保持 Git 发布已完成、发布后打包阻断。成功条件是同 HEAD、发布上下文、目标绑定的正式候选真实文件、摘要与 manifest 通过构建 Skill 的复核；`milestoneAcceptance: pending` 不表示验收通过。既有候选也只能按相同证据复用，不能依据目录存在或时间戳复用。

@@ -15,7 +15,7 @@ NSH 专用路由：新下游顶层 `interfaces = ["nsh"]` 配合 `nsh-targets` �
 
 ## 各平台方案入口
 
-下表记录现有工程路径，不能据此宣称目标平台已经运行通过。CLI/MCP 的共享核心、接口边界和工具链见 [Rust 基线](RUST_CLI_TEMPLATE.md)，CLI 候选默认只构建当前宿主；跨平台矩阵按 [构建 Skill](../.agents/skills/desktop-build-rust-release/SKILL.md) 的明确请求与远端来源门禁执行。NSH 单独按目标打包，不使用该 CLI 矩阵。
+下表记录现有工程路径，不能据此宣称目标平台已经运行通过。CLI/MCP 的共享核心、接口边界和工具链见 [Rust 基线](RUST_CLI_TEMPLATE.md)，CLI 候选默认只构建当前宿主；跨平台矩阵按 [构建 Skill](../.agents/skills/desktop-build-rust-release/SKILL.md) 的明确请求与远端来源门禁执行。Tauri 与 NSH 同样默认构建当前系统和原生架构，明确指定时才尝试其他受支持目标。NSH 使用独立打包入口。
 
 | 平台 | Tauri | NSH | 验证边界 |
 | --- | --- | --- | --- |

@@ -53,6 +53,7 @@ test("CRLF workflow bytes canonicalize to reviewed content", () => {
   assert.deepEqual(validateWorkflowText(baseWorkflow(), { crlf: true }), []);
 });
 
+const NATIVE_TEST_COMMAND = '          cargo test --workspace --all-targets --all-features --target "$HARNESS_RUST_HOST" "${lock_args[@]}"\n';
 const workflowMutations = [
   ["missing per-build E2E selection", "      e2e_selection:\n", "      retired_selection:\n", "e2e_selection"],
   ["non-disabled E2E default", "        default: disabled\n", "        default: enabled\n", "default: disabled"],
@@ -64,8 +65,10 @@ const workflowMutations = [
   ["candidate attempts a remote push", "          ref: ${{ github.ref }}\n", "          ref: ${{ github.ref }}\n          git push origin release\n", "forbidden candidate behavior"],
   ["shallow checkout", "          fetch-depth: 0\n", "          fetch-depth: 1\n", "fetch-depth: 0"],
   ["missing Node setup version", "          node-version: lts/*\n", "          node-version: 24.20.0\n", "runtime setup"],
-  ["format gate injected into build", "          cargo test --workspace --all-targets --all-features \"${lock_args[@]}\"\n", "          cargo fmt --all -- --check\n          cargo test --workspace --all-targets --all-features \"${lock_args[@]}\"\n", "forbidden candidate behavior"],
-  ["lint gate injected into build", "          cargo test --workspace --all-targets --all-features \"${lock_args[@]}\"\n", "          cargo clippy --workspace\n          cargo test --workspace --all-targets --all-features \"${lock_args[@]}\"\n", "forbidden candidate behavior"],
+  ["format gate injected into build", NATIVE_TEST_COMMAND, `          cargo fmt --all -- --check\n${NATIVE_TEST_COMMAND}`, "forbidden candidate behavior"],
+  ["lint gate injected into build", NATIVE_TEST_COMMAND, `          cargo clippy --workspace\n${NATIVE_TEST_COMMAND}`, "forbidden candidate behavior"],
+  ["project Cargo output override", "    steps:\n", "      CARGO_TARGET_DIR: target\n    steps:\n", "forbidden candidate behavior"],
+  ["test target differs from the runner", NATIVE_TEST_COMMAND, NATIVE_TEST_COMMAND.replace('$HARNESS_RUST_HOST', 'x86_64-pc-windows-msvc'), "workflow candidate verification sequence"],
   ["Unix packaging loses success guard", "        if: runner.os != 'Windows' && success()\n", "        if: runner.os != 'Windows'\n", "exact guard"],
   ["Windows packaging loses success guard", "        if: runner.os == 'Windows' && success()\n", "        if: runner.os == 'Windows'\n", "exact guard"],
   ["upload loses success guard", "        if: success()\n        with:\n", "        with:\n", "upload step"],
@@ -103,7 +106,7 @@ test("rejects missing second context verification", () => {
 test("comments cannot mask active test, pending state, or upload guard", () => {
   const source = baseWorkflow();
   const mutations = [
-    changed(source, "          cargo test --workspace --all-targets --all-features \"${lock_args[@]}\"\n", "          # cargo test --workspace --all-targets --all-features \"${lock_args[@]}\"\n"),
+    changed(source, NATIVE_TEST_COMMAND, `          # ${NATIVE_TEST_COMMAND.trimStart()}`),
     changed(source, "        if: success()\n        with:\n", "        if: always() # if: success()\n        with:\n"),
     `${source}\n# cargo test --workspace --all-targets --all-features\n`,
   ];
@@ -223,7 +226,7 @@ function releaseNotesArchive(contents) {
   return gzipSync(Buffer.concat([header, contents, padding, Buffer.alloc(1024)]));
 }
 
-test("write-manifest binds real archive bytes, release review, build E2E, and signing evidence", (context) => {
+test("write-manifest binds real archive bytes, release review, build E2E, and signing evidence", () => {
   const probe = runCandidateHelper(["check-node-runtime"]);
   assert.equal(probe.status, 0, probe.stderr);
   const fixture = candidateFixture();
@@ -250,18 +253,15 @@ test("write-manifest binds real archive bytes, release review, build E2E, and si
         GITHUB_WORKSPACE: fixture.root, CANDIDATE_ARCHIVE: fixture.archive,
         CANDIDATE_STAGE: fixture.stage, PRODUCT_NAME: "example-tool", VERSION: "1.2.3",
         SOURCE_COMMIT: "a".repeat(40), HARNESS_RELEASE_CHANNEL: "release", BUILD_RUN_ID: "fixture-1", E2E_SELECTION: "disabled",
-        RUNNER_OS: "Linux", RUNNER_ARCH: "X64", SIGNING_STATUS: "signed",
+        RUNNER_OS: "Linux", RUNNER_ARCH: "X64", HARNESS_RUST_HOST: "x86_64-unknown-linux-gnu", SIGNING_STATUS: "signed",
         SIGNING_REASON: "configured-hook-succeeded", SIGNING_EVIDENCE: "configured-hook-verify-exit-0",
         RELEASE_NOTES_SHA256: createHash("sha256").update(releaseNotes).digest("hex"),
         RELEASE_CONTEXT_SHA256: contextDigest, RELEASE_CONTEXT_SNAPSHOT: snapshot,
       },
     });
-    if (result.stderr.includes("rustc is unavailable")) {
-      context.skip("rustc is unavailable on this host");
-      return;
-    }
     assert.equal(result.status, 0, result.stderr);
     const manifest = JSON.parse(fs.readFileSync(`${archivePath}.manifest.json`, "utf8"));
+    assert.equal(manifest.target, "x86_64-unknown-linux-gnu");
     assert.equal(manifest.sha256, archiveDigest);
     assert.equal(manifest.releaseContextSha256, contextDigest);
     assert.equal(manifest.releaseTag, "v1.2.3-20260923");

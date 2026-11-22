@@ -269,11 +269,12 @@ export function nshDependencies(input) {
 export function nshPackageScripts(id, targets = ['desktop'], platforms = ['macos']) {
   validateNshPlatforms(targets, platforms);
   const member = id + '_nsh';
-  const nsh = 'node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs && nsh';
-  const run = nsh + ' run ' + member;
+  const checkNsh = 'node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs';
+  const nsh = checkNsh + ' && nsh';
+  const nativeNsh = target => checkNsh + ' ' + target + ' && nsh';
   const targetScripts = {};
   // NSH defaults to the current native desktop backend. iOS run uses ios, while package uses ios-simulator.
-  if (targets.includes('desktop')) targetScripts['dev:desktop'] = run;
+  if (targets.includes('desktop')) targetScripts['dev:desktop'] = nativeNsh('desktop') + ' run ' + member;
   for (const [target, enabled] of [
     ['tui', targets.includes('tui')],
     ['web', targets.includes('web')],
@@ -281,18 +282,19 @@ export function nshPackageScripts(id, targets = ['desktop'], platforms = ['macos
     ['ios', platforms.includes('ios')],
   ]) {
     if (!enabled) continue;
-    targetScripts['dev:' + target] = run + ' --target ' + target;
-    targetScripts['nsh:test:' + target] = nsh + ' test ' + member + '/App.test.tsx --target ' + target;
+    const executable = target === 'tui' ? nativeNsh(target) : nsh;
+    targetScripts['dev:' + target] = executable + ' run ' + member + ' --target ' + target;
+    if (target === 'tui') targetScripts['nsh:test:tui'] = executable + ' test ' + member + '/App.test.tsx --target tui';
   }
   if (targets.includes('desktop')) {
     for (const platform of platforms.filter(value => ['macos', 'windows', 'linux'].includes(value))) {
-      targetScripts['nsh:test:' + platform] = nsh + ' test ' + member + '/App.test.tsx --target ' + platform;
+      targetScripts['nsh:test:' + platform] = nativeNsh(platform) + ' test ' + member + '/App.test.tsx --target ' + platform;
     }
   }
   return {
-    dev: Object.values(targetScripts)[0],
+    ...(targetScripts['dev:desktop'] || targetScripts['dev:tui'] ? { dev: targetScripts['dev:desktop'] ?? targetScripts['dev:tui'] } : {}),
     ...targetScripts,
-    test: 'cargo test --workspace --all-targets --all-features',
+    test: 'cargo test --workspace --all-targets --all-features --target host-tuple',
     'nsh:check': nsh + ' check ' + member,
     'nsh:build': nsh + ' build ' + member,
     'nsh:test': nsh + ' test ' + member,

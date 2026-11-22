@@ -13,6 +13,7 @@ import {
   controlField,
   isDebianPackageName,
   missingDepends,
+  nativeDebPaths,
   parseArguments,
   payloadRecords,
   replacePackageField,
@@ -82,15 +83,40 @@ test("payload_records_detect_mode_link_and_content_changes", (t) => {
 /** 参数解析要求根目录与包名，可重复声明必需依赖，拒绝未知或缺值参数。 */
 test("parses_arguments_strictly", () => {
   const parsed = parseArguments([
-    "--project-root", ".", "--package-name", "example-dashboard",
+    "--project-root", ".", "--package-name", "example-dashboard", "--input", "current.deb",
     "--require-depends", "libgtk-3-0", "--require-depends", "libayatana-appindicator3-1",
   ]);
   assert.equal(parsed.packageName, "example-dashboard");
   assert.deepEqual(parsed.requireDepends, ["libgtk-3-0", "libayatana-appindicator3-1"]);
-  assert.equal(parsed.input, null);
+  assert.equal(parsed.input, path.resolve("current.deb"));
+  assert.equal(parsed.cargoManifest, "Cargo.toml");
+  assert.throws(() => parseArguments(["--project-root", ".", "--package-name", "example-dashboard"]), /from Tauri build output/u);
   assert.throws(() => parseArguments(["--project-root", "."]), /required/);
   assert.throws(() => parseArguments(["--project-root", ".", "--package-name", "a", "--force", "1"]), /invalid argument/);
   assert.throws(() => parseArguments(["--project-root", ".", "--package-name"]), /missing value/);
+});
+
+/** 当前包只能来自共享目录中由本次原生目标生成的位置，不能捡取仓库中的旧包。 */
+test("deb lookup follows Cargo metadata and rejects stale project-local output", t => {
+  const sandbox = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "tauri-deb-output-"));
+  t.after(() => fs.rmSync(sandbox, { recursive: true, force: true }));
+  const shared = path.join(sandbox, "shared cargo output");
+  const host = "x86_64-unknown-linux-gnu";
+  const bundle = path.join(shared, host, "release", "bundle", "deb");
+  const project = path.join(sandbox, "project");
+  const localTarget = path.join(project, "target");
+  const oldBundle = path.join(localTarget, host, "release", "bundle", "deb");
+  for (const folder of [bundle, oldBundle]) {
+    fs.mkdirSync(folder, { recursive: true });
+    fs.writeFileSync(path.join(folder, "example-app.deb"), "fixture");
+  }
+  const metadata = { target_directory: shared };
+  const source = path.join(bundle, "example-app.deb");
+  const stale = path.join(oldBundle, "example-app.deb");
+  assert.deepEqual(nativeDebPaths(metadata, project, host, source), { source, outputRoot: path.join(shared, "local-install-linux", "artifacts") });
+  assert.throws(() => nativeDebPaths(metadata, project, host, stale), /native bundle directory/u);
+  assert.throws(() => nativeDebPaths({ target_directory: localTarget }, project, host, stale), /global location/u);
+  assert.throws(() => nativeDebPaths(metadata, project, "aarch64-apple-darwin", source), /Linux GNU native/u);
 });
 
 /** 通过真实 Node CLI 宿主中断调用 main，证明 signal 传递与收尾等待并移除监听器。 */
@@ -99,7 +125,7 @@ test("cli_signal_waits_for_normalization_cleanup_and_removes_handlers", {
 }, async () => {
   const moduleUrl = new URL("./normalize_tauri_deb.mjs", import.meta.url).href;
   const source = `import {main} from ${JSON.stringify(moduleUrl)};
-try { await main(['--project-root','.','--package-name','test-app'], async ({signal}) => {
+  try { await main(['--project-root','.','--package-name','test-app','--input','fixture.deb'], async ({signal}) => {
   if (!signal) throw Error('missing signal');
   const heartbeat=setInterval(()=>{},1000);
   process.stdout.write('ready\\n');
@@ -128,10 +154,24 @@ test("native_dpkg_normalization_preserves_original_payload_and_complete_evidence
   const available = spawnSync("dpkg-deb", ["--version"], { encoding: "utf8", timeout: 5000 });
   if (available.error?.code === "ENOENT") { t.skip("dpkg-deb is not installed on this Linux host"); return; }
   assert.equal(available.status, 0);
-  const root = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "tauri-deb-native-"));
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const sandbox = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "tauri-deb-native-"));
+  t.after(() => fs.rmSync(sandbox, { recursive: true, force: true }));
+  const root = path.join(sandbox, "project");
+  const shared = path.join(sandbox, "configured shared Cargo output");
+  const host = process.arch === "x64" ? "x86_64-unknown-linux-gnu" : "aarch64-unknown-linux-gnu";
   const architecture = process.arch === "x64" ? "amd64" : "arm64";
+  fs.mkdirSync(root);
   fs.writeFileSync(path.join(root, "Cargo.toml"), '[workspace.package]\nversion = "1.2.3"\n');
+  const setup = new Map([['cargo', JSON.stringify({ target_directory: shared })], ['rustc', `host: ${host}\n`]]);
+  const tools = path.join(sandbox, "tools");
+  fs.mkdirSync(tools);
+  for (const [command, output] of setup) {
+    fs.writeFileSync(path.join(tools, command), `#!/usr/bin/env node\nprocess.stdout.write(${JSON.stringify(output)})\n`, { mode: 0o755 });
+  }
+  const run = async command => {
+    assert.ok(setup.has(command));
+    return { stdout: setup.get(command) };
+  };
   const originalTree = path.join(root, "package");
   fs.mkdirSync(path.join(originalTree, "DEBIAN"), { recursive: true });
   const control = `Package: original-app\nVersion: 1.2.3\nArchitecture: ${architecture}\nMaintainer: Test <test@example.invalid>\nDepends: libc6\nDescription: engineering fixture\n`;
@@ -140,12 +180,12 @@ test("native_dpkg_normalization_preserves_original_payload_and_complete_evidence
   fs.mkdirSync(path.join(originalTree, "usr/bin"), { recursive: true });
   fs.writeFileSync(path.join(originalTree, "usr/bin/app"), "#!/bin/sh\nprintf fixture\n", { mode: 0o755 });
   fs.symlinkSync("app", path.join(originalTree, "usr/bin/app-link"));
-  const bundle = path.join(root, "target/release/bundle/deb"); fs.mkdirSync(bundle, { recursive: true });
+  const bundle = path.join(shared, host, "release", "bundle", "deb"); fs.mkdirSync(bundle, { recursive: true });
   const input = path.join(bundle, `original-app_1.2.3_${architecture}.deb`);
   const build = spawnSync("dpkg-deb", ["--build", "--root-owner-group", originalTree, input], { encoding: "utf8", timeout: 10_000 });
   assert.equal(build.status, 0, build.stderr);
   const originalHash = sha256File(input);
-  const result = await normalizeTauriDeb({ projectRoot: root, packageName: "normalized-app", input, requireDepends: ["libc6"] });
+  const result = await normalizeTauriDeb({ projectRoot: root, packageName: "normalized-app", input, requireDepends: ["libc6"] }, run);
   assert.equal(sha256File(input), originalHash);
   assert.equal(result.originalSha256, originalHash);
   assert.equal(result.sha256, sha256File(result.output));
@@ -157,12 +197,16 @@ test("native_dpkg_normalization_preserves_original_payload_and_complete_evidence
   assert.equal(sha256File(path.join(verified, "DEBIAN/postinst")), sha256File(path.join(originalTree, "DEBIAN/postinst")));
   assert.deepEqual(payloadRecords(verified), payloadRecords(originalTree));
   const helper = fileURLToPath(new URL("./normalize_tauri_deb.mjs", import.meta.url));
-  const cli = spawnSync(process.execPath, [helper, "--project-root", root, "--package-name", "normalized-app", "--require-depends", "libc6"], { encoding: "utf8", timeout: 20_000 });
+  const cli = spawnSync(process.execPath, [helper, "--project-root", root, "--package-name", "normalized-app", "--input", input, "--require-depends", "libc6"], {
+    env: { ...process.env, PATH: [tools, path.dirname(process.execPath), process.env.PATH].join(path.delimiter) },
+    encoding: "utf8", timeout: 20_000,
+  });
   assert.equal(cli.status, 0, cli.stderr);
   const repeated = JSON.parse(cli.stdout);
   assert.notEqual(repeated.output, result.output);
   assert.equal(repeated.sha256, sha256File(repeated.output));
-  const before = fs.readdirSync(path.join(root, "target/local-install-linux/artifacts")).sort();
-  await assert.rejects(normalizeTauriDeb({ projectRoot: root, packageName: "normalized-app", input, requireDepends: ["missing-library"] }), /runtime dependencies missing/u);
-  assert.deepEqual(fs.readdirSync(path.join(root, "target/local-install-linux/artifacts")).sort(), before);
+  const outputRoot = path.join(shared, "local-install-linux", "artifacts");
+  const before = fs.readdirSync(outputRoot).sort();
+  await assert.rejects(normalizeTauriDeb({ projectRoot: root, packageName: "normalized-app", input, requireDepends: ["missing-library"] }, run), /runtime dependencies missing/u);
+  assert.deepEqual(fs.readdirSync(outputRoot).sort(), before);
 });

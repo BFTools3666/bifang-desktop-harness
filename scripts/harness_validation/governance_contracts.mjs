@@ -183,7 +183,7 @@ const STREAMLINED_ENTRIES = [
   ["taskWorkflow", ["默认 `disabled`", "自动创建左侧子会话的唯一项目开关", "不再把 BOUND", "当前宿主真实权限", "独立 Worktree", "实际 checkout", "短锁", "references/task-contract.md", "references/task-description.md", "references/worktree-execution.md"]],
   ["taskContract", ["`Task {序号} | {当前进度} | {单一结果}`","`已分配`、`运行中`、`检查中`、`已完成`","list_archived_threads","缺号不回填","SETUP_PENDING","真实 `threadId`","不等待新的审批口令","迁移链","重复创建","对每个结果只调用一次 `create_thread`","非 pinned","工具成功回执不能代替复读"]],
   ["taskDescription", ["目标", "范围", "授权", "完成"]],
-  ["worktreeExecution", ["common-dir","guard","postflight","--write-target","--source-worktree","environment.type=local","Local 没有 `startingState` 参数","只读测试期间其他 Task 也不能改变被测 branch、HEAD 或文件","前序结束并交出可核对的提交后再开工","恢复漂移先复核实际输入","普通 `create_worktree`、`git worktree add` 或内部 Subagent 不能冒充其左侧身份"]],
+  ["worktreeExecution", ["common-dir","guard","postflight","--write-target","--source-worktree","--confirmed-worktree-request","parallel_worktree_subagents: enabled","environment.type=local","Local 没有 `startingState` 参数","只读测试期间其他 Task 也不能改变被测 branch、HEAD 或文件","前序结束并交出可核对的提交后再开工","恢复漂移先复核实际输入","普通 `create_worktree`、`git worktree add` 或内部 Subagent 不能冒充其左侧身份"]],
   ["agentsEntrypoint", ["每次开工先读取用户级", "$desktop-task-workflow", "默认关闭"]],
   ["handoffSkill", ["用户级 `AGENTS.md`","$desktop-task-workflow","关闭时在当前聊天恢复","沿原身份、结果和冻结环境主动修复","无需重复人工审批"]],
   ["readme", ["日常开发直接使用 `$desktop-implement-change`","只增加并运行本次变更需要的单元/回归测试","不自动增加计划、全仓检查、构建、E2E 或验收","Git 发布只整理并提交代码、合并本地默认主分支及创建并复读 tag","首次发布前先询问并记录 `post_release_action`","未来可用 `$desktop-switch-post-release-action` 切换","候选须运行全部非空单元测试","不自动更新项目记忆","## Task 与工作树","$desktop-task-workflow","只有项目开启才自动创建左侧 Task 子树","不改变永久选择","独立 Worktree","并行创建和执行","同一 Local cwd","不额外等待人工 BOUND 批准","本次另行解析 E2E 和适用签名选择，把选择与结果写入候选证据","普通 Windows 本地安装试包是开发制品","不要求发布日志或 clean HEAD","构建事实只写入适用产物位置和最终回复"]],
@@ -225,6 +225,7 @@ const STREAMLINED_ENTRIES = [
     "project_root_not_primary_worktree", "source_repository_mismatch", "`codex/unit-${safeTask}-${safeUnit}`", "source_worktree_dirty",
     "ownership_overlap_across_units", "actual_change_outside_ownership", "worktree_path_exists", "worktree_branch_mismatch", "worktree_dirty",
     '"source-worktree": { type: "string" }', '["inspect", "create", "guard", "verify", "remove"]', "function removeUnit",
+    "requireWorktreeCreationAuthorization",
   ]],
   ["parallelTests", [
     "create_tracks_exact_worktree_in_current_release_cycle", "create_rolls_back_when_lifecycle_tracking_fails",

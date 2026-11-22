@@ -19,14 +19,14 @@ node .agents/skills/desktop-build-tauri-release/scripts/tauri_channel_config.mjs
 
 ## 按需资料
 
-先从根 Cargo 与当前请求确定实际候选目标和构建路线，仅读取命中行的引用；多路线取并集。按上方已解析的候选目标确定签名适用性。
+先按[宿主测试和 Cargo 输出规则](../../../docs/ENGINEERING_RULES.md#53-开发构建与完整验收)、根 Cargo 和当前请求确定实际候选目标。默认只构建当前原生系统与架构，当前宿主没有可用候选路线时保留阻断。只有用户本次明确要求其他目标时才读取相关交叉路线；安装了 xwin 或声明支持 Windows 都不触发它。按已解析的候选目标确定签名适用性。
 
 | 路线或选择 | 必须读取 |
 |---|---|
 | macOS 原生 DMG（含 unsigned） | [macOS DMG](references/tauri-macos-dmg.md) |
 | 目标含 macOS 且已解析签名 enabled | [macOS 签名与公证](references/tauri-macos-signing.md)，在任何测试或签名探测前读取 |
 | Windows 原生 x64 NSIS | [Windows 原生候选](references/tauri-windows-native.md) |
-| macOS→Windows x64 NSIS | [Windows xwin 候选](references/tauri-windows-xwin.md) |
+| 明确请求的 macOS→Windows x64 NSIS | [Windows xwin 候选](references/tauri-windows-xwin.md) |
 
 引用是对应分支的执行合同；旧 [平台索引](references/tauri-macos-windows.md) 只保留兼容导航，不要求整读全部平台资料。
 
@@ -41,13 +41,13 @@ node .agents/skills/desktop-build-tauri-release/scripts/tauri_channel_config.mjs
    - 同一固定基线还必须包含 dialog：根 `tauri-plugin-dialog = "2.8.4"`、GUI member `workspace = true`、前端生产依赖 `@tauri-apps/plugin-dialog = "^2.8.4"`，中央 Builder 在 window-state 后、条件 notification/autostart/global-shortcut 前恰好注册一次。主窗口 capability 的 `dialog:*` 项必须精确为唯一 `dialog:default`，覆盖 message/open/save 全部官方对话框类型；禁止 wildcard、deprecated alias、deny 项和任何额外文件系统授权，dialog 不加入自有 `invoke_handler`。任一依赖、顺序或权限漂移都停止构建。
 3. 在任何单元测试或构建命令前，按当前宿主选择本 Skill 随附的 release helper：macOS/Linux 调用 `scripts/prepare-release-directory.sh <project-root>`，Windows PowerShell 调用 `scripts/prepare-release-directory.ps1 -ProjectRoot <project-root>`，安全刷新项目根 `release/`。两者分别与 `$desktop-build-rust-release` 的 POSIX/PowerShell helper 保持逐字节一致，复用相同的 Git 根、clean HEAD、符号链接或重解析点、原子隔离和同根暂存门禁；其 `release.source_commit` 必须等于 `buildSourceCommit`。Windows 原生路线不得调用 `.sh` helper；不要求 GUI-only 项目保留 CLI 构建 Skill。
 4. 初始化后的构建不做例行环境预检：不得因显式构建、目标包含 Windows x64、缺少/过期环境证据或工具链可能变化而调用 `$desktop-check-development-environment`。先使用当前环境运行下述真实 Rust、前端或 Tauri 命令；只有某条命令已经失败，且命令、退出状态和脱敏诊断明确指向受管 GUI 工具链或 xwin 工具缺失/不兼容时，才调用对应的常规或 `scripts/macos-tauri-xwin-gates.sh --install-missing --target x86_64-pc-windows-msvc` 门禁，并重试原命令一次。代码/测试、依赖解析、网络、配置、凭据、安装包签名或公证失败不得误判为环境错误；任一门禁或单次重试失败时停止，不临时拼装安装命令。
-5. 前端依赖尚未安装或 CI 新检出时，先从根 Cargo 元数据读取 `dependency-lock-policy` 并用 `project_lock_policy.mjs` 对实际 `rust-test-manifests` 与 `gui-root` 执行 `assertDependencyLocks`。缺省或 `ignored` 执行 `pnpm install --no-frozen-lockfile`，不要求项目锁文件；显式 `tracked` 要求实际 Cargo workspace 的 `Cargo.lock` 与 GUI 根的 `pnpm-lock.yaml` 为受 Git 跟踪且未被忽略的普通文件，并执行 `pnpm install --frozen-lockfile`。打包前只先运行项目全部非空单元测试。Rust 对 `rust-test-manifests` 的每个实际工作区分别确认并运行非空全量单元测试；默认根工作区使用 `cargo test --workspace --all-targets --all-features -- --list` 和 `cargo test --workspace --all-targets --all-features`，独立工作区使用对应 `--manifest-path <path>` 的等价命令；`tracked` 时每条 Cargo 命令追加 `--locked`，列测试时置于 `-- --list` 前；前端必须运行 `package.json` 声明的完整单元测试套件，不得使用文件过滤、单测试名、相关子集或 watch 模式，并须确认发现至少一个测试。完整前端套件始终覆盖所有可见版本恰有一个小写 `v`；`about_page = enabled` 时还必须覆盖 Rust 资源解析/畸形失败、handler 注册、前端固定 IPC 命令与解码、loading/error/retry、关于页“更新日志”按钮、近 10 版/每类 10 条上限和父容器不代理日志按钮，disabled 时覆盖路由、命令、加载器、入口与运行时组件缺席。不得自动追加格式、lint、类型、中文注释、`dist` 扫描或其他开发门禁；任一单元测试失败或测试数为零时停止。测试完成后、任一正式 Tauri 编译前再次要求工作树 clean 且 `HEAD == buildSourceCommit`；测试产生变化时停止。不得启动安装包、应用或 Windows 二进制。
+5. 前端依赖尚未安装或 CI 新检出时，先从根 Cargo 元数据读取 `dependency-lock-policy` 并用 `project_lock_policy.mjs` 对实际 `rust-test-manifests` 与 `gui-root` 执行 `assertDependencyLocks`。缺省或 `ignored` 执行 `pnpm install --no-frozen-lockfile`，不要求项目锁文件；显式 `tracked` 要求实际 Cargo workspace 的 `Cargo.lock` 与 GUI 根的 `pnpm-lock.yaml` 为受 Git 跟踪且未被忽略的普通文件，并执行 `pnpm install --frozen-lockfile`。打包前只先运行项目全部非空单元测试。Rust 对 `rust-test-manifests` 的每个实际工作区分别确认并运行非空全量单元测试；从当前稳定 `rustc -vV` 的 `host:` 读取 triple 并确认与当前系统、架构一致。POSIX 命令下将该值保存为 `host_target`。默认根工作区使用 `cargo test --workspace --all-targets --all-features --target <host>`，先追加 `-- --list` 枚举再实际运行，独立工作区使用对应 `--manifest-path <path>` 的等价命令。显式交叉构建时仍只测试当前宿主；`tracked` 时每条 Cargo 命令追加 `--locked`，列测试时置于 `-- --list` 前；前端必须运行 `package.json` 声明的完整单元测试套件，不得使用文件过滤、单测试名、相关子集或 watch 模式，并须确认发现至少一个测试。完整前端套件始终覆盖所有可见版本恰有一个小写 `v`；`about_page = enabled` 时还必须覆盖 Rust 资源解析/畸形失败、handler 注册、前端固定 IPC 命令与解码、loading/error/retry、关于页“更新日志”按钮、近 10 版/每类 10 条上限和父容器不代理日志按钮，disabled 时覆盖路由、命令、加载器、入口与运行时组件缺席。不得自动追加格式、lint、类型、中文注释、`dist` 扫描或其他开发门禁；任一单元测试失败或测试数为零时停止。测试完成后、任一正式 Tauri 编译前再次要求工作树 clean 且 `HEAD == buildSourceCommit`；测试产生变化时停止。不得启动安装包、应用或 Windows 二进制。
    上述 `tracked` 路线中，Cargo metadata 调用也必须追加 `--locked`；第 6、8、9 步的 Tauri build 命令统一在原有参数末尾追加 `-- --locked`，由 Tauri 传递给所选 Cargo runner。缺省或 `ignored` 不追加；若所选 runner 无法证明接受该参数则失败关闭，不把未锁定构建记为候选。[Tauri 2 CLI build](https://v2.tauri.app/reference/cli/#build) 将尾部参数传给 runner（核对日期：2026-09-29）。
 6. 在任何 bundle、签名、公证或 stapling 前，再次要求工作树 clean、当前分支仍为上下文默认分支且 `HEAD == buildSourceCommit`。签名选择已在测试前冻结，`macosSigningSource` 采用 `channel-required > requested > configured > not-requested` 的唯一优先级，不能由机器可用性改变。macOS 原生候选按 [macOS DMG](references/tauri-macos-dmg.md) 执行已批准布局、对应签名分支、构建与实际应用资源更新日志逐字节检查。
 
 7. macOS 签名关闭时不得探测身份、凭据或在线公证；启用时按 [macOS 签名与公证](references/tauri-macos-signing.md) 完整执行签名、公证、stapling 与验证，任一步失败都停止，不得以 `--no-sign` 重试或静默降级。候选构建中禁止 `--skip-stapling`。
 8. Windows 原生 x64 候选按 [Windows 原生候选](references/tauri-windows-native.md) 构建 NSIS、执行适用签名及实际资源字节检查；禁止 cargo-xwin，固定记录 `buildMode: native`，真实安装与运行前保持 `runtimeVerification: Unverified`。
-9. macOS→Windows x64 候选按 [Windows xwin 候选](references/tauri-windows-xwin.md) 执行固定 NSIS 构建与资源字节检查；不得猜测产物路径，不接受 MSI 或 all bundle。
+9. 本次明确请求的 macOS→Windows x64 候选按 [Windows xwin 候选](references/tauri-windows-xwin.md) 执行固定 NSIS 构建与资源字节检查；不得猜测产物路径，不接受 MSI 或 all bundle。
 10. Windows 交叉路线的签名、失败关闭和宿主运行限制继续按同一 xwin 引用执行；编译成功不能提升 Windows `runtimeVerification: Unverified`。
 11. 所有会改变字节的布局写入、签名、公证和 stapling 完成后，macOS 按 [macOS DMG](references/tauri-macos-dmg.md) 对当前最终 DMG 执行只读布局与包内更新日志字节检查；SLA 仍须独立授权。随后按 [发布物命名](../../../docs/RELEASE.md#发布物命名)，先回到已解析的项目根目录执行 `node .agents/skills/desktop-collect-release-artifacts/scripts/installer_artifact_name.mjs --product-name <实际生效的productName> --version <GUI-Cargo原始版本> --platform <windows|macos> --arch <目标架构>`，读取 JSON 的 `filename`，在本步的项目根同级、同一文件系统唯一暂存目录内以该名称复制最终 DMG/NSIS；参数与路径按完整 argv 或宿主字面路径传递，保留中文和空格。打包器原始输出仍从真实构建结果发现，不能按新名称反向猜测输出路径。随后才对最终 DMG/NSIS 计算 SHA-256，在项目根同级、同一文件系统的唯一暂存目录形成安装包、签名和相邻校验和；此时不得先写入或替换项目根 `release/`。
 12. 写 manifest 前再次运行发布上下文 `verify`，要求 `sourceCommit`、`releaseContextSha256`、`releaseReview` 逐字段等于第 1 步，重新执行 GUI/macOS 适用性检查，并要求本次构建的 `e2eSelection`、`macosSigningSelection`/`macosSigningSource` 与测试及签名开始前的快照一致。manifest 记录 `sourceCommit: <buildSourceCommit>`、`releaseContextSha256`、完整 `releaseReview` 及其既有投影、当前构建的 `candidateSelections`、原有平台、制品、更新日志、签名、公证和 `milestoneAcceptance: pending` 字段。发布审查启用时从上下文逐字段复制证据，关闭时只复制原因/风险且证据缺席；macOS 签名字段只从当前构建快照复制，不得由环境探测反向改变选择。
@@ -70,7 +70,7 @@ node .agents/skills/desktop-build-tauri-release/scripts/tauri_channel_config.mjs
 - 构建请求、执行、成功、失败、重试和结果本身不触发任何项目记忆；候选 E2E 与完整验收只把结构化证据和状态原子写入忽略的 `release/` manifest 及其声明证据。渠道分发成功或独立回顾审计如触发后续 tracked 记录，必须作为独立事件处理，且不得反向批准活动或历史候选。
 - 普通构建永不自动暂存或提交工作树；用户独立请求的候选构建只消费已发布的 clean 默认主分支和 tag。
 - 普通 Windows/Linux 本地试包由 `$desktop-build-tauri-local-install` 独立处理；不得为了满足本 Skill 的 clean HEAD、更新日志或 E2E 门禁而询问是否把任务升级为发布。
-- 本 Skill 不创建标签、Releases或商店提交；验证 Git 发布生命周期的本地主分支/tag；本 Skill 的 GUI 路线在当前宿主构建，不因仓库存在远端就自动调用 provider。
+- 本 Skill 不创建标签、Releases或商店提交；验证 Git 发布生命周期的本地主分支/tag；本 Skill 默认使用原生构建，显式请求的 xwin 候选仍只在当前宿主上执行编译；候选测试和验收以运行该测试的原生系统为准。
 - stapling 与最终只读 Finder 布局检查均通过后的字节才是候选。此后任何布局补写、签名、公证、stapling 或重打包都会产生新候选并返回 `$desktop-verify-delivery`。
 
 ## 完成输出

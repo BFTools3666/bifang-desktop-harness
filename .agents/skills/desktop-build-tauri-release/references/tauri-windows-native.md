@@ -4,10 +4,10 @@
 
 ## Windows 原生 x64 NSIS
 
-使用主 Skill 确定的 `HARNESS_RELEASE_CHANNEL`。Beta 在基础发布配置后追加当次 `--config <configPath>`，并从Cargo 已配置的共享目标目录发现制品。
+使用主 Skill 确定的 `HARNESS_RELEASE_CHANNEL`。Beta 在基础发布配置后追加当次 `--config <configPath>`，并从 Cargo 已配置的共享目标目录发现制品。
 
 - Tauri 官方 Windows 安装器文档规定，在 Windows 原生宿主运行 `tauri build` 会构建并打包 Windows 应用；`--bundles nsis` 可把格式收窄为 NSIS，`--target x86_64-pc-windows-msvc` 明确绑定 x64 MSVC 目标。
-- 原生路线直接使用项目本地 Tauri CLI，不传 `--runner cargo-xwin`。`cargo-xwin` 只属于 macOS/Linux 交叉回退，不能出现在 Windows 原生命令中。
+- 原生路线直接使用项目本地 Tauri CLI，不传 `--runner cargo-xwin`。`cargo-xwin` 只用于用户明确请求且 Harness 支持的交叉路线。
 - 发布候选必须显式合并 `src-tauri/tauri.release.conf.json`；仅供本机检查的开发试包则不合并发布配置，并显式使用 `--no-sign`，避免误用项目签名配置。
 - Windows 原生编译成功不等于安装、SmartScreen、UAC、注册表、WebView2 或 GUI 交互已经通过。未真实安装和运行时，发布候选的 `runtimeVerification` 仍为 `Unverified`；本地试包固定为 `Not run`。
 - Authenticode 只在项目已有批准的非交互签名配置、工具和凭据来源时执行；开始后失败必须停止。渠道允许 unsigned 时使用 `--no-sign` 并明确风险，不能索取、生成或打印证书私钥。

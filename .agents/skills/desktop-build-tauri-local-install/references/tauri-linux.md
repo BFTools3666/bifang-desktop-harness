@@ -34,7 +34,7 @@ Tauri 2 把与主 `tauri.conf.json` 同目录的 `tauri.linux.conf.json` 合并�
 bundler 用 `productName` 派生 deb 的 `Package:` 字段。中文等非 ASCII 产品名会生成 `dpkg` 拒绝解析的值，导致无法安装。处理方式：
 
 1. 保留 `productName` 作为窗口和桌面项的显示名，不为了打包把它改成 ASCII。
-2. 构建完成后运行 `scripts/normalize_tauri_deb.mjs`，传入产品已批准的稳定 ASCII 安装标识。它只替换 `Package:` 一行，二次解包后逐项核对 payload 的路径、类型、权限、链接目标与摘要，以及其他控制文件全部不变。deb、`.sha256` 和 `.inspection.json` 在同文件系统私有 stage 中完整核对后，以一次目录 rename 提交到本次独占唯一容器的 `artifacts/`；旧集合不覆盖。JSON 的 `artifactDirectory` 和 `output` 给出实际集合及 deb 路径，不猜固定扁平文件名。原始 Tauri 包保留在 `target/release/bundle/deb/`，摘要在解包前绑定并在提交前复核；证明范围和失败恢复见下文。
+2. 构建完成后运行 `scripts/normalize_tauri_deb.mjs`，传入 Tauri 本次报告的 deb 精确路径、实际 Tauri Cargo 清单和产品已批准的稳定 ASCII 安装标识。它只替换 `Package:` 一行，二次解包后逐项核对 payload 的路径、类型、权限、链接目标与摘要，以及其他控制文件全部不变。deb、`.sha256` 和 `.inspection.json` 在同文件系统私有 stage 中完整核对后，以一次目录 rename 提交到本次独占唯一容器的 `artifacts/`；旧集合不覆盖。JSON 的 `artifactDirectory` 和 `output` 给出实际集合及 deb 路径，不猜固定扁平文件名。原始 Tauri 包保留在 Cargo 全局 `target_directory` 下的 `<host>/release/bundle/deb/`，摘要在解包前绑定并在提交前复核；证明范围和失败恢复见下文。
 3. 用 `--require-depends` 把本产品必需的运行库写成门禁，例如 `libwebkit2gtk-4.1-0`、`libgtk-3-0`，启用托盘时再加实际使用的 AppIndicator 库。必需库只接受独立直接依赖；`A | B` 允许仅安装其中之一，不能证明 B 必定存在。这里只核对名称声明，不证明可安装性、版本满足或动态链接成功。依据：[Debian Policy 7.1](https://www.debian.org/doc/debian-policy/ch-relationships.html#syntax-of-relationship-fields)（核对：2026-10-20）。
 
 AppImage 不受 Debian 包名约束，直接使用 Tauri 输出。
@@ -45,9 +45,9 @@ AppImage 不受 Debian 包名约束，直接使用 Tauri 输出。
 
 ## helper 的适用边界
 
-- 当前只定位默认 `target/release/bundle/deb/`；配置了 `CARGO_TARGET_DIR`、`build.target-dir` 或显式 target 的其他输出布局时先停止，不能回退选择旧包。
+- 从实际 Tauri Cargo 清单所在目录运行 Cargo metadata，沿用全局配置。规范化程序仅接受本次原生构建报告的普通 deb 文件，路径须精确位于 `target_directory` 的 `<host>/release/bundle/deb/` 下。传入 `--cargo-manifest` 指定实际 GUI 清单，Tauri Cargo 清单位于项目根时可省略。
 - payload 比较只覆盖路径、类型、权限位、链接目标及普通文件摘要；不证明 uid/gid、硬链接拓扑、xattr/ACL 全部保留。重打包使用 `--root-owner-group`；需特殊 ownership 的包不适用。
-- deb 与两个侧车先形成恰好三个非空普通文件的集合，只在全部对应时提交；失败不覆盖先前结果。本次输出位于 `target/local-install-linux/artifacts/<唯一容器>/artifacts/`，目录 rename 后仍复核完整字节；这不宣称断电持久性或对同用户恶意并发提供宿主沙箱。CLI 失败以 JSON 输出真实错误及适用 `recovery`；提交成功但私有 stage 清理失败时仍返回已提交产物，并附 `retainedPaths` / `cleanupWarnings`，不得把保留的 stage 当正式结果消费。
+- deb 与两个侧车先形成恰好三个非空普通文件的集合，只在全部对应时提交；失败不覆盖先前结果。本次输出位于 Cargo 全局 `target_directory` 下的 `local-install-linux/artifacts/<唯一容器>/artifacts/`，目录 rename 后仍复核完整字节；这不宣称断电持久性或对同用户恶意并发提供宿主沙箱。CLI 失败以 JSON 输出真实错误及适用 `recovery`；提交成功但私有 stage 清理失败时仍返回已提交产物，并附 `retainedPaths` / `cleanupWarnings`，不得把保留的 stage 当正式结果消费。
 - helper 面向本机本次可信 Tauri 输出，不是任意下载包的安全沙箱。文件 hash 使用固定 1 MiB 缓冲，控制/inspection 文本仍按本机可信数据读取，payload 记录数组仍随文件数增长，不宣称整次操作固定内存。每次 `dpkg-deb` 采用独立 owned POSIX 组，限制五分钟及 stdout+stderr 合计 16 MiB，超时、输出溢出、失败和 CLI SIGINT/SIGTERM 先终止本组并有界确认收尾；leader 退出后仍有后代同样失败并回收。权限未知不能当组消失或恢复信号资格，清理无法证实明确失败，不扩大到 PID/名称扫描。
 - 更早发行版的兼容范围取决于构建基线、glibc/WebKitGTK 等实际依赖，AppImage 也不代表任意发行版可运行。依据：[Tauri Debian limitations](https://v2.tauri.app/distribute/debian/#limitations)（核对：2026-10-20）。
 
@@ -58,12 +58,14 @@ AppImage 不受 Debian 包名约束，直接使用 Tauri 输出。
 以下示例假定产品发现测试需要且项目目录确实位于允许的文件系统，才设置 `TMPDIR`；无此要求时使用测试原有临时目录。全新 checkout 在直接编译 GUI crate 前，如 `frontendDist` 尚不存在，先执行项目声明的前端生产构建。
 
 ~~~sh
-mkdir -p target/test-tmp
-TMPDIR="$PWD/target/test-tmp" cargo test --workspace --all-targets --all-features
+host_target=$(rustc -vV | sed -n 's/^host: //p')
+test -n "$host_target"
+cargo test --workspace --all-targets --all-features --target "$host_target"
 pnpm --dir <gui-root> test
-(cd <gui-root> && CI=true pnpm tauri build --bundles deb,appimage --no-sign)
+(cd <gui-root> && CI=true pnpm tauri build --bundles deb,appimage --no-sign --target "$host_target")
 node .agents/skills/desktop-build-tauri-local-install/scripts/normalize_tauri_deb.mjs \
-  --project-root . --package-name <ascii-package-name> \
+  --project-root . --cargo-manifest <tauri-cargo-manifest> --package-name <ascii-package-name> \
+  --input "<Tauri 本次报告的 deb 路径>" \
   --require-depends libwebkit2gtk-4.1-0 --require-depends libgtk-3-0
 ~~~
 

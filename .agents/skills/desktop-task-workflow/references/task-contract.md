@@ -1,6 +1,6 @@
 # 左侧 Task 合同
 
-本引用只定义用户可见 Task 的创建、身份、进度和恢复。是否自动创建取项目 `user_owned_tasks`；环境取 `task_worktrees`，其值由 Agent Policy 保存。关闭自动 Task 时普通工作在当前聊天执行，无需先补建 Task。明确的新建请求只授权该结果。
+本引用只定义用户可见 Task 的创建、身份、进度和恢复。是否自动创建取项目 `user_owned_tasks`；环境取 `task_worktrees`，其值由 Agent Policy 保存，两项都默认关闭。关闭自动 Task 时普通工作在当前聊天执行，无需先补建 Task。明确的新建请求只授权该结果，不开启 Worktree。
 
 ## 标题与编号
 

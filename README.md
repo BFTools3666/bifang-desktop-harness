@@ -58,7 +58,7 @@ NSH 桌面默认提供官方多窗口。表单按托盘、单实例、有条件�
 - 为日常开发、测试、版本管理、构建和发布准备好对应的自动化流程（Skills）。
 - 可选地把新结果创建为绑定保存项目的 Codex 左侧 user-owned Task；自动拆分默认关闭，启用后按结果边界创建，Git Task 按 task_worktrees 选择独立 Worktree 或串行 Local，并使用可审查提交。
 - 初始化固定关闭自动 Task、Task 工作树、superpowers 和内部并行，允许候选验收冒烟，并把候选 E2E 建议设为关闭；初始化后可明确调整持久能力偏好。
-- 为新功能和独立 Bug 修复自动创建本地开发分支。明确“发布”时整理并提交当前代码，普通合并登记分支到本地默认主分支，创建并复读指向最终 HEAD 的 `v{版本}-{YYYYMMDD}`；Git 发布到此结束。首次发布前询问并记录发布后动作，随后按该次冻结选择执行并检测：在当前宿主按确定路由构建一个已选接口/目标的正式候选，或把同一提交放到所选的小写渠道分支并同步远端默认主分支、同名渠道分支与 tag。GUI 候选的真实启动和交互验证按当次 E2E 选择及硬要求执行，未真实验证的平台标为 `Unverified`。
+- 为新功能和独立 Bug 修复自动创建本地开发分支。明确“发布”时整理并提交当前代码，普通合并登记分支到本地默认主分支，创建并复读指向最终 HEAD 的 `v{版本}-{YYYYMMDD}`；Git 发布到此结束。首次发布前询问并记录发布后动作，随后按该次冻结选择执行并检测：默认按确定路由构建一个当前系统的原生正式候选，或把同一提交放到所选的小写渠道分支并同步远端默认主分支、同名渠道分支与 tag。GUI 候选的真实启动和交互验证按当次 E2E 选择及硬要求执行，未真实验证的平台标为 `Unverified`。
 - 把新版 Harness 的工程规则安全同步到已有项目，同时保护产品代码和本地决定。
 - 使用 `$desktop-extract-technical-docs` 提取技术选型、依赖清单、项目架构、文件结构与当前技术债，以工作区根 `knowledge/README.md` 为入口，并通过 archify 生成可交互架构图；项目缺少 archify 时按需安装本地包。知识快照不随初始化复制，可在项目中按需刷新。
 
@@ -106,7 +106,7 @@ NSH 桌面默认提供官方多窗口。表单按托盘、单实例、有条件�
 - Tauri 的“在 Windows 或 Linux 上打一个本地安装试包”或普通“构建/打包”：使用 `$desktop-build-tauri-local-install`；它允许基于当前工作树生成未签名 NSIS，或同架构 deb/AppImage，只供本机检查，不提交、不生成发布日志、不写 `release/`，也不询问 E2E 选择。
 - “发布”：使用 `$desktop-prepare-release` 整理本次范围、按当前上海时间取得 Harness 版本（下游使用语义化版本门禁）、提交源码和发布上下文，再由 `$desktop-manage-git-lifecycle release` 合并本地默认主分支并创建、复读版本 tag。`--release-context-sha256 <sha256>` 绑定已跟踪上下文；Git 发布完成后执行并检测持久选择的后续动作。
 - “提交远程”后续路径：使用 `push-release --remote <name>` 把已发布的固定 HEAD 放到本地小写渠道分支（`release` 或 `beta`），依次同步远端 advertised 默认主分支、同名渠道分支和 tag，逐项及最终联合复读；即使已开始下一开发周期，也不重新合并或计算发布提交。
-- “本地打包”后续路径：在已有 Git 发布完成后只对当前宿主确定的一个已选接口/目标使用 `$desktop-build-rust-release`、`$desktop-build-tauri-release` 或 `$desktop-build-nsh-release`；构建入口只读消费发布上下文，在该次构建解析 E2E 和适用 macOS 签名选择。NSH 候选按目标保存在独立 `release/` 批次，其他目标另行构建与验收。跨平台远程 provider 另要求远端渠道分支与 tag 已复读为同一 HEAD。
+- “本地打包”后续路径：在已有 Git 发布完成后只对当前宿主确定的一个已选接口/目标使用 `$desktop-build-rust-release`、`$desktop-build-tauri-release` 或 `$desktop-build-nsh-release`；构建入口只读消费发布上下文，在该次构建解析 E2E 和适用 macOS 签名选择。其他系统或目标须由用户当次明确指定。NSH 候选按目标保存在独立 `release/` 批次，各目标在实际运行系统验收。跨平台远程 provider 另要求远端渠道分支与 tag 已复读为同一 HEAD。
 - 普通“构建/打包/本地试包”不会自动升级为 Git 发布，不提交、推送或修改主分支；Git 发布后的所选动作仍单独遵守对应流程门禁。
 - “完整验收这个候选”：使用 `$desktop-verify-delivery` 检查真实产物。
 - “把这个项目升级到新版 Harness”：使用 `$desktop-upgrade-harness`，先预览差异再应用。
@@ -156,7 +156,7 @@ CLI、MCP 与 DESKTOP 可以单独或组合使用；当前 NSH 独立选择。�
 - 维护状态：Active
 - 中文名称：毕方桌面应用Harness模版
 - English name: Bifang Desktop Harness Template
-- 当前版本：v202611191015
+- 当前版本：v202611221943
 - 发布状态：以适用 Git 引用复核结果为准
 - 产品规格：Approved
 - 具体产品源码：不包含
