@@ -7,7 +7,7 @@ import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { nativeReleaseDirectory, nativeRustTarget, validateRustRuntime, validateMatrixSelection } from "./release_candidate_workflow.mjs";
+import { nativeRustTarget, validateRustRuntime, validateMatrixSelection } from "./release_candidate_workflow.mjs";
 
 const DIRECTORY = dirname(fileURLToPath(import.meta.url));
 const WORKFLOW = resolve(DIRECTORY, "../assets/github-release-candidate.yml");
@@ -53,7 +53,7 @@ test("project_cargo_commands_apply_only_the_checked_lock_policy", () => {
   assert.ok(check >= 0 && check < metadata && metadata < tests);
   assert.match(helper, /assertDependencyLocks\(process\.cwd\(\), \{ rustTestManifests: \["Cargo\.toml"\] \}\)/u);
   assert.match(helper, /CARGO_LOCK_FLAG: policy === "tracked" \? "--locked" : ""/u);
-  assert.match(helper, /"metadata", "--format-version", "1", "--no-deps", \.\.\.cargoLockArgs\(\)/u);
+  assert.match(helper, /"metadata", "--format-version", "1", "--no-deps", "--offline", \.\.\.lockArgs/u);
   assert.match(helper, /"--target", environment\("HARNESS_RUST_HOST"\), \.\.\.cargoLockArgs\(\), "--", "--list"/u);
   assert.match(text, /cargo test --workspace --all-targets --all-features --target "\$HARNESS_RUST_HOST" "\$\{lock_args\[@\]\}"/u);
   assert.match(text, /cargo build --workspace --release --target "\$HARNESS_RUST_HOST" "\$\{lock_args\[@\]\}"/u);
@@ -64,15 +64,15 @@ test("matrix uses the verified runner target and inherited Cargo directory for e
   assert.match(text, /prepare-runner-cargo/u);
   assert.match(text, /tar -czf .* -C "\$HARNESS_CARGO_RELEASE_DIR"/u);
   assert.match(text, /Join-Path \$env:HARNESS_CARGO_RELEASE_DIR/u);
-  const host = nativeRustTarget("rustc 1.96.0\nhost: aarch64-apple-darwin\n", "macOS", "ARM64");
-  const workspace = join(tmpdir(), "workspace");
-  const shared = join(tmpdir(), "configured shared cargo output");
-  assert.equal(nativeReleaseDirectory({ target_directory: shared, workspace_root: workspace }, host), join(shared, host, "release"));
-  assert.throws(() => nativeRustTarget("host: x86_64-apple-darwin\n", "macOS", "ARM64"), /rustc host/u);
-  assert.throws(() => nativeRustTarget("host: aarch64-apple-darwin\n", "Windows", "ARM64"), /rustc host/u);
-  for (const directory of [workspace, join(workspace, "target"), "relative/target"]) {
-    assert.throws(() => nativeReleaseDirectory({ target_directory: directory, workspace_root: workspace }, host), /Cargo/u);
-  }
+  assert.match(helper, /const targetDirectory = resolveCargoDeviceTarget\(/u);
+  assert.match(helper, /HARNESS_CARGO_RELEASE_DIR: join\(targetDirectory, host, "release"\)/u);
+  const macCfg = 'target_os="macos"\ntarget_arch="aarch64"\n';
+  const mac = "host: aarch64-apple-darwin\n";
+  assert.equal(nativeRustTarget(mac, macCfg, "macOS", "ARM64"), "aarch64-apple-darwin");
+  assert.equal(nativeRustTarget("host: x86_64-unknown-linux-musl\n", 'target_os="linux"\ntarget_arch="x86_64"\n', "Linux", "X64"), "x86_64-unknown-linux-musl");
+  assert.equal(nativeRustTarget("host: x86_64-pc-windows-gnu\n", 'target_os="windows"\r\ntarget_arch="x86_64"\r\n', "Windows", "X64"), "x86_64-pc-windows-gnu");
+  assert.throws(() => nativeRustTarget(mac, macCfg, "macOS", "X64"), /rustc host/u);
+  assert.throws(() => nativeRustTarget(mac, macCfg, "Windows", "ARM64"), /rustc host/u);
 });
 
 test("a fresh CI runner receives a user config without overriding existing Cargo choices", t => {

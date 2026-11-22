@@ -4,8 +4,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-export const NSH_STABLE_VERSION = '0.6.0';
-export const NSH_STABLE_REVISION = '554163758e30d2f62f814096a6327937dcb4fe49';
+export const NSH_STABLE_VERSION = '0.6.1';
+export const NSH_STABLE_REVISION = '2f51d8611677c8a6bbad937b39756e8d0cc45350';
 export const NSH_OFFICIAL_GIT = 'https://github.com/longbridge/nsh.git';
 export const NSH_CLI_VERSION = `nsh ${NSH_STABLE_VERSION} (${NSH_STABLE_REVISION.slice(0, 7)})`;
 export const NSH_RUNTIME_ERROR = `Harness NSH 仅支持官方 v${NSH_STABLE_VERSION} 固定提交 ${NSH_STABLE_REVISION}。请先迁移旧工程。`;
@@ -43,17 +43,9 @@ export function assertNshCliVersion(output) {
   if (output.trim() !== NSH_CLI_VERSION) throw new Error(`NSH CLI and Cargo runtime revision do not match. Expected ${NSH_CLI_VERSION}.`);
 }
 
-/** 官方 CLI 在缺少继承变量时会覆盖 Cargo 全局配置并退回应用内 target。 */
-export function assertNshSharedCargoTarget(root, environment = process.env) {
-  const target = environment.CARGO_TARGET_DIR;
-  if (!target || !path.isAbsolute(target)) {
-    throw new Error('NSH requires CARGO_TARGET_DIR inherited from the system-wide Cargo target configuration');
-  }
-  const targetPath = fs.existsSync(target) ? fs.realpathSync(target) : target;
-  const relative = path.relative(root, targetPath);
-  if (!path.isAbsolute(relative) && relative !== '..' && !relative.startsWith('..' + path.sep)) {
-    throw new Error('NSH requires a shared Cargo target directory outside the project');
-  }
+/** NSH 在变量缺失时回退到应用内 target，仅向其进程传递 Cargo 已解析的全局目录。 */
+export function nshCargoEnvironment(targetDirectory, environment = process.env) {
+  return environment.CARGO_TARGET_DIR ? environment : { ...environment, CARGO_TARGET_DIR: targetDirectory };
 }
 
 /** 按 Cargo 的旧文件名优先规则读取同一目录的配置。 */

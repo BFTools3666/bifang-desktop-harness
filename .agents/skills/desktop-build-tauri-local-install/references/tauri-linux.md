@@ -45,7 +45,7 @@ AppImage 不受 Debian 包名约束，直接使用 Tauri 输出。
 
 ## helper 的适用边界
 
-- 从实际 Tauri Cargo 清单所在目录运行 Cargo metadata，沿用全局配置。规范化程序仅接受本次原生构建报告的普通 deb 文件，路径须精确位于 `target_directory` 的 `<host>/release/bundle/deb/` 下。传入 `--cargo-manifest` 指定实际 GUI 清单，Tauri Cargo 清单位于项目根时可省略。
+- 比较实际 Tauri Cargo 清单所在目录与设备级 Cargo 配置，使用两处一致的已配置输出目录。规范化程序仅接受本次原生构建报告的普通 deb 文件，路径须精确位于 `target_directory` 的 `<host>/release/bundle/deb/` 下。传入 `--cargo-manifest` 指定实际 GUI 清单，Tauri Cargo 清单位于项目根时可省略。
 - payload 比较只覆盖路径、类型、权限位、链接目标及普通文件摘要；不证明 uid/gid、硬链接拓扑、xattr/ACL 全部保留。重打包使用 `--root-owner-group`；需特殊 ownership 的包不适用。
 - deb 与两个侧车先形成恰好三个非空普通文件的集合，只在全部对应时提交；失败不覆盖先前结果。本次输出位于 Cargo 全局 `target_directory` 下的 `local-install-linux/artifacts/<唯一容器>/artifacts/`，目录 rename 后仍复核完整字节；这不宣称断电持久性或对同用户恶意并发提供宿主沙箱。CLI 失败以 JSON 输出真实错误及适用 `recovery`；提交成功但私有 stage 清理失败时仍返回已提交产物，并附 `retainedPaths` / `cleanupWarnings`，不得把保留的 stage 当正式结果消费。
 - helper 面向本机本次可信 Tauri 输出，不是任意下载包的安全沙箱。文件 hash 使用固定 1 MiB 缓冲，控制/inspection 文本仍按本机可信数据读取，payload 记录数组仍随文件数增长，不宣称整次操作固定内存。每次 `dpkg-deb` 采用独立 owned POSIX 组，限制五分钟及 stdout+stderr 合计 16 MiB，超时、输出溢出、失败和 CLI SIGINT/SIGTERM 先终止本组并有界确认收尾；leader 退出后仍有后代同样失败并回收。权限未知不能当组消失或恢复信号资格，清理无法证实明确失败，不扩大到 PID/名称扫描。

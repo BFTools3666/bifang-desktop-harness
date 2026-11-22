@@ -1,6 +1,6 @@
 # NSH GUI 标准
 
-`standard_id = nsh-gui-common-v1`，适用于根 Cargo `interfaces = ["nsh"]`。`nsh-targets` 仅支持 desktop/mobile/web/tui；统一正式 0.6.0 固定提交 `554163758e30d2f62f814096a6327937dcb4fe49`。
+`standard_id = nsh-gui-common-v1`，适用于根 Cargo `interfaces = ["nsh"]`。`nsh-targets` 仅支持 desktop/mobile/web/tui；统一正式 0.6.1 固定提交 `2f51d8611677c8a6bbad937b39756e8d0cc45350`。
 
 desktop、mobile、Web 图形目标先应用 [共用基座](ui_foundation.md)。三类目标均使用 Mixed 模式：TSX 组件、NSH `nsh/base` 语义控件、reactive signal 和 Rust native module；共享业务规则留在 Rust core。颜色、字号、间距和断点集中在 TSX Token。TSX 是 NSH 自有运行时，不套用 Tauri CSS、Mantine、React hooks 合同。
 
@@ -10,4 +10,15 @@ desktop 子目标使用左侧栏和固定多窗口，并处理九字段桌面 pr
 
 desktop/mobile/Web 的设置页共用一致的页面宽度、节奏与语义控件：语言和主题分成有标题、说明的卡片区域，用 `nsh/base` 单选组呈现当前选择、键盘焦点及切换状态。桌面关于页按联系信息、更新日志和免责声明分区，保留多段声明与双语内容；更新日志通过 `Collapsible` 展开，按钮对辅助技术公开展开状态。桌面赞助页按项目已有品牌资料、档位与支付媒体生成，档位突出插图、名称、价格和权益；内容宽度扣除侧栏及滚动容器内边距，随窗口在一至三列回流，二维码在窄窗口不被裁切。三页的字号、间距、圆角和断点由共用 Token 控制，不在页面里散布独立常数；生成的文案、作者、金额与媒体只取当前项目已确认资料，不把示例项目内容写入模板。
 
-桌面多窗口与菜单使用官方 `nsh/desktop`，托盘关闭隐藏由 `WindowRef` 与 `Tray` 接线，单实例和 URL Scheme 由官方应用配置注册。深链接只消费固定恢复 URL，不承担产品导航。初始化用真实 Rust/NSH 测试及对应目标宿主验证。终端以 `platform.idiom === "terminal"` 进入紧凑布局，不应用桌面侧栏、菜单和 Logo；按项目官方 `nsh-design-guides` 与 [NSH TUI 指南](https://github.com/longbridge/nsh/blob/v0.6.0/website/docs/tui.md) 检查键盘操作和 Cell 布局。
+桌面多窗口与菜单使用官方 `nsh/desktop`，托盘关闭隐藏由 `WindowRef` 与 `Tray` 接线，单实例和 URL Scheme 由官方应用配置注册。深链接只消费固定恢复 URL，不承担产品导航。初始化用真实 Rust/NSH 测试及对应目标宿主验证。终端以 `platform.idiom === "terminal"` 进入紧凑布局，不应用桌面侧栏、菜单和 Logo；按项目官方 `nsh-design-guides` 与 [NSH TUI 指南](https://github.com/longbridge/nsh/blob/v0.6.1/website/docs/tui.md) 检查键盘操作和 Cell 布局。
+
+## 官方能力与依赖选择
+
+| 场景 | NSH 官方入口 | 适用边界 |
+| --- | --- | --- |
+| UI、轻量状态、导航与界面测试 | `nsh` 的原语、signal/computed、`nsh/base` 的控件与导航、`nsh/test` | 新 NSH 界面优先使用这些能力。复杂查询缓存、业务状态与协议需要按原语义评估。 |
+| 语言和用户偏好 | `nsh/i18n`、`locale()`、`Storage` | `setLocale` 只影响当前运行界面。需要重启恢复或多窗口同步时仍须实现和验证持久选择。 |
+| 系统交互 | 桌面 `Window`、`Menu`、`Tray`，以及 `Picker`、`Clipboard`、`Notifications` | 核对对应系统的权限、支持的数据格式和真实签名要求。中性模板的未选能力保持关闭。 |
+| 原生移动导航 | `nsh/mobile` 的 `TabBar` | 适用于请求系统样式的 iOS/Android 界面。迁移前验证安全区、图标、选中态和辅助技术。现有带品牌的底栏继续使用语义按钮。 |
+
+这些入口适用于 NSH adapter。Tauri 的 React/Mantine 与插件仍由自身合同管理。NSH 的 updater 只用于用户批准的在线更新任务，离线更新日志继续读随包发布的资源。[NSH 模块索引](https://github.com/longbridge/nsh/blob/v0.6.1/website/modules/index.md) · [NSH 语言](https://github.com/longbridge/nsh/blob/v0.6.1/website/modules/nsh-i18n.md) · [NSH 移动模块](https://github.com/longbridge/nsh/blob/v0.6.1/website/modules/nsh-mobile.md)

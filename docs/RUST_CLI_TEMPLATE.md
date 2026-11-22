@@ -125,7 +125,7 @@ git --version
 node --version
 # 仅 GUI
 
-NSH 专用路由：根 Cargo `interfaces = ["nsh"]` 与 `nsh-targets` 表示顶层 NSH 及 desktop/mobile/web/tui 子目标；全部使用正式 v0.6.0 固定提交 `554163758e30d2f62f814096a6327937dcb4fe49` 的 Mixed TSX/Rust 运行时与匹配 CLI。NSH 使用 `$desktop-add-nsh-adapter`、`docs/design_standards/nsh_gui.md` 与 `$desktop-build-nsh-release`；旧版与旧 GUI/NSH 工程须先迁移。能力边界以 NSH Skill 的 `references/runtime-and-capabilities.md` 为准。
+NSH 专用路由：根 Cargo `interfaces = ["nsh"]` 与 `nsh-targets` 表示顶层 NSH 及 desktop/mobile/web/tui 子目标；全部使用正式 v0.6.1 固定提交 `2f51d8611677c8a6bbad937b39756e8d0cc45350` 的 Mixed TSX/Rust 运行时与匹配 CLI。NSH 使用 `$desktop-add-nsh-adapter`、`docs/design_standards/nsh_gui.md` 与 `$desktop-build-nsh-release`；旧版与旧 GUI/NSH 工程须先迁移。能力边界以 NSH Skill 的 `references/runtime-and-capabilities.md` 为准。
 pnpm --version
 ```
 
@@ -311,7 +311,7 @@ cargo build --workspace --release
 
 - 日常代码行为实现只运行本次需要的相关非空单元/回归测试；纯文档或元数据变更只做解析或差异完整性所必需的最小检查。不得自动追加格式、Clippy、静态、集成/契约、全仓测试、构建、冒烟、E2E 或完整验收，也不得把开发证据写成候选通过。
 - 初始化把规范化、非空的目标平台与接口组合分别写入根 `Cargo.toml` 的 `[workspace.metadata.agent-first-harness]` 下 `target-platforms` 和 `interfaces`；它们是跨会话构建路由的持久事实。构建不得从当前宿主、目录名或旧对话反推项目只支持哪个平台或接口。
-- 每次构建默认选当前系统和原生架构，只测试实际宿主所运行的代码，Rust 产物沿用该系统的全局 Cargo target 目录。跨平台产物需要用户当次明确指定。细则见 [开发、构建与完整验收](ENGINEERING_RULES.md#53-开发构建与完整验收)。
+- 每次构建按执行设备的实际系统、架构及生效 Rust 工具链选择原生目标，只测试该环境所运行的代码。Rust 产物沿用此设备的全局 Cargo target 目录。跨平台产物需要用户当次明确指定。细则见 [开发、构建与完整验收](ENGINEERING_RULES.md#53-开发构建与完整验收)。
 - GUI 初始化是日常规则的一次性例外：Tauri 初始化器在相关单元测试后调用 `$desktop-test-gui-initialization-e2e` 构建并启动 debug/no-bundle 二进制；该结果只证明当前宿主的初始化脚手架，不等同最终候选验收。
 - `$desktop-build-tauri-local-install` 在原生 Windows x64 宿主用 `pnpm tauri build --bundles nsis --target x86_64-pc-windows-msvc --no-sign` 生成仅供本机检查的开发试包。它允许 dirty 工作树但必须报告风险，不传发布专用配置、不读取或生成更新日志、不写 `release/`、不提交、不安装、不运行，也不询问 E2E 选择；普通“构建/打包”不得升级成发布候选。
 - `$desktop-build-rust-release` 按 Git 发布后已确认的 `local_package` 路径或用户另行明确的候选请求编排 Rust CLI 候选：普通本机构建不访问远端或调用 provider，只形成当前宿主候选；用户另行要求跨平台矩阵且远端渠道分支与 tag 已复核为同一发布 HEAD 后，才使用 Windows、macOS、Linux 原生矩阵。矩阵启动后的测试、构建、签名、打包、超时或取消失败不得被本机成功掩盖；Tauri GUI 候选转交 `$desktop-build-tauri-release`，NSH 候选转交 `$desktop-build-nsh-release`；MCP 仍使用其适配器 Skill 的构建与产物门槛。

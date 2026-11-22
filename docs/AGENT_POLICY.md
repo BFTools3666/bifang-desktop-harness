@@ -14,7 +14,7 @@ post_release_action: pending
 
 # Agent 运行策略
 
-NSH 专用路由：新项目的根 Cargo `interfaces = ["nsh"]` 与 `nsh-targets` 记录桌面、移动、Web、TUI 子目标，全部 NSH 依赖固定到正式 v0.6.0 提交 `554163758e30d2f62f814096a6327937dcb4fe49`，全局 CLI 须匹配短 SHA `5541637`。NSH 使用 `$desktop-add-nsh-adapter`、`docs/design_standards/nsh_gui.md` 与 `$desktop-build-nsh-release`；旧 GUI/NSH 格式须先迁移为顶层 NSH。仅桌面子目标保存九字段桌面配置，问询由统一表单派生；能力边界以 NSH Skill 的 `references/runtime-and-capabilities.md` 为准。
+NSH 专用路由：新项目的根 Cargo `interfaces = ["nsh"]` 与 `nsh-targets` 记录桌面、移动、Web、TUI 子目标，全部 NSH 依赖固定到正式 v0.6.1 提交 `2f51d8611677c8a6bbad937b39756e8d0cc45350`，全局 CLI 须匹配短 SHA `2f51d86`。NSH 使用 `$desktop-add-nsh-adapter`、`docs/design_standards/nsh_gui.md` 与 `$desktop-build-nsh-release`；旧 GUI/NSH 格式须先迁移为顶层 NSH。仅桌面子目标保存九字段桌面配置，问询由统一表单派生；能力边界以 NSH Skill 的 `references/runtime-and-capabilities.md` 为准。
 
 本文件是下游项目 Agent 能力、用户可见 Task 自动拆分、候选冒烟偏好、构建 E2E 建议默认值和发布后动作的唯一持久事实来源。新初始化固定物化六项能力默认值，不单独询问；完成初始化的下游六项能力选择只能是 `enabled` 或 `disabled`，`confirmed_by`、`confirmed_at` 记录完整汇总的真实确认来源和日期。新下游的 schema 5 允许 `post_release_action: pending` 留到首次发布前明确选择并记录；未选择时 Git 发布门禁失败关闭。Git 发布固定在本地默认主分支与 tag 完成；下游随后按当次已冻结的发布后动作执行并复核。Harness 源的 `pending` 不阻断 Harness 自身的 Git 发布。
 
@@ -113,4 +113,4 @@ DESKTOP 固定使用 Tauri；新项目直接派生根 Cargo metadata 的 `gui-fr
 - 已授权的内部并行按 `$desktop-task-workflow` 执行；保留原 helper 路径。独立 Worktree 按所有权并行创建和执行，编号/所有权预留及生命周期共享状态用短锁；不因活动叶子、分支祖先关系或每项目单写入限制阻断。
 - 除 `$desktop-test-gui-initialization-e2e` 或 `$desktop-test-nsh-initialization-e2e` 一次性本机调试门禁外，冒烟/E2E 不得在产品定义、计划、日常开发、单元测试、编译、签名、打包、制品收集或发布元数据命令中运行；启用的发布 E2E 只在最终真实候选形成后执行。
 
-NSH 工程选择：新下游以顶层 `interfaces = ["nsh"]` 和 `nsh-targets` 保存 desktop/mobile/web/tui 子目标；包含 desktop、mobile 或 web 且锁策略不为 `tracked` 时可选择 local_package，并保留 adapter/build 专用 Skills、运行时知识和共享支持页资产。受跟踪锁策略的 NSH 只能选择远端动作，直到运行时锁传播受支持。仅支持官方 0.6.0，旧工程先在原项目迁移再运行升级或候选入口。未选 NSH 时裁掉专属能力。NSH 初始化 E2E 和初始化 wrapper 不传播；受保护 Cargo、仅桌面适用的 profile、策略、产品源码及签名仍按既有保护规则保留。升级不会把声明支持改写为验证通过。
+NSH 工程选择：新下游以顶层 `interfaces = ["nsh"]` 和 `nsh-targets` 保存 desktop/mobile/web/tui 子目标；包含 desktop、mobile 或 web 且锁策略不为 `tracked` 时可选择 local_package，并保留 adapter/build 专用 Skills、运行时知识和共享支持页资产。受跟踪锁策略的 NSH 只能选择远端动作，直到运行时锁传播受支持。仅支持官方 0.6.1，旧工程先在原项目迁移再运行升级或候选入口。未选 NSH 时裁掉专属能力。NSH 初始化 E2E 和初始化 wrapper 不传播；受保护 Cargo、仅桌面适用的 profile、策略、产品源码及签名仍按既有保护规则保留。升级不会把声明支持改写为验证通过。

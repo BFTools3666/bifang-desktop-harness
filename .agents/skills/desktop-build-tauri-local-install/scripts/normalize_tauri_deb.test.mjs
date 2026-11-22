@@ -110,13 +110,23 @@ test("deb lookup follows Cargo metadata and rejects stale project-local output",
     fs.mkdirSync(folder, { recursive: true });
     fs.writeFileSync(path.join(folder, "example-app.deb"), "fixture");
   }
-  const metadata = { target_directory: shared };
   const source = path.join(bundle, "example-app.deb");
   const stale = path.join(oldBundle, "example-app.deb");
-  assert.deepEqual(nativeDebPaths(metadata, project, host, source), { source, outputRoot: path.join(shared, "local-install-linux", "artifacts") });
-  assert.throws(() => nativeDebPaths(metadata, project, host, stale), /native bundle directory/u);
-  assert.throws(() => nativeDebPaths({ target_directory: localTarget }, project, host, stale), /global location/u);
-  assert.throws(() => nativeDebPaths(metadata, project, "aarch64-apple-darwin", source), /Linux GNU native/u);
+  const alias = path.join(sandbox, "configured alias");
+  fs.symlinkSync(shared, alias, process.platform === "win32" ? "junction" : "dir");
+  const reported = path.join(alias, path.relative(shared, source));
+  const expected = { source, outputRoot: path.join(shared, "local-install-linux", "artifacts") };
+  assert.deepEqual(nativeDebPaths(shared, host, source), expected);
+  assert.deepEqual(nativeDebPaths(shared, host, reported), expected);
+  assert.throws(() => nativeDebPaths(shared, host, stale), /native bundle directory/u);
+  assert.throws(() => nativeDebPaths(shared, "aarch64-apple-darwin", source), /Linux GNU native/u);
+  assert.throws(() => nativeDebPaths(shared, "x86_64-unknown-linux-musl", source), /Linux GNU native/u);
+  const distributionHost = "x86_64-distribution-linux-gnu";
+  const distributionBundle = path.join(shared, distributionHost, "release", "bundle", "deb");
+  const distributionSource = path.join(distributionBundle, "example-app.deb");
+  fs.mkdirSync(distributionBundle, { recursive: true });
+  fs.writeFileSync(distributionSource, "fixture");
+  assert.equal(nativeDebPaths(shared, distributionHost, distributionSource).source, distributionSource);
 });
 
 /** 通过真实 Node CLI 宿主中断调用 main，证明 signal 传递与收尾等待并移除监听器。 */
@@ -162,15 +172,20 @@ test("native_dpkg_normalization_preserves_original_payload_and_complete_evidence
   const architecture = process.arch === "x64" ? "amd64" : "arm64";
   fs.mkdirSync(root);
   fs.writeFileSync(path.join(root, "Cargo.toml"), '[workspace.package]\nversion = "1.2.3"\n');
-  const setup = new Map([['cargo', JSON.stringify({ target_directory: shared })], ['rustc', `host: ${host}\n`]]);
   const tools = path.join(sandbox, "tools");
+  const setup = new Map([
+    ["cargo", JSON.stringify({ target_directory: shared })], ["rustc", `host: ${host}\n`], ["rustup", `${path.join(tools, "cargo")}\n`],
+  ]);
   fs.mkdirSync(tools);
   for (const [command, output] of setup) {
     fs.writeFileSync(path.join(tools, command), `#!/usr/bin/env node\nprocess.stdout.write(${JSON.stringify(output)})\n`, { mode: 0o755 });
   }
-  const run = async command => {
-    assert.ok(setup.has(command));
-    return { stdout: setup.get(command) };
+  const dependencies = {
+    run: async command => {
+      assert.equal(command, "rustc");
+      return { stdout: setup.get(command) };
+    },
+    resolveTarget: () => shared,
   };
   const originalTree = path.join(root, "package");
   fs.mkdirSync(path.join(originalTree, "DEBIAN"), { recursive: true });
@@ -185,7 +200,7 @@ test("native_dpkg_normalization_preserves_original_payload_and_complete_evidence
   const build = spawnSync("dpkg-deb", ["--build", "--root-owner-group", originalTree, input], { encoding: "utf8", timeout: 10_000 });
   assert.equal(build.status, 0, build.stderr);
   const originalHash = sha256File(input);
-  const result = await normalizeTauriDeb({ projectRoot: root, packageName: "normalized-app", input, requireDepends: ["libc6"] }, run);
+  const result = await normalizeTauriDeb({ projectRoot: root, packageName: "normalized-app", input, requireDepends: ["libc6"] }, dependencies);
   assert.equal(sha256File(input), originalHash);
   assert.equal(result.originalSha256, originalHash);
   assert.equal(result.sha256, sha256File(result.output));
@@ -207,6 +222,6 @@ test("native_dpkg_normalization_preserves_original_payload_and_complete_evidence
   assert.equal(repeated.sha256, sha256File(repeated.output));
   const outputRoot = path.join(shared, "local-install-linux", "artifacts");
   const before = fs.readdirSync(outputRoot).sort();
-  await assert.rejects(normalizeTauriDeb({ projectRoot: root, packageName: "normalized-app", input, requireDepends: ["missing-library"] }, run), /runtime dependencies missing/u);
+  await assert.rejects(normalizeTauriDeb({ projectRoot: root, packageName: "normalized-app", input, requireDepends: ["missing-library"] }, dependencies), /runtime dependencies missing/u);
   assert.deepEqual(fs.readdirSync(outputRoot).sort(), before);
 });

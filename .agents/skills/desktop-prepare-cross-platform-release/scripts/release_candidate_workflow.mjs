@@ -16,11 +16,12 @@ import {
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { arch, homedir, platform, release, type, version as osVersion } from "node:os";
-import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { gunzipSync, inflateRawSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 
 import { assertDependencyLocks } from "../../desktop-implement-change/scripts/project_lock_policy.mjs";
+import { resolveCargoDeviceTarget } from "../../desktop-implement-change/scripts/cargo_device_config.mjs";
 
 const OID_PATTERN = /^[0-9a-f]{40}$/;
 const MINIMUM_NODE = [24, 0, 0];
@@ -149,28 +150,15 @@ function prepareRunnerCargo() {
 }
 
 /** 确认 rustc 宿主目标与实际 CI 系统和架构一致。 */
-export function nativeRustTarget(rustcOutput, runnerOs, runnerArch) {
+export function nativeRustTarget(rustcOutput, rustcCfg, runnerOs, runnerArch) {
   const host = /^host: ([a-z0-9_-]+)\r?$/mu.exec(rustcOutput)?.[1];
-  const cpu = { X64: "x86_64", ARM64: "aarch64" }[runnerArch];
-  const system = { Linux: "unknown-linux-gnu", macOS: "apple-darwin", Windows: "pc-windows-msvc" }[runnerOs];
-  if (!host || !cpu || !system || host !== `${cpu}-${system}`) {
+  const cpu = { X86: "x86", X64: "x86_64", ARM: "arm", ARM64: "aarch64" }[runnerArch];
+  const system = { Linux: "linux", macOS: "macos", Windows: "windows" }[runnerOs];
+  const cfg = new Set(rustcCfg.split(/\r?\n/u));
+  if (!host || !cpu || !system || !cfg.has(`target_arch="${cpu}"`) || !cfg.has(`target_os="${system}"`)) {
     throw new WorkflowError("rustc host 必须与运行器的原生系统和架构一致");
   }
   return host;
-}
-
-/** 以 Cargo 元数据解析全局输出根，并定位显式宿主目标的 release 目录。 */
-export function nativeReleaseDirectory(metadata, host) {
-  const { target_directory: targetDirectory, workspace_root: workspaceRoot } = metadata;
-  if (typeof targetDirectory !== "string" || !isAbsolute(targetDirectory)
-      || typeof workspaceRoot !== "string" || !isAbsolute(workspaceRoot)) {
-    throw new WorkflowError("Cargo 元数据缺少绝对的 workspace 或目标目录");
-  }
-  const relation = relative(workspaceRoot, targetDirectory);
-  if (!relation || (relation !== ".." && !relation.startsWith(`..${sep}`) && !isAbsolute(relation))) {
-    throw new WorkflowError("CI Cargo 必须使用工作区之外的全局目标目录");
-  }
-  return join(targetDirectory, host, "release");
 }
 
 /** 按根 Cargo 的显式选择验证锁文件，并向后续固定命令传递唯一允许的标志。 */
@@ -212,7 +200,8 @@ export function validateMatrixSelection(metadata, runnerOs) {
 
 /** 从 Cargo metadata 验证持久矩阵选择及目标二进制的唯一版本。 */
 function verifyVersion() {
-  const metadata = JSON.parse(run("cargo", ["metadata", "--format-version", "1", "--no-deps", ...cargoLockArgs()]).stdout);
+  const lockArgs = cargoLockArgs();
+  const metadata = JSON.parse(run("cargo", ["metadata", "--format-version", "1", "--no-deps", "--offline", ...lockArgs]).stdout);
   validateMatrixSelection(metadata, environment("RUNNER_OS"));
   const projectId = metadata.metadata["agent-first-harness"]["project-id"];
   if (typeof projectId !== "string" || !/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/u.test(projectId)) {
@@ -229,12 +218,14 @@ function verifyVersion() {
   }
   const channel = environment("HARNESS_RELEASE_CHANNEL");
   if (!["release", "beta"].includes(channel)) throw new WorkflowError("发布渠道必须为 release 或 beta");
-  const host = nativeRustTarget(run("rustc", ["-vV"]).stdout, environment("RUNNER_OS"), environment("RUNNER_ARCH"));
+  const host = nativeRustTarget(run("rustc", ["-vV"]).stdout, run("rustc", ["--print", "cfg"]).stdout,
+    environment("RUNNER_OS"), environment("RUNNER_ARCH"));
+  const targetDirectory = resolveCargoDeviceTarget({ projectRoot: process.cwd(), metadata, locked: lockArgs.length > 0 });
   appendGithubFile("GITHUB_ENV", {
     PRODUCT_NAME: product,
     CANDIDATE_BINARY: channel === "beta" ? product + "-beta" : product,
     HARNESS_RUST_HOST: host,
-    HARNESS_CARGO_RELEASE_DIR: nativeReleaseDirectory(metadata, host),
+    HARNESS_CARGO_RELEASE_DIR: join(targetDirectory, host, "release"),
   });
 }
 

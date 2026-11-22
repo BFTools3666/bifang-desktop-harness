@@ -4,10 +4,10 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { NSH_REVISION, normalizeNshOptions, nshDependencies, nshPackageScripts, nshRevisionForTargets, renderNshAdapterFiles } from './nsh_adapter_files.mjs';
-import { assertNshDefaultCargoBuildTarget, assertNshNativeDevelopmentTarget, assertNshSharedCargoTarget } from '../../desktop-implement-change/scripts/nsh_runtime_policy.mjs';
+import { assertNshDefaultCargoBuildTarget, assertNshNativeDevelopmentTarget, nshCargoEnvironment } from '../../desktop-implement-change/scripts/nsh_runtime_policy.mjs';
 
 const checkNsh = "node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs";
-const preflight = checkNsh + ' && ';
+const preflight = checkNsh + ' -- ';
 const profile = Object.freeze({
   system_tray: 'disabled', system_notification: 'disabled', autostart: 'disabled',
   about_page: 'disabled', sponsor_page: 'disabled', single_instance: 'disabled',
@@ -16,10 +16,10 @@ const profile = Object.freeze({
 const base = { projectId: 'sample_tool', nameZh: '示例工具', nameEn: 'Sample Tool', owner: 'test-owner' };
 
 /** 未选择 TUI 的工程不暴露终端入口。 */
-test('supported NSH targets use only the released v0.6.0 runtime and scripts', () => {
+test('supported NSH targets use only the released v0.6.1 runtime and scripts', () => {
   const desktop = { ...base, targetPlatforms: ['macos'], nshTargets: ['desktop'], profile };
   const mobileWeb = { ...base, targetPlatforms: ['android', 'web'], nshTargets: ['mobile', 'web'] };
-  assert.equal(NSH_REVISION, '554163758e30d2f62f814096a6327937dcb4fe49');
+  assert.equal(NSH_REVISION, '2f51d8611677c8a6bbad937b39756e8d0cc45350');
   for (const options of [desktop, mobileWeb]) {
     assert.equal(nshRevisionForTargets(options.nshTargets), NSH_REVISION);
     const dependencies = nshDependencies(options);
@@ -29,9 +29,9 @@ test('supported NSH targets use only the released v0.6.0 runtime and scripts', (
     assert.doesNotMatch(files.get('sample_tool_nsh/Cargo.toml'), /nsh-base/u);
     assert.ok(![...files.keys()].some(name => name.includes('.tui.')));
     const scripts = nshPackageScripts(options.projectId, options.nshTargets, options.targetPlatforms);
-    assert.equal(scripts['nsh:check'], preflight + 'nsh check sample_tool_nsh');
-    assert.equal(scripts['nsh:test'], preflight + 'nsh test sample_tool_nsh');
-    assert.equal(scripts.test, 'cargo test --workspace --all-targets --all-features --target host-tuple');
+    assert.equal(scripts['nsh:check'], preflight + 'check sample_tool_nsh');
+    assert.equal(scripts['nsh:test'], preflight + 'test sample_tool_nsh');
+    assert.equal(scripts.test, 'node .agents/skills/desktop-implement-change/scripts/cargo_device_config.mjs && cargo test --workspace --all-targets --all-features --target host-tuple');
     assert.equal(scripts['dev:tui'], undefined);
     assert.equal(scripts['nsh:test:tui'], undefined);
   }
@@ -53,16 +53,16 @@ test('generation_rejects_unsupported_nsh_targets', () => {
 test('development defaults are native and iOS runs only through its explicit script', () => {
   const ios = nshPackageScripts('sample_tool', ['mobile'], ['ios']);
   assert.equal(ios.dev, undefined);
-  assert.equal(ios['dev:ios'], preflight + 'nsh run sample_tool_nsh --target ios');
+  assert.equal(ios['dev:ios'], preflight + 'run sample_tool_nsh --target ios');
   assert.equal(ios['dev:android'], undefined);
   assert.equal(ios['nsh:test:ios'], undefined);
   const mixed = nshPackageScripts('sample_tool', ['desktop','mobile','web','tui'], ['macos','ios','android','web']);
-  assert.equal(mixed.dev, checkNsh + ' desktop && nsh run sample_tool_nsh');
-  assert.equal(mixed['dev:web'], preflight + 'nsh run sample_tool_nsh --target web');
+  assert.equal(mixed.dev, checkNsh + ' desktop -- run sample_tool_nsh');
+  assert.equal(mixed['dev:web'], preflight + 'run sample_tool_nsh --target web');
   assert.equal(mixed['nsh:test:web'], undefined);
   assert.equal(mixed['nsh:test:android'], undefined);
-  assert.equal(mixed['nsh:test:macos'], checkNsh + ' macos && nsh test sample_tool_nsh/App.test.tsx --target macos');
-  assert.equal(mixed['nsh:test:tui'], checkNsh + ' tui && nsh test sample_tool_nsh/App.test.tsx --target tui');
+  assert.equal(mixed['nsh:test:macos'], checkNsh + ' macos -- test sample_tool_nsh/App.test.tsx --target macos');
+  assert.equal(mixed['nsh:test:tui'], checkNsh + ' tui -- test sample_tool_nsh/App.test.tsx --target tui');
 });
 
 test('native development checks both the execution host and project selection', () => {
@@ -74,13 +74,15 @@ test('native development checks both the execution host and project selection', 
   assert.throws(() => assertNshNativeDevelopmentTarget(selection, 'tui', 'linux'), /native host/u);
 });
 
-test('the upstream NSH app-local Cargo fallback is rejected', () => {
-  const root = path.join(os.tmpdir(), 'nsh-test-project');
+test('NSH child receives the resolved global directory when Cargo config is the only source', () => {
   const sharedTarget = path.join(os.tmpdir(), 'shared-cargo-target');
-  assert.doesNotThrow(() => assertNshSharedCargoTarget(root, { CARGO_TARGET_DIR: sharedTarget }));
-  assert.throws(() => assertNshSharedCargoTarget(root, {}), /system-wide/u);
-  assert.throws(() => assertNshSharedCargoTarget(root, { CARGO_TARGET_DIR: 'target' }), /system-wide/u);
-  assert.throws(() => assertNshSharedCargoTarget(root, { CARGO_TARGET_DIR: path.join(root, 'target') }), /outside the project/u);
+  const configOnly = { SYSTEM_PROFILE: 'device' };
+  assert.deepEqual(nshCargoEnvironment(sharedTarget, configOnly), {
+    ...configOnly, CARGO_TARGET_DIR: sharedTarget,
+  });
+  assert.equal(Object.hasOwn(configOnly, 'CARGO_TARGET_DIR'), false);
+  const inherited = { ...configOnly, CARGO_TARGET_DIR: sharedTarget };
+  assert.equal(nshCargoEnvironment(sharedTarget, inherited), inherited);
 });
 
 test('NSH refuses an implicit target configured for upstream Cargo subprocesses', (t) => {

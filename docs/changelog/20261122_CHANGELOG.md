@@ -4,6 +4,8 @@
 
 ## 2026-11-22 变化
 
+- `HARNESS-NSH-061-DEVICE-CONFIG`（`required_version = 202611222032`）：新建 NSH 工程的 Rust 依赖、CLI 门禁和两套官方 Skills 同步到 0.6.1。Rust 构建根据执行设备生效的工具链和用户级 Cargo 配置选择原生目标与输出目录。见 [ADR-20261122-002](../adr/20261122_ADR.md)。
+
 - `HARNESS-HOST-NATIVE-DEFAULTS`（`required_version = 202611221943`）：Task 与内部协作默认使用当前 checkout；创建独立 Worktree 须有明确选择。Rust 构建复用宿主全局 Cargo target 目录。普通打包和发布默认只选当前系统的原生产物，用户明确指定后才能构建其他目标。运行测试与验收按实际系统取证。见 [ADR-20261122-001](../adr/20261122_ADR.md)。
 
 ## 2026-11-19 变化

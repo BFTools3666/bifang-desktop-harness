@@ -10,8 +10,12 @@ import { checkContext } from '../../desktop-prepare-release/scripts/release_cont
 import { loadDocument,renderDocument } from '../../desktop-prepare-release/scripts/release_notes.mjs';
 import { check as checkVersion } from '../../desktop-manage-version/scripts/version_gate.mjs';
 import { readDependencyLockPolicy } from '../../desktop-implement-change/scripts/project_lock_policy.mjs';
+import { resolveCargoDeviceTarget } from '../../desktop-implement-change/scripts/cargo_device_config.mjs';
 import { nshRevisionForTargets, validNshIdentity } from '../../desktop-add-nsh-adapter/scripts/nsh_runtime_revision.mjs';
-import { assertNshCargoRuntime, assertNshCliVersion, assertNshDefaultCargoBuildTarget, assertNshSharedCargoTarget, assertNshWorkspacePin, NSH_HOST_DESKTOP_PLATFORMS, readNshMixedConfig } from '../../desktop-implement-change/scripts/nsh_runtime_policy.mjs';
+import {
+  assertNshCargoRuntime, assertNshCliVersion, assertNshDefaultCargoBuildTarget, assertNshWorkspacePin,
+  NSH_HOST_DESKTOP_PLATFORMS, nshCargoEnvironment, readNshMixedConfig,
+} from '../../desktop-implement-change/scripts/nsh_runtime_policy.mjs';
 import { iosPackagingIdentity,restoreIosDisplayIdentity } from './nsh_ios_identity.mjs';
 import { NSH_BUILD_CACHE_NAMES, prepareNshPortableEntry } from './nsh_portable_entry.mjs';
 
@@ -215,12 +219,13 @@ export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,
   delete testEnv.NSH_KEYSTORE_PASSWORD;
   const metadata=JSON.parse(run('cargo',['metadata','--offline','--no-deps','--format-version','1'],root,testEnv,true));
   const facts=packageFacts(root,metadata,target);
-  assertNshSharedCargoTarget(root, testEnv);
   assertNshDefaultCargoBuildTarget(facts.gui, testEnv);
+  const targetDirectory = resolveCargoDeviceTarget({ projectRoot: root, metadata, environment: testEnv });
+  const nshTestEnv = nshCargoEnvironment(targetDirectory, testEnv);
   const desktop = facts.policy['nsh-targets'].includes('desktop');
   const version=run('nsh',['--version'],root,testEnv,true);
   assertNshToolchain(root, facts.policy['nsh-targets'], version);
-  const packageOptions = resolveNshPackageOptions(root, target, packageInput);
+  const packageOptions = resolveNshPackageOptions(root, target, packageInput, nshCargoEnvironment(targetDirectory));
   let notes=null;
   if(fs.existsSync(path.join(root,'.harness/version-state.json'))) checkVersion(root,'build');
   if(context) {
@@ -260,9 +265,9 @@ export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,
     const tests = run('cargo', [...testArgs,'--','--list'], root, testEnv, true);
     if (!/^.+: test$/mu.test(tests)) throw new Error('nonempty workspace tests required');
     run('cargo', testArgs, root, testEnv);
-    run('nsh', ['check'], facts.gui, testEnv);
+    run('nsh', ['check'], facts.gui, nshTestEnv);
     const report = path.join(stage, 'nsh-tests.xml');
-    run('nsh', ['test', '.', '--junit', report], facts.gui, testEnv);
+    run('nsh', ['test', '.', '--junit', report], facts.gui, nshTestEnv);
     const renderTestCases = passingNshCases(fs.readFileSync(report, 'utf8'));
     if (sourceSnapshot(root) !== before) throw new Error('source changed during tests');
 

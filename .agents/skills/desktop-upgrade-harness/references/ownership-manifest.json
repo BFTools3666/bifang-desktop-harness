@@ -63,6 +63,8 @@
     {"pattern": ".agents/skills/desktop-implement-change/scripts/check_core_first.mjs", "mode": "managed"},
     {"pattern": ".agents/skills/desktop-implement-change/scripts/check_core_first.test.mjs", "mode": "managed"},
     {"pattern": ".agents/skills/desktop-implement-change/scripts/project_lock_policy.mjs", "mode": "managed"},
+    {"pattern": ".agents/skills/desktop-implement-change/scripts/cargo_device_config.mjs", "mode": "managed"},
+    {"pattern": ".agents/skills/desktop-implement-change/scripts/cargo_device_config.test.mjs", "mode": "managed"},
     {"pattern": ".agents/skills/desktop-implement-change/scripts/nsh_runtime_policy.mjs", "mode": "managed"},
     {"pattern": ".agents/skills/desktop-implement-change/scripts/project_lock_policy.test.mjs", "mode": "managed"},
     {"pattern": ".agents/skills/desktop-implement-change/scripts/check_rust_chinese_comments.mjs", "mode": "managed"},

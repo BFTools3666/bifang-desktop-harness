@@ -269,9 +269,9 @@ export function nshDependencies(input) {
 export function nshPackageScripts(id, targets = ['desktop'], platforms = ['macos']) {
   validateNshPlatforms(targets, platforms);
   const member = id + '_nsh';
-  const checkNsh = 'node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs';
-  const nsh = checkNsh + ' && nsh';
-  const nativeNsh = target => checkNsh + ' ' + target + ' && nsh';
+  const nshCommand = 'node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs';
+  const nsh = nshCommand + ' --';
+  const nativeNsh = target => nshCommand + ' ' + target + ' --';
   const targetScripts = {};
   // NSH defaults to the current native desktop backend. iOS run uses ios, while package uses ios-simulator.
   if (targets.includes('desktop')) targetScripts['dev:desktop'] = nativeNsh('desktop') + ' run ' + member;
@@ -294,7 +294,7 @@ export function nshPackageScripts(id, targets = ['desktop'], platforms = ['macos
   return {
     ...(targetScripts['dev:desktop'] || targetScripts['dev:tui'] ? { dev: targetScripts['dev:desktop'] ?? targetScripts['dev:tui'] } : {}),
     ...targetScripts,
-    test: 'cargo test --workspace --all-targets --all-features --target host-tuple',
+    test: 'node .agents/skills/desktop-implement-change/scripts/cargo_device_config.mjs && cargo test --workspace --all-targets --all-features --target host-tuple',
     'nsh:check': nsh + ' check ' + member,
     'nsh:build': nsh + ' build ' + member,
     'nsh:test': nsh + ' test ' + member,

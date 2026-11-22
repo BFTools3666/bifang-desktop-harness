@@ -6,7 +6,7 @@ Bifang Desktop Harness Template
 
 一个让 AI Agent 帮你创建和维护跨平台小工具的工程模板。
 
-你只需要告诉 Agent：项目叫什么、放在哪里，以及需要 CLI、MCP、DESKTOP 或 NSH 中的哪些程序类型。CLI/MCP/DESKTOP 默认支持 Windows、macOS、Linux 全平台；选择 NSH 后只需选择桌面、移动、Web、TUI 能力。NSH 的说明是“下一代全平台开发框架”，当前统一正式 0.6.0 工具链。它会创建一个独立的 Git 项目，搭好共享核心、所选接口、开发规则和交付流程。之后你可以直接说要改什么，Agent 会完成实现并运行这次改动真正需要的测试。
+你只需要告诉 Agent：项目叫什么、放在哪里，以及需要 CLI、MCP、DESKTOP 或 NSH 中的哪些程序类型。CLI/MCP/DESKTOP 默认支持 Windows、macOS、Linux 全平台；选择 NSH 后只需选择桌面、移动、Web、TUI 能力。NSH 的说明是“下一代全平台开发框架”，当前统一正式 0.6.1 工具链。它会创建一个独立的 Git 项目，搭好共享核心、所选接口、开发规则和交付流程。之后你可以直接说要改什么，Agent 会完成实现并运行这次改动真正需要的测试。
 
 选择 **DESKTOP** 即使用 **Tauri**，无需另选框架。随后按顺序确认九项桌面配置，并在完整汇总中确认平台和所选能力。
 
@@ -14,14 +14,14 @@ DESKTOP 使用 Node.js/pnpm 工程工具，初始化通过 Tauri 专用结构检
 
 ### NSH 项目
 
-NSH 可多选桌面、移动、Web、TUI。四类目标共用 Mixed TSX 和 Rust core，受管入口仅支持正式 v0.6.0 提交 `554163758e30d2f62f814096a6327937dcb4fe49` 与匹配 CLI。初始化会将同版本官方 `nsh`、`nsh-design-guides` 安装到项目的 `.agents/skills/`。
+NSH 可多选桌面、移动、Web、TUI。四类目标共用 Mixed TSX 和 Rust core，受管入口仅支持正式 v0.6.1 提交 `2f51d8611677c8a6bbad937b39756e8d0cc45350` 与匹配 CLI。初始化会将同版本官方 `nsh`、`nsh-design-guides` 安装到项目的 `.agents/skills/`。
 
 | 目标 | 下游开发命令 | 官方打包目标 |
 | --- | --- | --- |
 | 桌面（Windows、macOS、Linux） | `npm run dev:desktop` | `windows`、`macos`、`linux`，使用对应宿主 |
 | 移动（Android、iOS） | `npm run dev:android`、`npm run dev:ios` | `android`（APK/AAB）、`ios-simulator`、`ios` |
 | Web | `npm run dev:web` | `web`（静态站点） |
-| TUI（Windows、macOS、Linux） | `npm run dev:tui`、`npm run nsh:test:tui` | 0.6.0 提供运行与测试 |
+| TUI（Windows、macOS、Linux） | `npm run dev:tui`、`npm run nsh:test:tui` | 0.6.1 提供运行与测试 |
 
 NSH 桌面默认提供官方多窗口。表单按托盘、单实例、有条件的深链接、关于、赞助、侧栏模式询问。只有启用单实例才询问深链接。自启、通知和 OS 全局快捷键在中性模板固定关闭。仅含移动、Web 或 TUI 的项目跳过桌面配置和 Logo。
 
@@ -106,7 +106,7 @@ NSH 桌面默认提供官方多窗口。表单按托盘、单实例、有条件�
 - Tauri 的“在 Windows 或 Linux 上打一个本地安装试包”或普通“构建/打包”：使用 `$desktop-build-tauri-local-install`；它允许基于当前工作树生成未签名 NSIS，或同架构 deb/AppImage，只供本机检查，不提交、不生成发布日志、不写 `release/`，也不询问 E2E 选择。
 - “发布”：使用 `$desktop-prepare-release` 整理本次范围、按当前上海时间取得 Harness 版本（下游使用语义化版本门禁）、提交源码和发布上下文，再由 `$desktop-manage-git-lifecycle release` 合并本地默认主分支并创建、复读版本 tag。`--release-context-sha256 <sha256>` 绑定已跟踪上下文；Git 发布完成后执行并检测持久选择的后续动作。
 - “提交远程”后续路径：使用 `push-release --remote <name>` 把已发布的固定 HEAD 放到本地小写渠道分支（`release` 或 `beta`），依次同步远端 advertised 默认主分支、同名渠道分支和 tag，逐项及最终联合复读；即使已开始下一开发周期，也不重新合并或计算发布提交。
-- “本地打包”后续路径：在已有 Git 发布完成后只对当前宿主确定的一个已选接口/目标使用 `$desktop-build-rust-release`、`$desktop-build-tauri-release` 或 `$desktop-build-nsh-release`；构建入口只读消费发布上下文，在该次构建解析 E2E 和适用 macOS 签名选择。其他系统或目标须由用户当次明确指定。NSH 候选按目标保存在独立 `release/` 批次，各目标在实际运行系统验收。跨平台远程 provider 另要求远端渠道分支与 tag 已复读为同一 HEAD。
+- “本地打包”后续路径：在已有 Git 发布完成后只对当前宿主确定的一个已选接口/目标使用 `$desktop-build-rust-release`、`$desktop-build-tauri-release` 或 `$desktop-build-nsh-release`；构建入口只读消费发布上下文，在该次构建解析 E2E 和适用 macOS 签名选择。本机构建采用执行设备的 Rust 宿主目标和用户级 Cargo 输出目录。其他系统或目标须由用户当次明确指定。NSH 候选按目标保存在独立 `release/` 批次，各目标在实际运行系统验收。跨平台远程 provider 另要求远端渠道分支与 tag 已复读为同一 HEAD。
 - 普通“构建/打包/本地试包”不会自动升级为 Git 发布，不提交、推送或修改主分支；Git 发布后的所选动作仍单独遵守对应流程门禁。
 - “完整验收这个候选”：使用 `$desktop-verify-delivery` 检查真实产物。
 - “把这个项目升级到新版 Harness”：使用 `$desktop-upgrade-harness`，先预览差异再应用。
@@ -147,7 +147,7 @@ Core-first 是强制规则：值域、跨字段关系、业务默认值和可复
 - **CLI**：适合脚本和 Agent 调用，支持非交互运行和统一 JSON 输出。
 - **MCP**：提供 Rust stdio MCP 服务器，让其他 Agent 或 MCP 客户端调用共享能力。
 - **DESKTOP**：使用 Tauri 2、React 和 Mantine。固定接入系统语言、窗口状态和原生 dialog 基线，并可按初始化选择加入托盘、单实例、深链接、全局快捷键、系统通知、开机自启、关于页和赞助页。
-- **NSH**：下一代全平台开发框架，当前子目标为桌面、移动、Web、TUI；统一正式 v0.6.0 固定提交及匹配 CLI。Cargo 的 `nsh-targets` 记录子目标，`target-platforms` 记录具体平台。九项桌面配置只适用于桌面子目标。
+- **NSH**：下一代全平台开发框架，当前子目标为桌面、移动、Web、TUI；统一正式 v0.6.1 固定提交及匹配 CLI。Cargo 的 `nsh-targets` 记录子目标，`target-platforms` 记录具体平台。九项桌面配置只适用于桌面子目标。
 
 CLI、MCP 与 DESKTOP 可以单独或组合使用；当前 NSH 独立选择。与接口无关的业务规则统一放在共享核心（shared core）中，接口只负责输入、展示和系统交互。
 
@@ -156,7 +156,7 @@ CLI、MCP 与 DESKTOP 可以单独或组合使用；当前 NSH 独立选择。�
 - 维护状态：Active
 - 中文名称：毕方桌面应用Harness模版
 - English name: Bifang Desktop Harness Template
-- 当前版本：v202611221943
+- 当前版本：v202611222032
 - 发布状态：以适用 Git 引用复核结果为准
 - 产品规格：Approved
 - 具体产品源码：不包含

@@ -15,7 +15,7 @@ description: 从 clean HEAD 构建下游 Tauri 2 GUI 发布候选；支持 macOS
 node .agents/skills/desktop-build-tauri-release/scripts/tauri_channel_config.mjs --project-root . --gui-root <相对路径> --platform <macos|windows> --cargo-package <实际 GUI Cargo package 名称> --cargo-binary <实际 Cargo 主二进制名称，不含扩展名>
 ```
 
-把返回的非空 `configPath` 作为所有候选构建命令的最后一个 `--config <configPath>`（位于 Cargo 的 `--` 分隔符之前）。Beta 使用 ` Beta` 的产品与启动标题后缀、`-beta` 的主程序后缀及 `.beta` 的应用 ID。沿用 Cargo 已配置的共享目标目录，按本次构建的目标、版本和 Beta 制品名核对输出。动态标题必须消费有效的 Tauri `package_info().name`，已自定义标题的项目按相同渠道保留 Beta 后缀。候选完成或失败后清除本次临时配置。
+把返回的非空 `configPath` 作为所有候选构建命令的最后一个 `--config <configPath>`（位于 Cargo 的 `--` 分隔符之前）。Beta 使用 ` Beta` 的产品与启动标题后缀、`-beta` 的主程序后缀及 `.beta` 的应用 ID。测试和编译前，从项目根运行 `node .agents/skills/desktop-implement-change/scripts/cargo_device_config.mjs --project-root . --manifest <实际Cargo清单> --cwd <实际构建目录>`，核对每个测试工作区与 Tauri Cargo 构建目录均继承设备设置。跟踪锁文件时追加 `--locked`。按本次构建的目标、版本和 Beta 制品名核对继承目录下的输出。动态标题必须消费有效的 Tauri `package_info().name`，已自定义标题的项目按相同渠道保留 Beta 后缀。候选完成或失败后清除本次临时配置。
 
 ## 按需资料
 
@@ -25,7 +25,7 @@ node .agents/skills/desktop-build-tauri-release/scripts/tauri_channel_config.mjs
 |---|---|
 | macOS 原生 DMG（含 unsigned） | [macOS DMG](references/tauri-macos-dmg.md) |
 | 目标含 macOS 且已解析签名 enabled | [macOS 签名与公证](references/tauri-macos-signing.md)，在任何测试或签名探测前读取 |
-| Windows 原生 x64 NSIS | [Windows 原生候选](references/tauri-windows-native.md) |
+| Windows 原生 x64 MSVC NSIS | [Windows 原生候选](references/tauri-windows-native.md) |
 | 明确请求的 macOS→Windows x64 NSIS | [Windows xwin 候选](references/tauri-windows-xwin.md) |
 
 引用是对应分支的执行合同；旧 [平台索引](references/tauri-macos-windows.md) 只保留兼容导航，不要求整读全部平台资料。

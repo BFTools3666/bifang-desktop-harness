@@ -8,6 +8,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveCargoDeviceTarget } from "../../desktop-implement-change/scripts/cargo_device_config.mjs";
 import { assertDependencyLocks } from "../../desktop-implement-change/scripts/project_lock_policy.mjs";
 import { ordinaryDirectory, publishDebCollection, sha256File, withDebWorkspace } from "./tauri_deb_artifacts.mjs";
 import { runOwnedCommand } from "./tauri_deb_process.mjs";
@@ -16,22 +17,16 @@ import { runOwnedCommand } from "./tauri_deb_process.mjs";
 const DEBIAN_PACKAGE_NAME = /^[a-z0-9][a-z0-9+.-]+$/;
 /** Node `process.arch` 到 Debian 架构名的显式映射；未列出的架构失败关闭。 */
 const DEBIAN_ARCHITECTURES = { arm64: "arm64", x64: "amd64" };
+const RUST_ARCHITECTURES = { arm64: "aarch64", x64: "x86_64" };
 
 /** 依据 Cargo 输出根和显式宿主 triple 核对本次构建报告的 deb 路径。 */
-export function nativeDebPaths(metadata, projectRoot, host, input) {
-  const { target_directory: targetDirectory } = metadata;
-  if (typeof targetDirectory !== "string" || !path.isAbsolute(targetDirectory)) {
-    throw new Error("Cargo metadata requires an absolute target_directory");
-  }
-  const relation = path.relative(projectRoot, targetDirectory);
-  if (!relation || (relation !== ".." && !relation.startsWith(`..${path.sep}`) && !path.isAbsolute(relation))) {
-    throw new Error("Cargo target_directory must use the global location outside the project");
-  }
-  if (!/^(aarch64|x86_64)-unknown-linux-gnu$/u.test(host)) throw new Error("Linux GNU native Cargo target required");
+export function nativeDebPaths(targetDirectory, host, input) {
+  if (!/^(aarch64|x86_64)(?:-[a-z0-9_]+)?-linux-gnu$/u.test(host)) throw new Error("Linux GNU native Cargo target required");
   const bundleRoot = ordinaryDirectory(path.join(targetDirectory, host, "release", "bundle", "deb"));
-  const source = path.resolve(input);
-  if (path.dirname(source) !== bundleRoot || fs.realpathSync(source) !== source
-      || !fs.lstatSync(source).isFile() || path.extname(source) !== ".deb") {
+  const inputPath = path.resolve(input);
+  const sourceDirectory = fs.realpathSync(path.dirname(inputPath));
+  const source = path.join(sourceDirectory, path.basename(inputPath));
+  if (sourceDirectory !== bundleRoot || !fs.lstatSync(source).isFile() || path.extname(source) !== ".deb") {
     throw new Error("input must be a regular deb in the Cargo native bundle directory");
   }
   return { source, outputRoot: path.join(targetDirectory, "local-install-linux", "artifacts") };
@@ -122,7 +117,7 @@ export function parseArguments(argv) {
 }
 
 /** 与实际 Tauri 构建使用同一 Cargo 清单目录与锁策略，沿用进程的用户级 Cargo 配置。 */
-async function resolveDebBuild(projectRoot, cargoManifest, input, signal, run) {
+async function resolveDebBuild(projectRoot, cargoManifest, input, signal, run, resolveTarget) {
   const manifest = path.resolve(projectRoot, cargoManifest);
   if (!manifest.startsWith(`${projectRoot}${path.sep}`) || path.basename(manifest) !== "Cargo.toml"
       || fs.realpathSync(manifest) !== manifest || !fs.lstatSync(manifest).isFile()) {
@@ -132,25 +127,25 @@ async function resolveDebBuild(projectRoot, cargoManifest, input, signal, run) {
   const cwd = path.dirname(manifest);
   const { stdout: rustc } = await run("rustc", ["-vV"], { cwd, signal });
   const host = /^host: (\S+)$/mu.exec(rustc)?.[1];
-  const expected = { arm64: "aarch64-unknown-linux-gnu", x64: "x86_64-unknown-linux-gnu" }[process.arch];
-  if (host !== expected) throw new Error("rustc host must match the native Linux architecture");
-  const lockArgs = policy === "tracked" ? ["--locked"] : [];
-  const { stdout: metadata } = await run("cargo", ["metadata", "--no-deps", "--format-version", "1", ...lockArgs], { cwd, signal });
-  return nativeDebPaths(JSON.parse(metadata), projectRoot, host, input);
+  if (!host?.startsWith(`${RUST_ARCHITECTURES[process.arch]}-`)) throw new Error("rustc host must match the native Linux architecture");
+  const targetDirectory = resolveTarget({ projectRoot, manifestPath: manifest, locked: policy === "tracked" });
+  return nativeDebPaths(targetDirectory, host, input);
 }
 
 /**
  * 在私有暂存目录解包、改写 `Package:`、重新打包并二次解包核对；全部核对通过后才原子放入
  * 全局 Cargo 目标目录下的 `local-install-linux/artifacts/`，同时写出 `.sha256` 与 `.inspection.json` 侧车。
  */
-export async function normalizeTauriDeb({ projectRoot, cargoManifest = "Cargo.toml", packageName, input, requireDepends = [], signal = null }, run = runOwnedCommand) {
+export async function normalizeTauriDeb({ projectRoot, cargoManifest = "Cargo.toml", packageName, input, requireDepends = [], signal = null }, {
+  run = runOwnedCommand, resolveTarget = resolveCargoDeviceTarget,
+} = {}) {
   if (process.platform !== "linux") throw new Error("Linux native host required");
   if (!isDebianPackageName(packageName)) throw new Error("package name must follow Debian package name syntax");
   const architecture = DEBIAN_ARCHITECTURES[process.arch];
   if (!architecture) throw new Error("unsupported native architecture");
   projectRoot = ordinaryDirectory(projectRoot);
   const version = workspaceVersion(projectRoot);
-  const { source, outputRoot } = await resolveDebBuild(projectRoot, cargoManifest, input, signal, run);
+  const { source, outputRoot } = await resolveDebBuild(projectRoot, cargoManifest, input, signal, run, resolveTarget);
   const sourceDigest = sha256File(source);
   return withDebWorkspace(outputRoot, async staging => {
     const unpacked = path.join(staging, "original");

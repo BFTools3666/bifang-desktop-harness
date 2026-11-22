@@ -1,6 +1,6 @@
 # AGENTS.md
 
-NSH 是平级的“下一代全平台开发框架”。Cargo `interfaces = ["nsh"]`，`nsh-targets` 可选 desktop/mobile/web/tui，新项目使用正式 v0.6.0 提交 `554163758e30d2f62f814096a6327937dcb4fe49` 与匹配 CLI。全目标采用官方 Mixed TSX/共享 Rust core。仅 desktop 保存九字段桌面 profile，表单只询问适用项。官方多窗口固定提供；托盘、单实例、深链接按选择接入，深链接要求单实例；自启、通知与 OS 全局快捷键在中性模板固定关闭。选择 NSH 时，官方 `nsh`、`nsh-design-guides` 随脚手架自动安装到项目 `.agents/skills/`。受管 NSH 仅接受正式 0.6.0 与顶层接口，旧工程须先迁移。路由 `$desktop-add-nsh-adapter`、`docs/design_standards/nsh_gui.md`、`$desktop-build-nsh-release`。
+NSH 是平级的“下一代全平台开发框架”。Cargo `interfaces = ["nsh"]`，`nsh-targets` 可选 desktop/mobile/web/tui，新项目使用正式 v0.6.1 提交 `2f51d8611677c8a6bbad937b39756e8d0cc45350` 与匹配 CLI。全目标采用官方 Mixed TSX/共享 Rust core。仅 desktop 保存九字段桌面 profile，表单只询问适用项。官方多窗口固定提供；托盘、单实例、深链接按选择接入，深链接要求单实例；自启、通知与 OS 全局快捷键在中性模板固定关闭。选择 NSH 时，官方 `nsh`、`nsh-design-guides` 随脚手架自动安装到项目 `.agents/skills/`。受管 NSH 仅接受正式 0.6.1 与顶层接口，旧工程须先迁移。路由 `$desktop-add-nsh-adapter`、`docs/design_standards/nsh_gui.md`、`$desktop-build-nsh-release`。
 
 ## 项目使命
 
@@ -33,7 +33,7 @@ DESKTOP（Cargo `gui`）固定使用 Tauri 2、React 和 Mantine。新项目直�
 | 永久 Agent 能力偏好变更 | Agent Policy 字段语义与初始化后变更规则 | `$desktop-configure-agent-policy`；发布后动作仍用专用 Skill |
 | CLI 或 Rust core/adapter | `docs/CLI_CONTRACT.md`（仅 CLI）、`docs/RUST_CLI_TEMPLATE.md` | 对应 adapter Skill；实现仍走 `$desktop-implement-change` |
 | GUI 展示、交互、初始化或桌面能力 | `docs/design_standards/README.md` 后只读精确命中的标准；再读 `docs/RUST_CLI_TEMPLATE.md`、存在时的 `docs/GUI_APP_PROFILE.md`；Tauri/Mantine 列表页、数据表格、后台列表、搜索结果页及已有列表审查另读 `$mantine-list-view` | 按需读 Tauri 能力 Skill；列表读 `$mantine-list-view`；抽取 Tauri/React 或 Rust 用户文案读 `$desktop-extract-i18n-strings`；首次产品桌面界面读身份 Skill；不得一次加载全部 GUI Skills |
-| NSH | Cargo `interfaces`、`nsh-targets`、`target-platforms`；NSH Skill 的运行时引用 | 开发读项目内 `$nsh`，界面读 `$nsh-design-guides`；新项目固定正式 0.6.0，CLI 匹配项目版本；desktop 才读 profile，首次产品桌面界面读身份 Skill；不得一次加载全部 GUI Skills |
+| NSH | Cargo `interfaces`、`nsh-targets`、`target-platforms`；NSH Skill 的运行时引用 | 开发读项目内 `$nsh`，界面读 `$nsh-design-guides`；新项目固定正式 0.6.1，CLI 匹配项目版本；desktop 才读 profile，首次产品桌面界面读身份 Skill；不得一次加载全部 GUI Skills |
 | Task、工作树、子任务权限与并行调度 | `docs/AGENT_POLICY.md` 的项目选择；统一 Skill 的按需引用 | `$desktop-task-workflow`；默认不自动创建左侧 Task，Local 同 cwd 串行，独立 Worktree 尽量并行 |
 | 内部并行 Worktree/Subagent 或提交 | 统一 Skill 的并行引用；提交时读提交规范 | `$desktop-task-workflow`、`$desktop-configure-git-commits`（按触发器） |
 | 恢复进度、重要阻断或跨会话交接 | 最新 Product Status；用户要求持久计划或存在活动计划时再读最新 Work Plan | `$desktop-handoff-project`；持久计划另按触发调用 `$desktop-plan-change` |
@@ -51,7 +51,7 @@ DESKTOP（Cargo `gui`）固定使用 Tauri 2、React 和 Mantine。新项目直�
 - 日常开发直接实施，只增加并运行本次需要的相关非空单元/回归测试；纯文档、元数据或机械变更只做解析或差异完整性所需的最小检查。不得因任务复杂、多模块或 Agent 偏好自动增加持久计划、全仓检查、构建、冒烟、E2E、Verification 或人工复核。
 - Task 指左侧 user-owned 会话，内部 plan/Subagent/Worktree 不占用编号。`Task {序号} | {当前进度} | {单一结果}` 的编号、四种进度、绑定与恢复合同只由 `$desktop-task-workflow` 管理。
 - 新 Worktree 默认禁用。左侧 Task 需要明确开启项目的 `task_worktrees`，内部写入型 Worktree 还需要项目许可和本次明确的 Worktree 请求。普通开发使用当前 checkout；按派发时冻结的环境恢复既有 Task。
-- Rust 构建沿用宿主全局 Cargo target 目录。开发与发布默认只构建当前系统的原生产物，只有用户当次明确指定其他系统或架构才走受支持的构建路线。测试与验收仅覆盖实际执行环境所属的系统，详见 [开发、构建与完整验收](docs/ENGINEERING_RULES.md#53-开发构建与完整验收)。
+- Rust 构建沿用实际设备配置的用户级 Cargo target 目录。开发与发布默认依据设备系统、架构及项目生效的 Rust 工具链选择原生目标，只有用户当次明确指定其他系统或架构才走受支持的构建路线。测试与验收仅覆盖实际执行环境所属的系统，详见 [开发、构建与完整验收](docs/ENGINEERING_RULES.md#53-开发构建与完整验收)。
 - `user_owned_tasks` 默认关闭，只有项目明确启用才自动建 Task 子树，选择记录在策略文件；关闭时当前会话直接执行。一个 Task 交付一个结果，必要阅读、实现与开发回归不按步骤拆分。独立 Worktree 按非重叠所有权并行，只有同一 Local cwd 和共享 Git 状态写入串行。绑定自检通过后继承已授权开发权限，无需额外人工 BOUND 批准；宿主权限与实际超范围操作仍遵守授权。
 - 安全/隐私、数据迁移、破坏性操作、生产/付费/凭据副作用、对外兼容契约、渠道硬要求、签名、发布和跨平台最终候选必须进入对应专用门禁；精简上下文不降低授权、失败关闭或真正不可逆交付所需的人工签署。非必要语义审查不得混入日常开发，明确发布时才按当次 `reviewSelection` 询问并执行。
 - 规格不明确且不同答案会改变产品边界时停止并确认；普通实现细节不新增范围会议。模板硬规则确需例外时，按 `docs/ENGINEERING_RULES.md` 写入当日 ADR 后再继续。

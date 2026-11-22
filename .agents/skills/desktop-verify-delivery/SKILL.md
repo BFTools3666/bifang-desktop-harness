@@ -60,6 +60,6 @@ NSH 验收开始前，依据当前构建返回的 `target` 与 `buildRun` 或用
 
 NSH 的包格式、工具链和构建日志由 `$desktop-build-nsh-release` 定义。验收只消费 [候选范围](#候选范围) 中明确选定的已发布批次，运行场景交 [$desktop-test-final-artifact-e2e](../desktop-test-final-artifact-e2e/SKILL.md#nsh-场景)。
 
-NSH 按每个目标独立复算 `manifest.json` 的 `artifact`、`checksum`、`files`、`sourceSnapshot`、`releaseNotesSha256` 和 `licenses`。当前候选核对 `interface: nsh`、`nshTargets`、匹配 0.6.0 的 CLI、真实格式与签名状态。`releaseNotesResourceVerification: sidecar-byte-identical` 只证明外层日志字节；已选或必需的 NSH 桌面运行场景覆盖已启用的关于页时，须从真实窗口核对更新日志。关闭 E2E 时仅报告实际证明的范围。已选或必需的运行场景缺少目标宿主、无法证明，或缺少必要渠道签名时，按失败回流判定 `rejected`。可选且未运行的场景单独标记 `Unverified`，候选结论仍以当前全部必需证据为准。
+NSH 按每个目标独立复算 `manifest.json` 的 `artifact`、`checksum`、`files`、`sourceSnapshot`、`releaseNotesSha256` 和 `licenses`。当前候选核对 `interface: nsh`、`nshTargets`、匹配 0.6.1 的 CLI、真实格式与签名状态。`releaseNotesResourceVerification: sidecar-byte-identical` 只证明外层日志字节；已选或必需的 NSH 桌面运行场景覆盖已启用的关于页时，须从真实窗口核对更新日志。关闭 E2E 时仅报告实际证明的范围。已选或必需的运行场景缺少目标宿主、无法证明，或缺少必要渠道签名时，按失败回流判定 `rejected`。可选且未运行的场景单独标记 `Unverified`，候选结论仍以当前全部必需证据为准。
 
 第 7 步的二次上下文和最终字节复算只比较选定批次的当前证据；第 8 步在同一 `release/` 文件系统中为该批次建立唯一受限 staging，只复制该批次的精确集合并写入它自己的 `milestoneAcceptance` 与结构化证据。复算通过后以目录级原子重命名替换该批次，失败恢复原批次；其他批次逐字节保留。接受、拒绝或等待人工复核只改变本批次状态；就绪结论也只针对已选批次的目标和证据，不能由其他批次的 `accepted` 推断本目标通过。

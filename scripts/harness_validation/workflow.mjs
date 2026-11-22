@@ -134,7 +134,7 @@ export function validateCandidateWorkflowHelper(errors, helper = CANDIDATE_WORKF
     "function prepareRunnerCargo(",
     "function checkLockPolicy(",
     "function nativeRustTarget(",
-    "function nativeReleaseDirectory(",
+    "resolveCargoDeviceTarget({ projectRoot: process.cwd(), metadata, locked: lockArgs.length > 0 })",
     "function hashReleaseNotes(",
     "function listTests(",
     "function verifyPostTest(",

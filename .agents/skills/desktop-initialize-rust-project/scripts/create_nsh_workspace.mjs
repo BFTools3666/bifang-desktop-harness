@@ -17,6 +17,7 @@ export function createNshWorkspace(target,input) {
   const files = renderNshAdapterFiles(options);
   for (const relative of [
     'desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs',
+    'desktop-implement-change/scripts/cargo_device_config.mjs',
     'desktop-implement-change/scripts/nsh_runtime_policy.mjs',
   ]) {
     files.set('.agents/skills/' + relative, fs.readFileSync(new URL('../../' + relative, import.meta.url)));
