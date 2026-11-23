@@ -48,7 +48,7 @@ DESKTOP（Cargo `gui`）固定使用 Tauri 2、React 和 Mantine。新项目直�
 ## 始终生效的边界
 
 - `superpowers: disabled` 时不得调用或遵循任何 `superpowers:*` Skill；其他持久能力只表示允许，不能替代当前任务的触发条件或授权。
-- 日常开发直接实施，只增加并运行本次需要的相关非空单元/回归测试；纯文档、元数据或机械变更只做解析或差异完整性所需的最小检查。不得因任务复杂、多模块或 Agent 偏好自动增加持久计划、全仓检查、构建、冒烟、E2E、Verification 或人工复核。
+- 日常开发直接实施，按[测试范围门禁](docs/ENGINEERING_RULES.md#53-开发构建与完整验收)运行受影响功能的相关非空测试。扩大范围须由人类在本次任务明确要求；遇到范围外失败只报告。纯文档、元数据或机械变更只做必要的最小检查。
 - Task 指左侧 user-owned 会话，内部 plan/Subagent/Worktree 不占用编号。`Task {序号} | {当前进度} | {单一结果}` 的编号、四种进度、绑定与恢复合同只由 `$desktop-task-workflow` 管理。
 - 新 Worktree 默认禁用。左侧 Task 需要明确开启项目的 `task_worktrees`，内部写入型 Worktree 还需要项目许可和本次明确的 Worktree 请求。普通开发使用当前 checkout；按派发时冻结的环境恢复既有 Task。
 - Rust 构建沿用实际设备配置的用户级 Cargo target 目录。开发与发布默认依据设备系统、架构及项目生效的 Rust 工具链选择原生目标，只有用户当次明确指定其他系统或架构才走受支持的构建路线。测试与验收仅覆盖实际执行环境所属的系统，详见 [开发、构建与完整验收](docs/ENGINEERING_RULES.md#53-开发构建与完整验收)。
@@ -100,4 +100,4 @@ DESKTOP（Cargo `gui`）固定使用 Tauri 2、React 和 Mantine。新项目直�
 4. 按[任务收尾清理](docs/ENGINEERING_RULES.md#54-任务收尾清理)清理本次不再使用的临时测试与构建产物。
 5. 完成时报告实际变化、实际验证、未执行项和剩余风险，不把日常实现描述成发布就绪。
 
-Harness 自身的文档、Skill、脚本或候选 workflow 变化运行 `node scripts/validate_harness.mjs`；该日常入口只运行硬门禁。明确发布且当次 `reviewSelection: enabled` 时另运行 `node scripts/validate_harness.mjs --release-review` 收集非阻断语义/重构提示。修改 Node 门禁行为时还运行 `node scripts/run_harness_tests.mjs`。这些检查不替代真实下游构建、E2E、完整验收或真正必需的人工签署。
+Harness 自身维护只运行受影响的硬契约检查和精确回归，例如 `node scripts/run_harness_tests.mjs --test scripts/harness_validation/run_harness_tests.test.mjs`。运行全量须有本次人类明确授权，并显式传入 `--scope full --human-authorization <来源>`。`node scripts/validate_harness.mjs` 是全仓硬契约检查入口。明确发布且当次 `reviewSelection: enabled` 时另运行 `node scripts/validate_harness.mjs --release-review` 收集非阻断语义/重构提示。

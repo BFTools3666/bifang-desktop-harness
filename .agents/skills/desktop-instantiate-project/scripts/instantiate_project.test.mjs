@@ -44,7 +44,10 @@ test('prepare_installs_fixed_identity_and_preserves_legal_and_vendor_bytes', t =
   assert.ok(agents.trimEnd().split('\n').length <= 120);
   assert.doesNotMatch(agents, /check_no_python/u);
   assert.ok(agents.includes('[任务收尾清理](docs/ENGINEERING_RULES.md#54-任务收尾清理)'));
+  assert.match(agents, /\[测试范围门禁\]\(docs\/ENGINEERING_RULES\.md#53-开发构建与完整验收\)/u);
+  assert.match(agents, /扩大范围须由人类在本次任务明确要求/u);
   const rules = fs.readFileSync(path.join(f.target, 'docs/ENGINEERING_RULES.md'), 'utf8');
+  assert.match(rules, /受管聚合测试入口须在预检、测试发现和启动子进程前拒绝无选择器的调用/u);
   assert.match(rules, /^### 5\.4 任务收尾清理$/mu);
   for (const file of ["cargo_device_config.mjs", "cargo_device_config.test.mjs"]) {
     assert.ok(prepared.files.some(item => item.path === ".agents/skills/desktop-implement-change/scripts/" + file));

@@ -103,4 +103,4 @@
 - 改页面布局：确认没有局部重造控件、散落基础色值/尺寸、重复主题或越过专项标准；检查实际窄窗口、长文案和缩放影响。
 - 改控件/浮层：覆盖实际动作与父容器周围区域、键盘、焦点、pending 防重及最高风险失败反馈。
 - 改表格：调用命中标准/Skill 的 checklist，核对能力实际存在、权限、排序/分页、选择与偏好边界；未实现能力明确列为未提供。
-- 改 Harness 规范与路由：运行仓库声明的 `node scripts/validate_harness.mjs`；改 Node 门禁时再运行 `node scripts/run_harness_tests.mjs`。这些检查只证明规范入口和工程合同，不证明真实下游视觉、构建或 E2E 已通过。
+- 改 Harness 规范与路由时只验证受影响的契约。改 Node 门禁时用 `node scripts/run_harness_tests.mjs --test <测试文件>` 运行精确回归。扩大范围按[测试范围门禁](../ENGINEERING_RULES.md#53-开发构建与完整验收)取得本次人类明确授权。

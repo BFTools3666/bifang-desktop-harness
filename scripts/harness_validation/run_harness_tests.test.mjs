@@ -6,7 +6,11 @@ import path from "node:path";
 import test from "node:test";
 
 /** 用真实子进程覆盖运行器退出后的清理，不构建任何 Rust 产物。 */
-function runFixture(t, testBody) {
+function runFixture(t, testBody, {
+  args = ["--test", "scripts/scratch.test.mjs"],
+  setup,
+  extraEnv,
+} = {}) {
   const sandbox = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "harness-runner-test-"));
   t.after(() => fs.rmSync(sandbox, { recursive: true, force: true }));
   const temporary = path.join(sandbox, "temporary");
@@ -40,9 +44,10 @@ test("fixture produces scratch and a visible result", () => {
   ${testBody}
 });
 `);
-  const env = { ...process.env, TMPDIR: temporary, TMP: temporary, TEMP: temporary };
+  setup?.({ project, scripts });
+  const env = { ...process.env, ...extraEnv, TMPDIR: temporary, TMP: temporary, TEMP: temporary };
   delete env.NODE_TEST_CONTEXT;
-  const result = spawnSync(process.execPath, [entry], {
+  const result = spawnSync(process.execPath, [entry, ...args], {
     cwd: project,
     env,
     encoding: "utf8",
@@ -79,3 +84,68 @@ test("suite preserves a replacement scratch path and reports that it could not c
   const replacement = relocated.slice(0, -"-relocated".length);
   assert.equal(fs.readFileSync(path.join(temporary, replacement, "replacement"), "utf8"), "ownership unknown");
 });
+
+test("scoped execution runs only the listed files without discovering other test roots", (t) => {
+  const { result, temporary } = runFixture(t, "", {
+    args: ["--test", "scripts/scratch.test.mjs", "--test", "scripts/selected.test.cjs"],
+    setup({ project, scripts }) {
+      fs.writeFileSync(path.join(scripts, "selected.test.cjs"), 'require("node:test")("second selected test", () => {});');
+      fs.writeFileSync(path.join(scripts, "unselected.test.mjs"), 'throw new Error("unselected test ran");');
+      fs.mkdirSync(path.join(project, ".agents"));
+      fs.writeFileSync(path.join(project, ".agents", "skills"), "full discovery would fail here");
+    },
+  });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stdout, /fixture produces scratch and a visible result/u);
+  assert.match(result.stdout, /second selected test/u);
+  assert.doesNotMatch(result.stdout, /unselected/u);
+  assert.deepEqual(fs.readdirSync(temporary), ["existing-fixture"]);
+});
+
+test("explicit full scope with a reference discovers both test roots", (t) => {
+  const { result, temporary } = runFixture(t, "", {
+    args: ["--scope", "full", "--human-authorization", "fixture approval reference"],
+    setup({ project }) {
+      const skill = path.join(project, ".agents", "skills", "fixture");
+      fs.mkdirSync(skill, { recursive: true });
+      fs.writeFileSync(path.join(skill, "full.test.mjs"), 'import test from "node:test"; test("full root test", () => {});');
+    },
+  });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stdout, /fixture produces scratch and a visible result/u);
+  assert.match(result.stdout, /full root test/u);
+  assert.deepEqual(fs.readdirSync(temporary), ["existing-fixture"]);
+});
+
+for (const [name, args, diagnostic] of [
+  ["missing scope in CI", [], /--test/u],
+  ["missing test path", ["--test"], /--test/u],
+  ["missing human authorization", ["--scope", "full"], /--human-authorization/u],
+  ["blank human authorization", ["--scope", "full", "--human-authorization", "  "], /--human-authorization/u],
+  ["mixed test and full scopes", ["--test", "scripts/scratch.test.mjs", "--scope", "full",
+    "--human-authorization", "fixture approval reference"], /--human-authorization/u],
+  ["glob path", ["--test", "scripts/*.test.mjs"], /无效的测试路径/u],
+  ["directory named like a test", ["--test", "scripts/directory.test.mjs"], /无效的测试路径/u],
+  ["parent traversal", ["--test", "scripts/../scripts/scratch.test.mjs"], /无效的测试路径/u],
+  ["Windows absolute path", ["--test", "C:/scripts/scratch.test.mjs"], /无效的测试路径/u],
+  ["symlink path", ["--test", "scripts/linked/scratch.test.mjs"], /无效的测试路径/u],
+  ["valid and missing files", ["--test", "scripts/scratch.test.mjs", "--test", "scripts/missing.test.mjs"], /无效的测试路径/u],
+]) {
+  test(`rejects ${name} before discovery, scratch allocation or test launch`, (t) => {
+    const { result, temporary } = runFixture(t, "", {
+      args,
+      extraEnv: { CI: "true" },
+      setup({ project, scripts }) {
+        fs.mkdirSync(path.join(scripts, "directory.test.mjs"));
+        if (name === "symlink path") fs.symlinkSync(scripts, path.join(scripts, "linked"), "junction");
+        fs.mkdirSync(path.join(project, ".agents"));
+        fs.writeFileSync(path.join(project, ".agents", "skills"), "full discovery would fail here");
+      },
+    });
+    assert.equal(result.status, 2, result.stdout + result.stderr);
+    assert.match(result.stderr, diagnostic);
+    assert.doesNotMatch(result.stderr, /ENOTDIR|Harness 回归临时目录/u);
+    assert.equal(result.stdout, "");
+    assert.deepEqual(fs.readdirSync(temporary), ["existing-fixture"]);
+  });
+}

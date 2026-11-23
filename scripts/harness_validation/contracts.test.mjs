@@ -42,7 +42,9 @@ test('governance_documents_allow_equivalent_prose', t => {
 test('governance_documents_reject_missing_stable_contracts', t => {
   for (const [key, fragment] of [
     ['agentsPath', 'docs/AGENT_POLICY.md'], ['agentsPath', 'docs/ENGINEERING_RULES.md'],
-    ['agentsPath', '$desktop-implement-change'], ['agentsPath', 'node scripts/run_harness_tests.mjs'],
+    ['agentsPath', '$desktop-implement-change'], ['agentsPath', 'node scripts/run_harness_tests.mjs --test'],
+    ['agentsPath', '--scope full --human-authorization'], ['engineeringRulesPath', '测试范围门禁'],
+    ['engineeringRulesPath', '人类在本次任务明确要求扩大'],
     ['engineeringRulesPath', 'check_no_python.mjs --root .'], ['engineeringRulesPath', 'node scripts/validate_harness.mjs --release-review'],
   ]) {
     const paths = fixture(t); fs.writeFileSync(paths[key], fs.readFileSync(paths[key], 'utf8').replaceAll(fragment, 'removed'));

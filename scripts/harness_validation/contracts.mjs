@@ -41,7 +41,8 @@ export function validateGovernanceDocuments(errors, {
     "$desktop-implement-change",
     "$desktop-refactor-code",
     "node scripts/validate_harness.mjs",
-    "node scripts/run_harness_tests.mjs",
+    "node scripts/run_harness_tests.mjs --test",
+    "--scope full --human-authorization",
     "check_no_python.mjs --root .",
   ], "AGENTS.md");
   requireFragments(errors, path.join(SKILLS_ROOT, "desktop-check-development-environment", "SKILL.md"), [
@@ -65,12 +66,14 @@ export function validateGovernanceDocuments(errors, {
   // 领域依赖、实际阈值与源专属禁令由行为门禁验证，这里只绑定可执行命令和事实源。
   requireFragments(errors, engineeringRulesPath, [
     "docs/RELEASE.md",
+    "测试范围门禁",
+    "人类在本次任务明确要求扩大",
     "check_no_python.mjs --root .",
     "node scripts/validate_harness.mjs --release-review",
   ], "docs/ENGINEERING_RULES.md");
 
   requireFragments(errors, path.join(ROOT, "README.md"), [
-    "node scripts/run_harness_tests.mjs",
+    "node scripts/run_harness_tests.mjs --test",
     "node scripts/validate_harness.mjs",
   ], "README.md");
   requireFragments(errors, path.join(ROOT, "docs", "VERIFICATION.md"), [
