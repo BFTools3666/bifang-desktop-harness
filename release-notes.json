@@ -3,6 +3,30 @@
   "releases": [
     {
       "releaseDate": "2026-11-23",
+      "version": "v202611231813",
+      "featureOptimizations": [
+        {
+          "zh-CN": "在 NSH 下游构建 macOS 或 Windows 正式候选后，可直接从 release/ 取包和对应的 SHA-256 文件。同一目录可保留多个构建，按文件名中的 buildRun 找到对应证据。",
+          "en-US": "After building an NSH macOS or Windows release candidate, find the package and its SHA-256 file directly in release/. Multiple builds can coexist. Use the buildRun in the filename to find its evidence."
+        },
+        {
+          "zh-CN": "验收时按相同渠道前后两次发布的变化和直接影响选场景，首发按已批准的范围执行。可复用构建阶段的全量单元测试结果。",
+          "en-US": "Choose acceptance scenarios from changes and directly affected behavior since the previous release on the same channel. For a channel’s first release, use its approved scope. Reuse the complete unit test results from the build."
+        }
+      ],
+      "bugFixes": [
+        {
+          "zh-CN": "NSH 已启用 updater 时，官方更新归档按原名保留在对应批次的 updates/ 证据目录。平铺发布被中断时，可按 buildRun 恢复该批次。生成本地知识文档也不会使已发布候选的验收失效。",
+          "en-US": "When the NSH updater is enabled, its official archives keep their names in the build evidence’s updates/ directory. Recover an interrupted flat publication by buildRun. Generating local knowledge reports no longer invalidates an already published candidate."
+        },
+        {
+          "zh-CN": "升级时会检查验收和打包入口所需文件是否齐全。验收可识别旧发布记录，并在就绪复核中拦住标签、渠道不匹配或尚未通过验收的候选。",
+          "en-US": "Upgrades check for the files needed by acceptance and packaging. Acceptance recognizes older release records, and readiness checks reject candidates with a mismatched tag or channel or without accepted status."
+        }
+      ]
+    },
+    {
+      "releaseDate": "2026-11-23",
       "version": "v202611231229",
       "featureOptimizations": [
         {
@@ -188,42 +212,6 @@
         {
           "zh-CN": "补齐移动候选的 Device Hub 与模拟器交互检查，避免误判无法验证。",
           "en-US": "Added Device Hub and simulator interaction checks for mobile candidates to avoid incorrectly marking them untestable."
-        }
-      ]
-    },
-    {
-      "releaseDate": "2026-11-08",
-      "version": "v202611081358",
-      "featureOptimizations": [
-        {
-          "zh-CN": "新增固定官方 main 提交的 NSH TUI 预览目标，支持终端运行、测试和本机预览归档。",
-          "en-US": "Add an NSH TUI preview target pinned to an official main commit, with terminal run, test, and local preview archive workflows."
-        },
-        {
-          "zh-CN": "新项目初始化逐项提问并用可点击选项确认多选；CLI、MCP、DESKTOP 默认声明 Windows/macOS/Linux 全平台。",
-          "en-US": "Ask new-project setup questions one field at a time and confirm multiple selections through clickable options; CLI, MCP, and DESKTOP declare Windows, macOS, and Linux by default."
-        },
-        {
-          "zh-CN": "改进 NSH 桌面侧栏的导航层级、键盘焦点和亮暗主题反馈。",
-          "en-US": "Improve NSH desktop sidebar hierarchy, keyboard focus, and light and dark theme feedback."
-        },
-        {
-          "zh-CN": "发布后本地打包按当前宿主解析唯一候选目标，NSH 产物按目标批次保存并核验。",
-          "en-US": "Resolve one local package target for the current host after release, and store and verify NSH artifacts in separate target batches."
-        },
-        {
-          "zh-CN": "明确 Tauri、GPUI 与 NSH 各自适用的工程和验证规则，并增加 Markdown 本地章节链接校验。",
-          "en-US": "Clarify the engineering and verification rules for Tauri, GPUI, and NSH, and validate local Markdown section links."
-        }
-      ],
-      "bugFixes": [
-        {
-          "zh-CN": "修复 NSH 初始化重复询问系统平台和 NSH 能力的问题。",
-          "en-US": "Fix the duplicate system-platform and NSH capability questions during NSH setup."
-        },
-        {
-          "zh-CN": "修复无本机正式候选时仍可选择本地打包、导致发布后路由为空的问题。",
-          "en-US": "Prevent local packaging from being selected when the current host has no supported release target."
         }
       ]
     }

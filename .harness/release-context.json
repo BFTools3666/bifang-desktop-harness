@@ -1,17 +1,17 @@
 {
   "schemaVersion": 3,
-  "sourceHead": "f221e39bf1fad325ae3ec1c155f67b122432e723",
-  "version": "202611231229",
+  "sourceHead": "d96154389330b8bf740d6d03c36aa77ca68ab78a",
+  "version": "202611231813",
   "releaseDate": "2026-11-23",
-  "expectedTag": "v202611231229-20261123",
+  "expectedTag": "v202611231813-20261123",
   "defaultBranch": "master",
   "releaseReview": {
     "selection": "enabled",
     "status": "passed",
-    "scopeBase": "a3473fbdaead7a76fab9d85f7c94c420b9c50171",
-    "sourceHead": "f221e39bf1fad325ae3ec1c155f67b122432e723",
-    "scopeDiffSha256": "3c6ea312c5763064daebf0bb8279e1e3e96297304212ae5ad00f50f77ef11710",
-    "reviewedSourceCommit": "f221e39bf1fad325ae3ec1c155f67b122432e723",
+    "scopeBase": "83174ad50fc51718b94af705a8729d5461ed2b66",
+    "sourceHead": "d96154389330b8bf740d6d03c36aa77ca68ab78a",
+    "scopeDiffSha256": "1c2f8cbecf5f66d8c3376ccd9c784b50818bff196ed932fc006924503a6a8596",
+    "reviewedSourceCommit": "d96154389330b8bf740d6d03c36aa77ca68ab78a",
     "checks": [
       "behavior-correctness",
       "core-adapter-boundary",
@@ -19,7 +19,7 @@
       "responsibility-and-size",
       "temporary-markers"
     ],
-    "evidenceSummary": "已复核新建下游的清理规则传播、共享 Cargo 目标与交付证据保留边界、模块职责、外部契约及临时标记。改动限于规则、生成的入口文案和配套测试。全量 Node 回归 1240 项通过、17 项按条件跳过，任务清理规则生成专项测试通过。已复核 37 条既有非阻断提示，其中临时标记属于验证器测试夹具。",
+    "evidenceSummary": "按上一正式发布至本次源码的差异复审 NSH 平铺制品与中断恢复、历史验收基线与状态绑定、接口裁剪和升级传播。核对行为、core 与接口边界、外部契约、职责和规模、临时标记。Harness 发布审查和硬门禁通过，37 条非阻断提示不涉及新阻断。全量 Node 回归 1263 项通过、17 项条件跳过，最终更新归档与恢复专项复核通过，中性 Rust 资产格式、Clippy 与 7 项测试通过。",
     "reason": null,
     "remainingRisk": null
   }
