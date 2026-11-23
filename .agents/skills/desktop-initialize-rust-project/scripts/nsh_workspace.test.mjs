@@ -11,6 +11,8 @@ import { renderNshAdapterFiles,NSH_REVISION,NSH_UNAVAILABLE } from '../../deskto
 import { sourceSnapshot } from '../../desktop-build-nsh-release/scripts/build_nsh_release.mjs';
 import { initialize,check } from '../../desktop-manage-version/scripts/version_gate.mjs';
 
+const scopedTests = '.agents/skills/desktop-implement-change/scripts/run_scoped_tests.mjs';
+
 /** 明确测试身份与配置，不冒充用户的初始化确认。 */
 const options=()=>({projectId:'sample_tool',nameZh:'测试工具',nameEn:'Test Tool',owner:'Engineering Fixture',nshTargets:['desktop','web'],targetPlatforms:['macos','web'],profile:{system_tray:'disabled',system_notification:'disabled',autostart:'disabled',about_page:'disabled',sponsor_page:'disabled',single_instance:'disabled',deep_link:'disabled',global_shortcut:'disabled',sidebar_mode:'compact'}});
 /** 使用 canonical 临时路径，与 macOS /tmp 链接分开。 */
@@ -118,7 +120,7 @@ function writeExistingCore(root) {
   fs.writeFileSync(path.join(root,'sample_tool_core/src/lib.rs'),bridgeCore);
 }
 
-test('add_only_preserves_existing_core_and_refuses_symlink_manifests',()=>fixture(parent=>{
+test('add_only_preserves_existing_core_and_package_scripts_and_refuses_symlink_manifests',()=>fixture(parent=>{
   const root=path.join(parent,'existing');
   writeExistingCore(root);
   const cargoFile=path.join(root,'Cargo.toml'),initialCargo=fs.readFileSync(cargoFile,'utf8');
@@ -139,12 +141,23 @@ test('add_only_preserves_existing_core_and_refuses_symlink_manifests',()=>fixtur
   assert.equal(fs.existsSync(path.join(root,'sample_tool_nsh')),false);
   fs.writeFileSync(path.join(root,'sample_tool_core/src/lib.rs'),bridgeCore);
   const before=fs.readFileSync(path.join(root,'sample_tool_core/src/lib.rs'));
+  const packagePath=path.join(root,'package.json');
+  const customPackage=JSON.stringify({scripts:{test:'node local-test.mjs',lint:'node local-lint.mjs'}});
+  fs.writeFileSync(packagePath,customPackage);
+  assert.throws(()=>addNshAdapter(root,desktopOptions),/package script conflict: test/u);
+  assert.equal(fs.readFileSync(packagePath,'utf8'),customPackage);
+  assert.equal(fs.existsSync(path.join(root,'sample_tool_nsh')),false);
+  fs.writeFileSync(packagePath,JSON.stringify({scripts:{lint:'node local-lint.mjs'}}));
   addNshAdapter(root,desktopOptions);assert.deepEqual(fs.readFileSync(path.join(root,'sample_tool_core/src/lib.rs')),before);
   const metadata=spawnSync('cargo',['metadata','--no-deps','--format-version','1'],{cwd:root,encoding:'utf8'});assert.equal(metadata.status,0,metadata.stderr);
   assert.deepEqual(JSON.parse(metadata.stdout).metadata['agent-first-harness']['version-mirrors'],['sample_tool_nsh/nsh.json']);
   assert.deepEqual(JSON.parse(metadata.stdout).metadata['agent-first-harness']['nsh-targets'],['desktop']);
-  assert.equal(JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).scripts['nsh:check'],'node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs -- check sample_tool_nsh');
-  assert.match(JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).scripts.dev,/check_nsh_toolchain\.mjs desktop -- run sample_tool_nsh$/u);
+  const scripts=JSON.parse(fs.readFileSync(packagePath,'utf8')).scripts;
+  assert.equal(scripts.lint,'node local-lint.mjs');
+  assert.equal(scripts.test,`node ${scopedTests} rust`);
+  assert.equal(scripts['nsh:test'],`node ${scopedTests} nsh --nsh-app sample_tool_nsh`);
+  assert.equal(scripts['nsh:check'],'node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs -- check sample_tool_nsh');
+  assert.match(scripts.dev,/check_nsh_toolchain\.mjs desktop -- run sample_tool_nsh$/u);
   assert.throws(()=>addNshAdapter(root,desktopOptions),/without an interface/u);
 }));
 
@@ -212,7 +225,17 @@ test('tui_workspace_installs_official_skills_and_terminal_commands',()=>fixture(
   createNshWorkspace(root,input);
   const scripts=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).scripts;
   assert.equal(scripts.dev,'node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs tui -- run sample_tool_nsh --target tui');
-  assert.equal(scripts['nsh:test:tui'],'node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs tui -- test sample_tool_nsh/App.test.tsx --target tui');
+  assert.equal(scripts['nsh:test:tui'],`node ${scopedTests} nsh --nsh-app sample_tool_nsh --target tui`);
+  assert.deepEqual(
+    fs.readFileSync(path.join(root,scopedTests)),
+    fs.readFileSync(new URL('../../desktop-implement-change/scripts/run_scoped_tests.mjs',import.meta.url)),
+  );
+  for (const [name, selector] of [['test', /--rust-test/u], ['nsh:test', /--test/u], ['nsh:test:tui', /--test/u]]) {
+    const [, ...args] = scripts[name].split(' ');
+    const bare = spawnSync(process.execPath, args, {cwd:root, encoding:'utf8', windowsHide:true});
+    assert.equal(bare.status, 1, bare.stdout + bare.stderr);
+    assert.match(bare.stderr, selector);
+  }
   assert.equal(scripts['nsh:package'],undefined);
   assert.equal(fs.existsSync(path.join(root,'docs/GUI_APP_PROFILE.md')),false);
   assert.equal(fs.existsSync(path.join(root,'sample_tool_nsh/desktop.tsx')),false);

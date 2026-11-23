@@ -62,6 +62,8 @@
     {"pattern": ".agents/skills/desktop-implement-change/scripts/check_file_line_limits.test.mjs", "mode": "managed"},
     {"pattern": ".agents/skills/desktop-implement-change/scripts/check_core_first.mjs", "mode": "managed"},
     {"pattern": ".agents/skills/desktop-implement-change/scripts/check_core_first.test.mjs", "mode": "managed"},
+    {"pattern": ".agents/skills/desktop-implement-change/scripts/run_scoped_tests.mjs", "mode": "managed"},
+    {"pattern": ".agents/skills/desktop-implement-change/scripts/run_scoped_tests.test.mjs", "mode": "managed"},
     {"pattern": ".agents/skills/desktop-implement-change/scripts/project_lock_policy.mjs", "mode": "managed"},
     {"pattern": ".agents/skills/desktop-implement-change/scripts/cargo_device_config.mjs", "mode": "managed"},
     {"pattern": ".agents/skills/desktop-implement-change/scripts/cargo_device_config.test.mjs", "mode": "managed"},

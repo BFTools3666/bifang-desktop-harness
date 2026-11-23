@@ -4,6 +4,8 @@
 
 ## 2026-11-23 变化
 
+- `HARNESS-FIX-VERIFICATION-SCOPE-GATE`（`required_version = 202611232148`）：维护 Harness 和开发新建 NSH 项目时，测试入口要求传入与本次变更直接相关的文件或用例。无选择器或缺少人工授权来源的全量请求在启动测试前拒绝。既有 NSH 工程升级后可调用受管 helper，或在项目内迁移已有测试别名。见 [ADR-20261123-002](../adr/20261123_ADR.md)。
+
 - `HARNESS-DESKTOP-FILES-AND-RELEASE-DELTA-ACCEPTANCE`（`required_version = 202611231813`）：查找 NSH 桌面正式制品时可直接打开 `release/` 取 macOS 或 Windows 打包文件和校验和。候选功能验收按同渠道上一次发布到当前发布的差异执行。一次性测试套件退出后回收独占临时目录。见 [ADR-20261123-001](../adr/20261123_ADR.md)。
 
 - `HARNESS-CHANGE-TASK-ARTIFACT-CLEANUP`（`required_version = 202611231229`）：任务交付前清理本次生成且后续不再使用的一次性测试与构建中间产物。Rust 清理仅处理共享 Cargo target 中可确认由本次任务独占的精确路径。新下游的任务入口同样引用该规则。

@@ -8,6 +8,8 @@ import { assertNshDefaultCargoBuildTarget, assertNshNativeDevelopmentTarget, nsh
 
 const checkNsh = "node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs";
 const preflight = checkNsh + ' -- ';
+const scopedTests = 'node .agents/skills/desktop-implement-change/scripts/run_scoped_tests.mjs';
+const nshTests = scopedTests + ' nsh --nsh-app sample_tool_nsh';
 const profile = Object.freeze({
   system_tray: 'disabled', system_notification: 'disabled', autostart: 'disabled',
   about_page: 'disabled', sponsor_page: 'disabled', single_instance: 'disabled',
@@ -30,8 +32,8 @@ test('supported NSH targets use only the released v0.6.1 runtime and scripts', (
     assert.ok(![...files.keys()].some(name => name.includes('.tui.')));
     const scripts = nshPackageScripts(options.projectId, options.nshTargets, options.targetPlatforms);
     assert.equal(scripts['nsh:check'], preflight + 'check sample_tool_nsh');
-    assert.equal(scripts['nsh:test'], preflight + 'test sample_tool_nsh');
-    assert.equal(scripts.test, 'node .agents/skills/desktop-implement-change/scripts/cargo_device_config.mjs && cargo test --workspace --all-targets --all-features --target host-tuple');
+    assert.equal(scripts['nsh:test'], nshTests);
+    assert.equal(scripts.test, scopedTests + ' rust');
     assert.equal(scripts['dev:tui'], undefined);
     assert.equal(scripts['nsh:test:tui'], undefined);
   }
@@ -61,8 +63,8 @@ test('development defaults are native and iOS runs only through its explicit scr
   assert.equal(mixed['dev:web'], preflight + 'run sample_tool_nsh --target web');
   assert.equal(mixed['nsh:test:web'], undefined);
   assert.equal(mixed['nsh:test:android'], undefined);
-  assert.equal(mixed['nsh:test:macos'], checkNsh + ' macos -- test sample_tool_nsh/App.test.tsx --target macos');
-  assert.equal(mixed['nsh:test:tui'], checkNsh + ' tui -- test sample_tool_nsh/App.test.tsx --target tui');
+  assert.equal(mixed['nsh:test:macos'], nshTests + ' --target macos');
+  assert.equal(mixed['nsh:test:tui'], nshTests + ' --target tui');
 });
 
 test('native development checks both the execution host and project selection', () => {

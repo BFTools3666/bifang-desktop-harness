@@ -18,7 +18,7 @@
 - `docs/AGENT_POLICY.md` 的 `post_release_action` 也属于 protected 下游选择。旧 schema 3 在工程层升级及来源锁记录后必须询问用户，在目标项目中调用 `$desktop-switch-post-release-action` 先受保护合并旧策略正文的新发布后规则，再原子迁移 frontmatter 至 schema 4 并写入当日 ADR；旧正文未消除相反规则时不得通过 `check`；`check` 返回合法已配置值前，不能把完整升级标记为完成。升级器的候选树、`plan|apply|record` 均不得设置默认值或代写该字段。切换 Skill 的 `SKILL.md`、metadata、helper 与回归测试是所有终端下游都要传播的 managed 工程文件。
 - `tombstone`：终端下游永久不应恢复的 Harness 初始化/派生能力和模板专用文件；来源候选必须排除，目标出现时阻断。`$desktop-test-gui-initialization-e2e` 只在 GUI 唯一基线提交前使用，其 `verify-gui-lifecycle-contract.mjs`、`gui-lifecycle-plugin-contract.mjs`、夹具与测试都随该前置 Skill 一同删除；升级不得把它重新注入终端下游。
 
-根 `package.json` 是 protected 产品文件，不进入候选或来源锁。
+根 `package.json` 是 protected 产品文件，不进入候选或来源锁。升级安装受管测试范围 helper，既有 NSH 项目按[运行时合同](../../desktop-add-nsh-adapter/references/runtime-and-capabilities.md)调用 helper 或在项目自身更新原有测试别名。
 
 既有下游的策略正文若还描述自动创建 Worktree 或自动回退到跨平台候选，在目标项目合并现行规则时逐字保留 frontmatter 和自定义规则。升级器只更新受管入口与文档。新版 Worktree 创建 helper 和发布后路由按当前明确授权执行。
 

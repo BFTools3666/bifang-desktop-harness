@@ -19,6 +19,7 @@ export function createNshWorkspace(target,input) {
     'desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs',
     'desktop-implement-change/scripts/cargo_device_config.mjs',
     'desktop-implement-change/scripts/nsh_runtime_policy.mjs',
+    'desktop-implement-change/scripts/run_scoped_tests.mjs',
   ]) {
     files.set('.agents/skills/' + relative, fs.readFileSync(new URL('../../' + relative, import.meta.url)));
   }

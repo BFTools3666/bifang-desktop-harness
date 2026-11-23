@@ -272,6 +272,8 @@ export function nshPackageScripts(id, targets = ['desktop'], platforms = ['macos
   const nshCommand = 'node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs';
   const nsh = nshCommand + ' --';
   const nativeNsh = target => nshCommand + ' ' + target + ' --';
+  const scopedTests = 'node .agents/skills/desktop-implement-change/scripts/run_scoped_tests.mjs';
+  const nshTests = scopedTests + ' nsh --nsh-app ' + member;
   const targetScripts = {};
   // NSH defaults to the current native desktop backend. iOS run uses ios, while package uses ios-simulator.
   if (targets.includes('desktop')) targetScripts['dev:desktop'] = nativeNsh('desktop') + ' run ' + member;
@@ -284,20 +286,20 @@ export function nshPackageScripts(id, targets = ['desktop'], platforms = ['macos
     if (!enabled) continue;
     const executable = target === 'tui' ? nativeNsh(target) : nsh;
     targetScripts['dev:' + target] = executable + ' run ' + member + ' --target ' + target;
-    if (target === 'tui') targetScripts['nsh:test:tui'] = executable + ' test ' + member + '/App.test.tsx --target tui';
+    if (target === 'tui') targetScripts['nsh:test:tui'] = nshTests + ' --target tui';
   }
   if (targets.includes('desktop')) {
     for (const platform of platforms.filter(value => ['macos', 'windows', 'linux'].includes(value))) {
-      targetScripts['nsh:test:' + platform] = nativeNsh(platform) + ' test ' + member + '/App.test.tsx --target ' + platform;
+      targetScripts['nsh:test:' + platform] = nshTests + ' --target ' + platform;
     }
   }
   return {
     ...(targetScripts['dev:desktop'] || targetScripts['dev:tui'] ? { dev: targetScripts['dev:desktop'] ?? targetScripts['dev:tui'] } : {}),
     ...targetScripts,
-    test: 'node .agents/skills/desktop-implement-change/scripts/cargo_device_config.mjs && cargo test --workspace --all-targets --all-features --target host-tuple',
+    test: scopedTests + ' rust',
     'nsh:check': nsh + ' check ' + member,
     'nsh:build': nsh + ' build ' + member,
-    'nsh:test': nsh + ' test ' + member,
+    'nsh:test': nshTests,
     ...(targets.some(value => value !== 'tui') ? { 'nsh:package': 'node .agents/skills/desktop-build-nsh-release/scripts/build_nsh_release.mjs --root .' } : {}),
     'release:notes': 'node .agents/skills/desktop-prepare-release/scripts/release_notes.mjs',
     'release:context': 'node .agents/skills/desktop-prepare-release/scripts/release_context.mjs',

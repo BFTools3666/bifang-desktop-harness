@@ -291,6 +291,8 @@ export const REQUIRED_ROOT_FILES = [
 
   ".agents/skills/desktop-implement-change/scripts/check_core_first.mjs",
   ".agents/skills/desktop-implement-change/scripts/check_core_first.test.mjs",
+  ".agents/skills/desktop-implement-change/scripts/run_scoped_tests.mjs",
+  ".agents/skills/desktop-implement-change/scripts/run_scoped_tests.test.mjs",
   ".agents/skills/desktop-implement-change/scripts/project_lock_policy.mjs",
   ".agents/skills/desktop-implement-change/scripts/cargo_device_config.mjs",
   ".agents/skills/desktop-implement-change/scripts/cargo_device_config.test.mjs",

@@ -70,6 +70,8 @@ export const REQUIRED_UPGRADE_RULES = new Map([
   [".agents/skills/desktop-implement-change/scripts/check_file_line_limits.test.mjs", "managed"],
   [".agents/skills/desktop-implement-change/scripts/check_core_first.mjs", "managed"],
   [".agents/skills/desktop-implement-change/scripts/check_core_first.test.mjs", "managed"],
+  [".agents/skills/desktop-implement-change/scripts/run_scoped_tests.mjs", "managed"],
+  [".agents/skills/desktop-implement-change/scripts/run_scoped_tests.test.mjs", "managed"],
   [".agents/skills/desktop-implement-change/scripts/project_lock_policy.mjs", "managed"],
   [".agents/skills/desktop-implement-change/scripts/cargo_device_config.mjs", "managed"],
   [".agents/skills/desktop-implement-change/scripts/cargo_device_config.test.mjs", "managed"],

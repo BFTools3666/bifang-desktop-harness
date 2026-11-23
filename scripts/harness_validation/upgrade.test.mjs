@@ -100,6 +100,7 @@ test("validator independently anchors the runtime ownership boundary", () => {
   assert.deepEqual(REQUIRED_UPGRADE_RULES, MINIMUM_OWNERSHIP_RULES);
   assert.deepEqual(VALID_UPGRADE_MODES, VALID_MODES);
   assert.equal(REQUIRED_UPGRADE_RULES.get("scripts/run_harness_tests.mjs"), "tombstone");
+  assert.equal(REQUIRED_UPGRADE_RULES.get(".agents/skills/desktop-implement-change/scripts/run_scoped_tests.mjs"), "managed");
 });
 
 test("minimum protection cannot remove the Harness test runner tombstone", () => {

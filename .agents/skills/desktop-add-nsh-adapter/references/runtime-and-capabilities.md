@@ -9,9 +9,9 @@ Harness 受管 NSH 入口仅支持 [官方 v0.6.1](https://github.com/longbridge
 | desktop | Windows、macOS、Linux | `nsh run`；对应平台上的 `nsh package --target macos\|windows\|linux` |
 | mobile | Android、iOS | `nsh run --target android\|ios`；Android APK/AAB，iOS 模拟器或设备 app；正式 IPA 使用显式签名身份与描述文件 |
 | web | Web | `nsh run --target web`；`nsh package --target web` 输出静态站点 |
-| tui | Windows、macOS、Linux 的终端 | `nsh run --target tui`、`nsh test --target tui`；0.6.1 没有 TUI 打包目标 |
+| tui | Windows、macOS、Linux 的终端 | `nsh run --target tui`、`nsh test <测试文件> --target tui`；0.6.1 没有 TUI 打包目标 |
 
-TUI 和 desktop 并选时系统集合去重；仅 TUI 不询问桌面 profile 或 Logo。TUI 是 NSH 子目标，使用同一 Mixed UI、共享 core、键盘焦点及终端 Cell 布局。用 `platform.idiom === "terminal"` 区分终端；`platform.os` 仍是宿主系统。图形侧栏、托盘、窗口和移动状态栏不用于终端。用 [TUI 指南](https://github.com/longbridge/nsh/blob/v0.6.1/website/docs/tui.md) 验证窄终端、Tab/Enter、退出与终端恢复。各目标脚本按实际平台选择 `App.test.tsx` 运行共享回归；`App.platform.test.tsx` 中的宿主模拟由无目标参数的 headless 套件执行。专属测试可以直接将测试文件路径传给 `nsh test`。
+TUI 和 desktop 并选时系统集合去重；仅 TUI 不询问桌面 profile 或 Logo。TUI 是 NSH 子目标，使用同一 Mixed UI、共享 core、键盘焦点及终端 Cell 布局。用 `platform.idiom === "terminal"` 区分终端；`platform.os` 仍是宿主系统。图形侧栏、托盘、窗口和移动状态栏不用于终端。用 [TUI 指南](https://github.com/longbridge/nsh/blob/v0.6.1/website/docs/tui.md) 验证窄终端、Tab/Enter、退出与终端恢复。共享回归在 `App.test.tsx`，宿主模拟在选定目标生成的 `App.platform.test.tsx`。在当前任务范围内向对应脚本明确传入这个文件。
 
 Mixed 成员的 `nsh.json` 设置 `rust: "."`，不设置 `root`。Rust 桥接只依赖共享 core 和 `nsh-core`，官方 CLI 生成的运行器为 TSX 提供 `nsh/base`。Rust 后续直接使用 `nsh_base` 组件时，再按相同 Git 提交声明该依赖并选择所需 feature。[Mixed 运行器源码](https://github.com/longbridge/nsh/blob/v0.6.1/crates/nsh-cli/src/rust_app.rs)
 
@@ -33,17 +33,33 @@ Mixed 成员的 `nsh.json` 设置 `rust: "."`，不设置 `root`。Rust 桥接�
 
 模板仅依赖项目 Rust core、官方 `nsh-core` 和 CLI 提供的官方 TSX 模块。移动端保留现有主题化底栏；产品想采用 iOS 和 Android 各自的原生顶层导航时，可选择 `nsh/mobile` 的 `TabBar`，在对应系统验证挤压、语言、主题和安全区。关于页使用 `nsh/base` 的 `Collapsible` 展示随应用嵌入的离线双语日志。远程更新由产品独立选用官方 updater，并明确配置渠道和权限。[移动模块](https://github.com/longbridge/nsh/blob/v0.6.1/website/modules/nsh-mobile.md#tabbar) · [更新器](https://github.com/longbridge/nsh/blob/v0.6.1/website/modules/nsh-updater.md)
 
-模板脚本校验 Cargo 依赖与 CLI 版本，并把 Cargo 实际解析的全局构建目录用于 Mixed 运行器。项目根的 `npm run dev` 默认使用当前系统已选的 desktop 或 TUI，只有移动/Web 的项目须显式执行对应的 `dev:android`、`dev:ios` 或 `dev:web`。通过 `npm run dev:ios -- --device <名称或 UDID>` 选择 iOS 模拟器。用 `npm run test` 执行当前系统的 Rust 测试，`npm run nsh:check` 检查类型，`npm run nsh:build` 编译应用资源与字节码，`npm run nsh:test` 在当前系统执行 headless 渲染测试。模板的 `nsh:test:<目标>` 适用于桌面和终端，先核对当前系统与项目选择。移动和 Web 验收使用实际目标运行环境。既有项目若仍使用 `check_nsh_toolchain.mjs && nsh …`，可改用 `check_nsh_toolchain.mjs -- <NSH 命令和参数>` 支持仅从 Cargo 配置文件解析目标目录，原有的桌面或 TUI 选择器放在 `--` 前。
+模板脚本校验 Cargo 依赖与 CLI 版本，并把 Cargo 实际解析的全局构建目录用于 Mixed 运行器。项目根的 `npm run dev` 默认使用当前系统已选的 desktop 或 TUI，只有移动/Web 的项目须显式执行对应的 `dev:android`、`dev:ios` 或 `dev:web`。通过 `npm run dev:ios -- --device <名称或 UDID>` 选择 iOS 模拟器。`npm run nsh:check` 检查类型，`npm run nsh:build` 编译应用资源与字节码。桌面和 TUI 验证先核对执行系统与项目选择，移动和 Web 验收使用实际目标运行环境。既有项目的开发和检查脚本若仍使用 `check_nsh_toolchain.mjs && nsh …`，可改用 `check_nsh_toolchain.mjs -- <NSH 命令和参数>` 支持仅从 Cargo 配置文件解析目标目录，原有的桌面或 TUI 选择器放在 `--` 前。
 
 若 iOS 模拟器开发首次因 QuickJS bindgen 找不到 SDK 头文件失败，用 `xcrun --sdk iphonesimulator --show-sdk-path` 查找 SDK，在当前命令环境为 `BINDGEN_EXTRA_CLANG_ARGS_aarch64_apple_ios_sim` 设置 `-isysroot '<SDK 路径>'` 后重试。受管 iOS 打包入口会按目标补充该参数。
 
 初始化派生的应用 ID 供工程试用。产品明确发布身份后，在 `nsh.json` 登记受控的反向域名 ID、应用图标和渠道 build 编号。项目版本门禁同步 Cargo 和 `nsh.json` 的版本。关于页通过 `appInfo().version` 读取运行时版本。
 
-检查 Rust、`nsh check` 和非空 `nsh test`；TUI 另走官方终端渲染测试。源码与 headless 回归只证明各自范围，实际窗口、托盘、OS 事件、设备和签名按真实宿主分别取证。
+源码与 headless 回归只证明各自范围。实际窗口、托盘、OS 事件、设备和签名按真实宿主分别取证。
 
-### 分目录测试套件
+### 定向测试与旧脚本迁移
 
-NSH 0.6.1 用应用根运行整套测试。对既有项目的 `tests/headless` 等只存放测试的子目录，CLI 可能将目录解析为应用而找不到 `App.tsx`。从实际应用根按稳定顺序枚举套件的 `*.test.ts` 与 `*.test.tsx`，拒绝空套件，每次传入一个文件并汇总失败路径。共享同一 `.nsh/` 的执行串行。需要真实图形窗口或输入时，在对应宿主以 `nsh test tests/native/example.test.tsx --target macos --foreground` 等实际目标运行；文件夹名称和 fixture 的 platform 值只表明组织和模拟条件。
+从项目根执行定向回归。Rust 传项目内实际包名及查询到的精确测试名，NSH 每次传一个项目相对测试文件，可选再传 `--nsh-filter <用例名>`。以下以 `sample_tool` 为中性工程标识。
+
+```sh
+npm run test -- --rust-package sample_tool_core --rust-test tests::reports_that_product_definition_is_required
+npm run nsh:test -- --test sample_tool_nsh/App.test.tsx
+npm run nsh:test:tui -- --test sample_tool_nsh/App.test.tsx
+```
+
+桌面别名为 `nsh:test:macos`、`nsh:test:windows` 或 `nsh:test:linux`，仅生成项目所选桌面系统的别名。它们和 `nsh:test:tui` 的目标由脚本固定，执行时传精确文件即可。共享同一 `.nsh/` 的执行串行。NSH 会把传入的目录解析为应用，必须传测试文件路径。确需整套 Rust 或应用测试时，按该流程提供本次人类明确授权，并在相应脚本追加 `--scope full --human-authorization <本次人工授权引用>`。完整 NSH 测试由工具检查器从项目根向 NSH CLI 传实际 Mixed 应用目录。见[测试范围门禁](../../../../docs/ENGINEERING_RULES.md#53-开发构建与完整验收)。
+
+升级从受管资产传播 `run_scoped_tests.mjs`，项目根的 `package.json` 保留项目所有权。确认原值仍为下表的旧模板命令时，在下游项目定点迁移对应别名。已有自定义命令按本项目范围核对，也可从项目根直接调用新版 helper。
+
+| 别名 | 旧模板值 | 新模板值 |
+| --- | --- | --- |
+| `test` | `node .agents/skills/desktop-implement-change/scripts/cargo_device_config.mjs && cargo test --workspace --all-targets --all-features --target host-tuple` | `node .agents/skills/desktop-implement-change/scripts/run_scoped_tests.mjs rust` |
+| `nsh:test` | `node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs -- test <id>_nsh` | `node .agents/skills/desktop-implement-change/scripts/run_scoped_tests.mjs nsh --nsh-app <id>_nsh` |
+| `nsh:test:<目标>` | `node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs <目标> -- test <id>_nsh/App.test.tsx --target <目标>` | `node .agents/skills/desktop-implement-change/scripts/run_scoped_tests.mjs nsh --nsh-app <id>_nsh --target <目标>` |
 
 ### 自定义原生运行器
 
