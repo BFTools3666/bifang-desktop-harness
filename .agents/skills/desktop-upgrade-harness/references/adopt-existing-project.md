@@ -9,6 +9,12 @@
 5. 只读核对目标根 `Cargo.toml` 的 `[workspace.metadata.agent-first-harness]` 下 `dependency-lock-policy` 字段：缺省或 `"ignored"` 不要求项目锁文件；显式 `"tracked"` 要求根及 `rust-test-manifests` 指出的独立 Rust 工作区 `Cargo.lock`，以及已选 Tauri GUI 根的 `pnpm-lock.yaml`，均受 Git 跟踪且未被忽略；未知值、错误类型或重复键失败关闭。锁策略、`.gitignore` 和锁文件都是受保护的目标事实，首次接入或升级计划不得代写、删除、移出 Git 索引或改用源默认值；目标需变更时先由本项目显式实施并核对。为已有 Tauri GUI 明确实际打包目录和版本镜像：根 Cargo 元数据可写 `gui-root = "."` 或实际相对目录、`rust-test-manifests = ["src-tauri/Cargo.toml"]` 等实际测试工作区清单，以及 `version-mirrors = ["tauri.conf.json", "package.json"]` 等真正决定安装包版本的 JSON 文件。版本镜像必须先与根 Cargo 一致，之后由版本门禁同步。不含 CLI 的仅 Linux Tauri GUI 必须明确选择 `push_release_branch`。Tauri 的 `local_package` 还要求适用 GUI 中受 Git 跟踪的 `package.json`、每个测试工作区中受跟踪的 `Cargo.toml`、Tauri 配置及项目本地 Tauri CLI；条件未满足时不能把它报为可执行。既有项目的条件打包 Skill 必须按这些真实路径调整，并以真实非空测试证明。初始化和新增能力 Skill 不充当既有实现的合规校验；未来触及旧能力时，先据产品档案与 ADR 选择兼容改造或经批准的标准迁移。
 6. 使用源 Harness 的 `harness_upgrade.mjs plan`，将 `--source-root`、`--source-version`、`--source-commit`、`--candidate-root`、`--target-root`、`--ownership` 和 `--lock` 指向上述已核对的绝对路径。字节和权限一致的旧文件应显示 `converged`；差异项逐一处理后重新生成计划。旧版目标若有 Python 检查器，先审查并移除那两份源专用文件，再重新生成计划；升级不扫描或迁移目标 Python 代码。即使计划没有 blocker，仍须核对受保护路径、混合文档、身份、版本镜像和实际 GUI 路线。
 7. 仅在候选和目标已按受审计划收敛、所有手工合并完成后，调用 `record --bootstrap --approval bootstrap-verified-baseline` 建立首次 `.harness/upstream-lock.json`。此批准字符串表示已审查的共同基线，不能替代人的实际审查。`record` 不初始化版本状态、不写策略，也不运行发布后动作。
-8. 目标缺少 `.harness/version-state.json` 时，按 `$desktop-manage-version` 的历史缺口说明和单独批准流程执行 `init --migration-approved`。目标还没有 `docs/AGENT_POLICY.md` 时，先收齐五项能力选择、发布后动作与确认来源/日期，再建立 schema 4 策略；旧合法 schema 3 只缺动作时，用 `$desktop-switch-post-release-action` 补选。运行其 `check` 并记录真实结果。Node.js `>=24.0.0` 是当前完整下游 GUI 工具链约束；部分 helper 在较旧 Node 上运行不能证明候选打包和依赖兼容。
+8. 目标缺少 `.harness/version-state.json` 时，按 `$desktop-manage-version` 的历史缺口说明和单独批准流程执行 `init --migration-approved`。目标还没有 `docs/AGENT_POLICY.md` 时，按当前 Agent Policy 合同建立 schema 5，并记录实际能力选择和确认来源及日期。发布后动作可按 schema 5 留待首次发布。旧合法 schema 3 只缺动作时，用 `$desktop-switch-post-release-action` 补选。运行其 `check` 并记录真实结果。Node.js `>=24.0.0` 是当前完整下游 GUI 工具链约束；部分 helper 在较旧 Node 上运行不能证明候选打包和依赖兼容。
 
 首次接入只证明工程层与目标事实已经对账。真实构建、安装、E2E、发布和分发分别遵守目标项目的独立门禁。
+
+## 既有 NSH 使用自有工程入口
+
+若已有项目将 Mixed 应用放在仓库根、从 registry 精确固定 NSH 版本、跟踪 Cargo 锁或自建原生运行器，先在目标核对实际应用目录、Cargo 依赖及来源、CLI 版本、锁策略、平台和真实检查、测试及打包命令。仅在目标内选择性合并适用的通用工程规则，将原有入口和已有安装身份作为受保护的项目事实。
+
+验证时调用目标已有入口，分别记录类型和依赖检查、Rust、NSH 无头与适用宿主测试的范围。原生运行器和补丁按 [NSH 运行时参考](../../desktop-add-nsh-adapter/references/runtime-and-capabilities.md#自定义原生运行器) 核对。同步部分工程规则时记录实际采用的上游提交及范围。完整受管基线仍遵循上文候选审计、契约检查和来源锁记录步骤。只有目标正式选择迁移后才更改依赖来源、布局或原打包路线。

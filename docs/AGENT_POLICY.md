@@ -92,7 +92,7 @@ DESKTOP 固定使用 Tauri；新项目直接派生根 Cargo metadata 的 `gui-fr
 - 日常开发直接实施，只运行本次变更需要的单元/回归测试，并只写被独立事件触发的记录；本文件不得成为自动增加 Work Plan、全仓检查、构建、冒烟、E2E 或验收的理由。
 - Windows Tauri GUI 的普通“构建/打包/首次安装试包”默认是 `$desktop-build-tauri-local-install` 的本地开发制品，不是发布候选。它不要求 clean HEAD 或 `release-notes.json`，不调用发布准备、不写根 `release/`、不提交、不签名、不安装，也不询问 E2E；只有用户明确说“发布候选”或“准备并构建发布”才进入下列候选门禁。
 - 显式发布候选构建必须为当前候选解析一次 E2E 选择。若当前请求已明确 `enabled`/`disabled`，直接复用且不重复询问；否则在任何测试或编译前询问一次，并可把 `e2e_hint` 作为建议默认选项展示。
-- E2E 选择只对终端下游发布候选有效，不得静默改写本文件。选择启用或产品/渠道要求时，E2E 只在最终真实候选形成后运行；选择禁用时只在 `release/` manifest 和最终回复记录 `Not run` 与剩余风险。Harness 源发布不形成产品候选，因此本项为 `Not applicable`。
+- E2E 选择只对终端下游发布候选有效，不得静默改写本文件。选择启用或产品/渠道要求时，E2E 只在最终真实候选形成后按 [发布差异范围](RELEASE.md#从-git-发布到候选验收) 运行；选择禁用时只在 `release/` manifest 和最终回复记录 `Not run` 与剩余风险。Harness 源发布不形成产品候选，因此本项为 `Not applicable`。
 - 明确发布请求授权复核并提交本次范围和发布上下文，在任何生命周期副作用前将 tracked 上下文 SHA-256 传给 `$desktop-manage-git-lifecycle release`。唯一 `release` 路径普通合并登记分支到本地默认主分支，创建并复读 `v{版本}-{YYYYMMDD}`；主分支和 tag 指向同一最终 HEAD 即结束 Git 发布，不推送、打包或清理。完成初始化的下游随后读取该次发布冻结的 `postReleaseAction`：`local_package` 按上一节的只读路由选一个当前宿主候选，以对应本地打包 Skill 和当次选择执行并复核真实制品及清单；`push_release_branch` 调用 `push-release --remote <name>` 并复核远端默认主分支、所选渠道分支和 tag。未完成选择、目标解析、打包或远端复读时，只报告 Git 发布已完成及后续路径阻断，不把整条后续流程报为完成。Harness 源的源码归档或远端动作仍由当次用户要求决定。发布前用户只说“推送”仍可执行 `publish`，并可在逐一授权后用 `--also-remote` 推向补充远端，但不创建 tag。普通构建不自动提交、推送或修改主分支。
 - 构建请求、执行、候选 E2E、完整验收、`pending` → `accepted` 和就绪复核只写忽略的 `release/` 原子证据及最终回复，不自动创建或更新 tracked 项目记忆。Git 发布完成后，下一条开发分支在首个新改动前以精确版本、tag 和 40 位主分支 HEAD 调用 `finalize-release`，再进行新需求优先的版本分类；候选或渠道分发不重复重置版本周期。独立回顾性审计不得反向批准活动候选。
 - 普通缺陷修复、纯重构等维护类型本身不创建 Product Spec、ADR、Status、Changelog 或 Verification；用户明确要求、跨会话交接、安全、发布和长期决定等独立事件仍按各自门禁记录。

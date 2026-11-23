@@ -7,7 +7,7 @@ description: 在已初始化或首次接入的既有下游项目中安全更新�
 
 通过可审计的预览、冲突解决、应用、验证和基线记录闭环，更新一个终端下游项目。
 
-目标尚无 Harness 所有权清单或来源锁时，先完整读取 [既有项目首次接入步骤](references/adopt-existing-project.md)，安装精确所有权清单并构造适用候选，再进入下面的 `plan`。不得要求目标先已有 Harness 初始化结果，也不得把源项目记忆或 Python 禁令复制过去。
+目标尚无 Harness 所有权清单或来源锁时，先完整读取 [既有项目首次接入步骤](references/adopt-existing-project.md)。符合受管合同的目标按该参考安装精确所有权清单并构造适用候选，再进入下面的 `plan`。使用自有 NSH 应用布局、依赖来源或打包入口时，按 [既有 NSH 工程入口](references/adopt-existing-project.md#既有-nsh-使用自有工程入口) 核对适用范围。不得要求目标先已有 Harness 初始化结果，也不得把源项目记忆或 Python 禁令复制过去。
 
 升级入口先执行用户级 `AGENTS.md` 的长期规则；项目 `user_owned_tasks: enabled` 或用户明确单次要求左侧 Task 时，先完成 `$desktop-task-workflow` 的业务前绑定。启动文档合并、工程资产传播与受保护事实按 [所有权策略](references/ownership-policy.md) 执行。
 

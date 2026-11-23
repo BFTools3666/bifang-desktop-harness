@@ -14,7 +14,13 @@ description: 对发布候选、用户明确要求完整验收或当前构建启�
 - CLI/Tauri 使用当前扁平 `release/` 的精确集合，Tauri 按该接口的方式核对前端测试及包内资源。
 - NSH 使用一个独立目标批次。其清单与证据按下列步骤定位，验收与最终 E2E 沿用同一候选范围。
 
-NSH 验收开始前，依据当前构建返回的 `target` 与 `buildRun` 或用户明确提供的同一对值，精确选定一个 `release/<buildRun>/`；`buildRun` 本身须为 `nsh-<target>-<uuid>` 形式的完整目录名，不得再叠加目标前缀，不得选择名称像“最新”的目录、依赖 mtime 或把多个批次合并。要求规范项目根和 `release/`、批次均为普通非符号链接目录，批次名与其中唯一 `manifest.json` 的 `target`/`buildRun` 一致；该 manifest 的 `mode: candidate`、`sourceCommit`、发布上下文摘要、版本和选项须绑定当前本地主分支/tag/HEAD。仅枚举该批次的 manifest 声明文件、sidecar、校验和与验收证据，拒绝批次内部缺失、额外、重复或路径越界；其他批次可以保留不同 HEAD、版本或 `pending|rejected|accepted`，不参与本次判断。
+NSH 验收开始前，依据当前构建返回或用户明确提供的 `target` 和完整 `buildRun`，运行以下只读定位与复核命令。两项值均须与构建输出一致。历史批次通过精确值定位，验收只涵盖选定的一个批次。
+
+```sh
+node .agents/skills/desktop-build-nsh-release/scripts/nsh_release_layout.mjs --root . --target <target> --build-run <buildRun>
+```
+
+命令返回绝对 `artifact`、`manifest`、`artifactDirectory` 和 `evidenceDirectory`、清单的 `manifestSha256`，以及相对 `artifactDirectory` 的 `deliveryFiles`。macOS、Windows 平铺候选的制品与摘要位于 `release/`，清单及证据位于 `release/.nsh-evidence/<buildRun>/`。其余及既有批次使用 `release/<buildRun>/`。复核绑定当前本地主分支、tag、HEAD 和发布上下文，并针对同批次的产物、摘要及证据检查缺失、额外、路径越界和字节漂移。
 
 ## 准入
 
@@ -26,17 +32,19 @@ NSH 验收开始前，依据当前构建返回的 `target` 与 `buildRun` 或用
 
 候选的 `releaseChannel` 必须与发布上下文一致。旧清单省略该字段时只可作为旧 schema 3 的 Release 证据。远程候选复核 `refs/heads/<releaseChannel>` 与 tag。
 
-1. 明确核心成功路径、最高风险失败路径、真实输入/输出和可观察结果，区分外部前置项与产品逻辑。
+1. 运行 `node .agents/skills/desktop-verify-delivery/scripts/acceptance_scope.mjs resolve --project-root .`，从已验证的当前发布取同渠道第一父链上最近的真实发布标签和最终提交。旧 schema 3 归入 Release。没有上下文的旧标签须由该标签提交中匹配版本和日期的首条双语更新日志证明，且只归入 Release。真正的渠道首发记为 `first-release`，以空树和获批的首发交付标准确认初始功能范围；浅历史、缺少已记录的发布标签、身份冲突或不明历史先补齐可核对证据。把这些值锁定为准入快照，包括 `acceptanceScope`、`changedPaths` 和供定位的 `releaseNotes`。结合完整差异、更新日志和批准标准，为当前候选适用的每项可观察变化列出成功路径、受影响的交互、相关失败路径及其证据。日志摘要和文件列表都须结合实际差异判断，未变化且未受影响的既有功能不进入逐项验收；已批准的独立硬要求照常执行。
 2. 核对当前构建已经运行项目全部非空单元测试。Rust 证据必须覆盖 workspace/all-targets/all-features 的完整测试；Tauri GUI 还必须覆盖完整前端单元测试套件。只有源码提交、候选构建身份与对应测试证据完全匹配时才复用该证据；任何变化都必须返回构建 Skill 重建，不在验收中重复一套隐式构建流程。
 3. 运行候选自身所必需的真实产物存在性、接口/渠道和最终字节检查。所有 GUI 候选先核对 manifest 的 `releaseNotesVersion`、`releaseNotesSha256`、`releaseNotesPath: release-notes.json` 与根事实；Tauri 对可定位的实际应用资源运行 `node .agents/skills/desktop-build-tauri-release/scripts/verify_release_notes_resource.mjs bytes --source release-notes.json --bundled <discovered-resource>`。macOS Tauri DMG 必须在 macOS 对应的验收环境针对 `release/` 中当前最终字节重新运行 `$desktop-build-tauri-release` 的 `scripts/verify-dmg-layout.sh <final-dmg> <project-root>/release-notes.json`，只读挂载并再次证明唯一 `.app/Contents/Resources/release-notes.json` 逐字节一致；不得自动接受软件许可或沿用旧 DMG 的布局证据，也不得沿用旧更新日志证据。xwin NSIS 保持 `runtimeVerification: Unverified`，不能据交叉构建成功或未安装资源目录检查推断 Windows 行为。
 4. 解析运行时检查：产品/渠道/安全硬要求优先；冒烟读取 `acceptance_smoke`；E2E 只读取当前构建的明确选择，`e2e_hint` 仅用于当时询问的建议默认值，不能在此替代或反转选择。发布语义审查只读取 manifest 的当次 `reviewSelection`；不得在验收阶段补问、推断或把 `disabled` 静默翻转，任何硬要求与关闭选择冲突时拒绝候选并返回新构建。
 5. 按每个 manifest 的 `reviewSelection` 核对发布语义审查，且机械安全门禁与最终人类签署不受该选择控制。
    - `enabled`：只接受 `reviewStatus: passed`。CLI/Tauri 核对顶层 `reviewEvidence` 和 `reviewedSourceCommit`。NSH 在 `releaseReview` 中核对 `checks`、`evidenceSummary` 与 `reviewedSourceCommit`。两种清单的审查证据均逐字段核对上下文。`sourceHead` 为候选 `sourceCommit` 的祖先，且审查后只改变两份冻结发布元数据。
    - `disabled`：在没有安全、隐私、不可逆操作、对外兼容契约或产品/渠道审查硬要求时，接受 `reviewStatus: Not run` 并核对非空原因和剩余风险。CLI/Tauri 读取顶层 `reviewReason`/`reviewRemainingRisk`，并确认顶层 `reviewEvidence` 与 `reviewedSourceCommit` 缺席。NSH 读取 `releaseReview.reason` 和 `releaseReview.remainingRisk`，并核对该对象符合关闭审查的上下文 schema。
-6. E2E 为 `enabled` 或硬要求时调用 `$desktop-test-final-artifact-e2e`；Tauri GUI 的 `about_page = enabled` 时，必须从真实候选打开关于页和“更新日志”，对照已核验的候选资源确认当前版本、近十版、固定两类与单个小写 `v`，不能用注入数组或源码夹具代替；禁用时确认路由、入口与运行时命令缺席。E2E 为 `disabled` 时记录 `Not run` 和剩余风险。需要凭据、生产数据、支付、发布或不可逆副作用时仍须独立授权。
-7. 全部真实检查、E2E 和必需人工结论完成后，先确定整组唯一结论，但在写入验收状态前再次运行发布上下文 `verify`；要求当前 HEAD、`releaseContextSha256`、`releaseReview` 与准入快照逐字段相等，且全部 manifest 的 `sourceCommit` 都等于 HEAD。三平台矩阵另复核远端小写渠道分支/tag；当前构建的 `e2eSelection` 和适用 `candidateSelections` 只与准入时已核验的构建证据比较，不能从发布上下文补取。然后按候选范围重新计算全部最终制品、相邻摘要、manifest 声明、适用的包内关键资源和精确文件集。任一漂移都拒绝状态写入并返回重建/重验。
+6. E2E 为 `enabled` 或硬要求时，把准入快照和适用场景传给 `$desktop-test-final-artifact-e2e`。Tauri GUI 仅在关于页、更新日志的呈现/加载行为或其打包接线受影响，或者有独立硬要求时验证真实窗口中的日志。启用时对照当前版本、近十版、固定两类与单个小写 `v`；关闭行为受影响时确认路由、入口与运行时命令缺席。每个候选仍执行第 3 步的资源核对。E2E 为 `disabled` 时记录 `Not run` 和剩余风险。需要凭据、生产数据、支付、发布或不可逆副作用时仍须独立授权。
+7. 全部真实检查、E2E 和必需人工结论完成后，先确定整组唯一结论，但在写入验收状态前再次运行发布上下文 `verify`；要求当前 HEAD、`releaseContextSha256`、`releaseReview` 与准入快照逐字段相等，且全部 manifest 的 `sourceCommit` 都等于 HEAD。用第 1 步的只读命令重新解析范围，要求基准 tag、基准提交、渠道、当前身份与差异 SHA-256 与准入一致。三平台矩阵另复核远端小写渠道分支/tag；当前构建的 `e2eSelection` 和适用 `candidateSelections` 只与准入时已核验的构建证据比较，不能从发布上下文补取。然后按候选范围重新计算全部最终制品、相邻摘要、manifest 声明、适用的包内关键资源和精确文件集。任一漂移都拒绝状态写入并返回重建/重验。
 
 8. 尾检查通过后，CLI/Tauri 于项目根同级、同一文件系统的唯一 staging 复制当前 `release/` 精确集合；在 staging 内原子写入全部 manifests 的同一整组 `milestoneAcceptance` 结论及结构化证据，再复算所有摘要、资源绑定和精确文件集。整组必须同为 `accepted`、`rejected` 或 `pending`，不得混合。复验成功后才目录级原子替换 `release/`；失败保留原集合。NSH 按下方批次规则替换。验收证据只写忽略的 `release/`，不得在 tracked 源码中补写项目记忆或占位记录。
+
+   每份暂存 manifest 写入相同的 `acceptanceScope`，附本候选适用的变化与场景及观测结论。仅有发布元数据、维护性实现或其他对当前目标无用户可见变化时，记录 `functionalAcceptance: { status: "not-applicable", reason }`，说明差异和已有相关证据，不为填表添加旧场景。必需的制品、资源、安全及独立明确要求照常验证。有受影响功能且已运行验证时用 `functionalAcceptance: { status: "passed", scenarios }`，每项 `scenarios` 包含非空 `change`、`scenario`、`observation`。按已确认的关闭选择且无运行硬要求时，可用 `functionalAcceptance: { status: "Not run", reason, remainingRisk }` 如实记录没有运行的范围。目录替换前逐份运行 `node .agents/skills/desktop-verify-delivery/scripts/acceptance_scope.mjs verify --project-root . --manifest <staging-manifest>`，复核当前范围与候选证据绑定。后续只读就绪复核对已接受的当前候选再次逐份运行同一命令，拒绝缺少或范围不符的验收记录。
 
    同一记录还必须包含 `reviewSelection`/`reviewStatus`、适用 `reviewEvidence` 或 `Not run` 原因/风险；Tauri macOS 候选必须核对 `macosSigningSelection`/`macosSigningSource`，多个来源按 `channel-required > requested > configured > not-requested` 唯一化，关闭时不得有探测派生证据或 `notarizationEvidence`，启用时只接受完整签名、公证和 stapling 证据。`system_notification = enabled` 的 macOS 候选若为 `disabled/not-requested` 或实际 unsigned，必须拒绝验收；这属于通知运行前提，不得由 E2E `disabled`、waiver 或 `Unverified` 绕过，也不得在验收阶段自动签名。
 
@@ -62,4 +70,4 @@ NSH 的包格式、工具链和构建日志由 `$desktop-build-nsh-release` 定�
 
 NSH 按每个目标独立复算 `manifest.json` 的 `artifact`、`checksum`、`files`、`sourceSnapshot`、`releaseNotesSha256` 和 `licenses`。当前候选核对 `interface: nsh`、`nshTargets`、匹配 0.6.1 的 CLI、真实格式与签名状态。`releaseNotesResourceVerification: sidecar-byte-identical` 只证明外层日志字节；已选或必需的 NSH 桌面运行场景覆盖已启用的关于页时，须从真实窗口核对更新日志。关闭 E2E 时仅报告实际证明的范围。已选或必需的运行场景缺少目标宿主、无法证明，或缺少必要渠道签名时，按失败回流判定 `rejected`。可选且未运行的场景单独标记 `Unverified`，候选结论仍以当前全部必需证据为准。
 
-第 7 步的二次上下文和最终字节复算只比较选定批次的当前证据；第 8 步在同一 `release/` 文件系统中为该批次建立唯一受限 staging，只复制该批次的精确集合并写入它自己的 `milestoneAcceptance` 与结构化证据。复算通过后以目录级原子重命名替换该批次，失败恢复原批次；其他批次逐字节保留。接受、拒绝或等待人工复核只改变本批次状态；就绪结论也只针对已选批次的目标和证据，不能由其他批次的 `accepted` 推断本目标通过。
+第 7 步重新运行上方定位命令，复核同一批次的最终字节、上下文及证据，并对照准入时的 `manifestSha256`。第 8 步在同一文件系统为 `evidenceDirectory` 建立唯一受限 staging，复制精确证据集合并写入本批次的 `milestoneAcceptance` 和结构化证据。新增证据文件须进入清单 `files` 并复算。验证 staging 后以目录级替换提交证据，失败时恢复原证据目录。平铺候选的最终包及相邻摘要在此过程中保持原字节，历史及其他目标批次仍以原批次目录为替换范围。就绪复核对同一目标和 buildRun 再次运行只读定位命令及验收范围校验。

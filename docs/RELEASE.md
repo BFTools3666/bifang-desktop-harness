@@ -136,7 +136,7 @@ Harness 源码归档在用户另行要求生成时，只创建相邻 `<artifact>
 - 实际分发前必须生成并核对该版本的第三方依赖许可证与 NOTICE 清单。本项目的专有商业许可不替代、覆盖或限制第三方许可证依法授予的权利。
 - 商业合同或订单负责确定客户、费用、期限、授权数量和特殊授权；发布物中的通用许可证不得被误报为双方已经签署的商业文件。
 
-所有下游构建结果统一写入项目根忽略的 `release/`，它不是 `ready` 标志。CLI/Tauri 使用本次构建结果的扁平目录：每次构建先验证独立 Git 根，拒绝目录重解析和路径越界，原子隔离旧目录并创建全新空目录；最终文件、摘要与 manifest 先在同根暂存区验证，再以目录级原子重命名提交。NSH 是按目标批次的明确例外：每次仅将一个已验证的 `release/<buildRun>/` 原子提交到 `release/`，其中 `buildRun` 是 `nsh-<target>-<uuid>` 形式的完整目录名，不覆盖其他批次；验收和状态替换也只针对显式选定的同一批次，其他批次可属旧 HEAD 或不同状态，不参与本次判定。远程工作流必须先证明用户已另行推送同一已发布 HEAD 和 tag，检出并复核显式批准的 40 位提交，且只上传 manifest 声明的精确文件；本机构建无需远端。当前选定集合不得混入其他项目、旧版本、旧运行、未完成、重复、额外或来源不明文件。manifest 状态仅用 `pending`、`rejected`、`accepted`；`ready` 是纯只读就绪结论。
+所有下游构建结果统一写入项目根忽略的 `release/`，它不是 `ready` 标志。CLI/Tauri 使用本次构建结果的扁平目录：每次构建先验证独立 Git 根，拒绝目录重解析和路径越界，原子隔离旧目录并创建全新空目录；最终文件、摘要与 manifest 先在同根暂存区验证，再以目录级原子重命名提交。NSH 每次按 `nsh-<target>-<uuid>` 形式的 `buildRun` 交付一个目标。macOS 和 Windows 的正式打包文件及各自的 `.sha256` 直接放在 `release/`，以含构建标识的文件名并存。`release/.nsh-evidence/<buildRun>/manifest.json` 绑定对应文件和证据，证据集合提交后才视为发布候选完整。其他 NSH 目标仍按 `release/<buildRun>/` 保存，历史桌面目录也可按原 `buildRun` 读取。验收和状态更新只使用显式选定的构建及其清单。远程工作流必须先证明用户已另行推送同一已发布 HEAD 和 tag，检出并复核显式批准的 40 位提交，且只上传 manifest 声明的精确文件；本机构建无需远端。当前选定集合不得混入其他项目、旧版本、旧运行、未完成、重复、额外或来源不明文件。manifest 状态仅用 `pending`、`rejected`、`accepted`；`ready` 是纯只读就绪结论。
 
 构建请求、执行、重试、测试结果、产物路径/摘要/签名状态，以及候选 E2E、完整验收和就绪复核，均只进入忽略的 `release/` 原子证据及最终回复，不自动写入 Product Spec、ADR、Changelog、Product Status、Work Plan 或 Verification。Git 发布已在合并主分支并创建 tag 时结束；下一开发分支须以该主分支/tag 的精确版本和 40 位 HEAD 调用 `finalize-release`，恢复版本周期。真实渠道分发或独立回顾审计可按其独立触发条件追加记录，但不得反向批准活动候选。
 
@@ -166,8 +166,8 @@ Git 发布在本地默认主分支和版本 tag 指向同一最终 HEAD 时结�
 2. 生成并复核双语 `release-notes.json` 与仅含 Git 发布身份和审查结论的 `.harness/release-context.json`，只提交这两份发布元数据。生命周期以精确上下文 SHA-256 普通合并登记分支至本地默认主分支，创建并复读版本 tag；最终主分支、tag 和上下文一致即完成 Git 发布。
 3. 完成初始化的下游读取本次发布冻结的 `postReleaseAction` 并执行所选后续路径。`local_package` 从 clean 且带已发布 tag 的默认主分支，先运行 `check-post-release` 和只读 `route`。本次请求明确指定其他系统时，向 `route` 传入相应的 `--interface` 和 `--target`。按唯一返回的接口/目标进入对应正式候选打包 Skill；该次构建单独解析 E2E 和 GUI 签名选择（仅在适用时），运行全部非空单元测试，并把选择、构建事实和产物写入忽略的 `release/`。只在该目标的真实产物、摘要与 manifest 复核通过后报告本次本地打包动作完成；`pending` 候选不代表验收或其他平台完成。`push_release_branch` 推送并复读远端默认主分支、同名渠道分支和 tag，三者必须等于同一已发布 HEAD。缺失选择或任何检查失败时报告 Git 发布事实和后续路径阻断，不自动改选候选目标。Harness 源按当次用户要求处理源码归档或远端动作。
 4. 候选使用相同更新日志并逐字节比较。Tauri macOS 默认 unsigned；已批准配置、当前请求或渠道硬要求才启用签名、公证和 stapling。`system_notification = enabled` 与 unsigned 冲突须在构建前阻断。任何路径不得自动创建、索取或输出凭据。
-5. `$desktop-verify-delivery` 在准入和最终状态写入前两次只读核对 clean 默认主分支、tag、发布上下文和本次选定集合的全部 manifest；CLI/Tauri 的集合是当前扁平 `release/`，NSH 只取显式选定的一个批次，旧批次不参与。远程候选另外复核远端 refs。按冒烟、当前 E2E 选择和产品/渠道硬要求验收，并重新计算该集合最终产物及证据的字节。只有全部通过，才原子地把该集合 manifest 从 `pending` 变为 `accepted`。
-6. 就绪复核只读检查本次选定集合的 `accepted` 状态、Git 引用、版本、更新日志、最终哈希和签名，不改写 manifest 或 tracked 项目记忆；NSH 其他批次的状态不构成该目标就绪证据。后续渠道分发按用户独立要求执行；渠道处理若改变候选字节，须重新构建和验收。
+5. `$desktop-verify-delivery` 在准入和最终状态写入前只读核对 clean 默认主分支、tag、发布上下文和本次选定集合的全部 manifest。远程候选另外复核远端 refs。按同渠道上一发布的已验证 tag 到当前发布提交圈定功能范围。用实际 Git 差异与双语更新日志标出新增、变化、修复及直接受影响的交互，按当前冒烟/E2E 选择和产品/渠道硬要求执行相关场景。首次发布使用已批准的初始交付范围，无法证明历史时先补齐基线依据。记录基线、当前提交、适用场景和结果，复核范围与最终字节后原子推进为 `accepted`。构建已执行的全量单元测试证据在验收时直接复用。
+6. 就绪复核只读检查本次选定集合的 `accepted` 状态、已记录的验收范围与场景证据、Git 引用、版本、更新日志、最终哈希和签名，不改写 manifest 或 tracked 项目记忆；NSH 其他批次的状态不构成该目标就绪证据。后续渠道分发按用户独立要求执行；渠道处理若改变候选字节，须重新构建和验收。
 
 ## Harness 模板发布检查清单
 
@@ -216,13 +216,13 @@ Harness 根目录没有具体产品，因此下游产物、manifest、签名、�
 - [ ] README 包含真实的用途、使用方式、维护状态和反馈入口。
 - [ ] 发布物来自目标源码提交，且其 SHA-256 已记录。
 - [ ] 每个平台归档、相邻 SHA-256 和清单一致，必需平台/架构恰好出现一次。
-- [ ] Tauri GUI 正式构建使用发布专用 `--config`，构建后资源与根更新日志逐字节一致；macOS 最终 DMG 内唯一 `.app/Contents/Resources/release-notes.json` 已重新比较。含 GUI 且 `about_page = enabled` 时，关于页存在元素自身绑定的“更新日志”按钮，能够经固定资源命令查看最近 10 版 schema v2 双语日志，中文/英文 locale 分别显示对应标题与正文、未知语言回退英文，加载失败可重试，且点击父容器不会代理日志按钮动作；`about_page = disabled` 时页面、入口、命令、加载器与弹窗缺席。
-- [ ] 项目根 `release/` 已由适用的 `$desktop-build-rust-release`、`$desktop-build-tauri-release` 或 `$desktop-build-nsh-release` 按各自合同安全准备并提交候选；CLI/Tauri 的远端结果可由 `$desktop-collect-release-artifacts` 取回，NSH 按目标使用批次子目录并由自身构建 Skill 校验。目录内容与当前版本、源码提交、构建批次及对应清单精确一致。
+- [ ] Tauri GUI 正式构建使用发布专用 `--config`，构建后资源与根更新日志逐字节一致；macOS 最终 DMG 内唯一 `.app/Contents/Resources/release-notes.json` 已重新比较。涉及关于页或更新日志行为的变更，或有独立渠道要求时，含 GUI 且 `about_page = enabled` 的候选验证关于页存在元素自身绑定的“更新日志”按钮，能够经固定资源命令查看最近 10 版 schema v2 双语日志，中文/英文 locale 分别显示对应标题与正文、未知语言回退英文，加载失败可重试，且点击父容器不会代理日志按钮动作；`about_page = disabled` 时页面、入口、命令、加载器与弹窗缺席。
+- [ ] 项目根 `release/` 已由适用的 `$desktop-build-rust-release`、`$desktop-build-tauri-release` 或 `$desktop-build-nsh-release` 按各自合同安全准备并提交候选；CLI/Tauri 的远端结果可由 `$desktop-collect-release-artifacts` 取回，NSH 由自身构建 Skill 校验所选目标和构建标识，macOS 和 Windows 的打包文件及校验和在 `release/` 顶层。所选文件与当前版本、源码提交、构建批次及对应清单精确一致。
 - [ ] 每个平台清单的 `signingStatus` 与证据真实；macOS 同时记录签名选择和来源，`disabled/not-requested` 未运行可用性探测并显式 unsigned，只有 `configured`、`requested` 或 `channel-required` 才允许启用；已签名候选同时具有 `notarizationStatus: notarized-and-stapled` 和可复核证据。若 `system_notification = enabled`，本项同时拒绝 `disabled/not-requested` 或实际 unsigned，且不能由 E2E 关闭绕过。验收后若签名、公证、stapling 或重打包改变字节则已重新验收。
 - [ ] macOS 多个签名启用来源同时存在时按 `channel-required > requested > configured > not-requested` 记录唯一 `macosSigningSource`；`disabled/not-requested` 的 `notarizationEvidence` 与探测派生签名证据缺席，通用 `signingEvidence` 只记录选择、来源、unsigned 结论和风险。
 - [ ] macOS DMG 的最终签名/公证/stapled 字节已通过只读 Finder 布局检查；`.DS_Store`、本地背景、唯一 `.app` 与 `/Applications` 拖拽目标均真实存在，任何布局补写或重打包后已重做签名、公证、摘要和验收。
 - [ ] macOS→Windows Tauri 候选只包含 x64 NSIS，清单记录 `buildMode: cross-compiled-xwin` 和 `runtimeVerification: Unverified`；未在真实 Windows 环境运行时没有声称原生验证通过。
-- [ ] 完整验收根据候选冒烟策略、当前构建 E2E 选择、产品/渠道硬要求和适用性执行检查；所有 `required` 或 `enabled` 项通过，`disabled`/`Not run`/`Not applicable` 项及风险准确记录。
+- [ ] 完整验收记录同渠道上一发布到当前发布的功能差异，首发则绑定已批准的初始范围。冒烟与 E2E 按变更影响和独立硬要求选场景，`required` 或 `enabled` 项全部通过，`disabled`/`Not run`/`Not applicable` 项及风险准确记录。
 - [ ] 任一验收失败都曾返回开发循环并完成回归测试，没有以 `Partially verified` 代替仍缺失的批准逻辑。
 - [ ] 已知重要问题已在 `docs/TECH_DEBT.md` 中向用户公开。
 - [ ] 下一开发分支从已发布且带版本 tag 的本地默认主分支 HEAD 开始；在首个新改动前，以精确版本和 40 位发布 HEAD 执行 `finalize-release`，再按新需求优先规则分类并计划。候选、上传或渠道分发不重复重置版本周期。

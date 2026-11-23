@@ -2,7 +2,7 @@
 /** NSH 真实构建与不可覆盖的批次证据；不执行发布、安装或 E2E。 */
 import fs from 'node:fs';
 import path from 'node:path';
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
@@ -17,9 +17,12 @@ import {
   NSH_HOST_DESKTOP_PLATFORMS, nshCargoEnvironment, readNshMixedConfig,
 } from '../../desktop-implement-change/scripts/nsh_runtime_policy.mjs';
 import { iosPackagingIdentity,restoreIosDisplayIdentity } from './nsh_ios_identity.mjs';
-import { NSH_BUILD_CACHE_NAMES, prepareNshPortableEntry } from './nsh_portable_entry.mjs';
+import { prepareNshPortableEntry } from './nsh_portable_entry.mjs';
+import { fileSha256, inventory, publishNshDesktopRelease, sourceSnapshot, usesFlatNshRelease } from './nsh_release_layout.mjs';
 
 import { addNshIosBindgenSdk, resolveNshPackageOptions } from './nsh_package_options.mjs';
+
+export { inventory, sourceSnapshot } from './nsh_release_layout.mjs';
 
 const targets = ['macos','windows','linux','android','ios','ios-simulator','web'];
 
@@ -76,41 +79,12 @@ export function releaseNoteBuildInputs(stage,notes,baseEnvironment=process.env) 
   env.HARNESS_RELEASE_NOTES_EN_PATH=enPath;
   return {env,temporary:[zhPath,enPath]};
 }
-/** 产物目录拒绝链接；签名 bundle 内的框架链接只由官方打包器拥有。 */
-export function inventory(directory) {
-  const files=[];
-  const walk=(current,relative='')=>{
-    for(const name of fs.readdirSync(current).sort()) {
-      const file=path.join(current,name), key=path.posix.join(relative,name), stat=fs.lstatSync(file);
-      if(stat.isSymbolicLink()) {
-        const link=fs.readlinkSync(file),resolved=fs.realpathSync(file);
-        if(path.isAbsolute(link) || !resolved.startsWith(fs.realpathSync(directory)+path.sep)) throw new Error('artifact link escapes package');
-        files.push({path:key,link}); continue;
-      }
-      if(stat.isDirectory()) walk(file,key);
-      else if(stat.isFile()) files.push({path:key,size:stat.size,sha256:fileSha256(file)});
-      else throw new Error('unsupported artifact type');
-    }
-  };
-  walk(directory);return files;
-}
 /** 文件头检查和流式摘要使用固定大小缓冲区，避免大包占用相同大小的堆内存。 */
 function filePrefix(file, size) {
   const fd = fs.openSync(file, 'r');
   try {
     const bytes = Buffer.alloc(size);
     return bytes.subarray(0, fs.readSync(fd, bytes, 0, size, 0));
-  } finally { fs.closeSync(fd); }
-}
-
-function fileSha256(file) {
-  const fd = fs.openSync(file, 'r');
-  try {
-    const hash = createHash('sha256');
-    const bytes = Buffer.allocUnsafe(1024 * 1024);
-    let count;
-    while ((count = fs.readSync(fd, bytes)) > 0) hash.update(bytes.subarray(0, count));
-    return hash.digest('hex');
   } finally { fs.closeSync(fd); }
 }
 
@@ -178,22 +152,6 @@ export function passingNshCases(report) {
   if (passed <= 0) throw new Error('nonempty passing NSH render tests required');
   return passed;
 }
-/** 源、GUI 资源与受管文档按字节绑定，缓存和输出不进入快照。 */
-export function sourceSnapshot(root) {
-  const hash=createHash('sha256');
-  const walk=(directory)=>{
-    for(const name of fs.readdirSync(directory).sort()) {
-      if(NSH_BUILD_CACHE_NAMES.has(name)) continue;
-      const file=path.join(directory,name), stat=fs.lstatSync(file);
-      if(['Cargo.lock','pnpm-lock.yaml','pnpm-package.lock'].includes(name)) continue;
-      if(stat.isSymbolicLink()) throw new Error('source symlink is unsupported');
-      if(stat.isDirectory()) walk(file);
-      else if(stat.isFile()) hash.update(JSON.stringify([path.relative(root,file), stat.mode & 0o777, fileSha256(file)]));
-      else throw new Error('unsupported NSH source type');
-    }
-  };
-  walk(root);return hash.digest('hex');
-}
 /** 只读校验持久框架、版本与选择目标，不能把 CLI 当 NSH 打包。 */
 export function packageFacts(root,metadata,target) {
   if(!targets.includes(target)) throw new Error('unsupported NSH packaging target');
@@ -257,6 +215,7 @@ export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,
 
   const before = sourceSnapshot(root);
   const batch = `nsh-${target}-${randomUUID()}`;
+  const flatRelease = usesFlatNshRelease(mode, target);
   const parent = safeOutputPath(root, path.join(root, mode === 'candidate' ? 'release' : '.nsh/packages'));
   fs.mkdirSync(parent, {recursive:true});
   const stage = fs.mkdtempSync(path.join(parent, '.nsh-package-'));
@@ -319,7 +278,7 @@ export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,
       signingSelection:signing, signingSource:packageOptions.args.includes('--sign') || packageOptions.args.includes('--keystore')
         ? 'explicit-official-signing' : 'official-local-packaging-default',
       unitTests:{status:'passed',testCases:tests.split('\n').filter(line=>line.endsWith(': test')).length,nshRenderTests:'passed',nshRenderTestCases:renderTestCases},
-      milestoneAcceptance:'pending', runtimeVerification:'Unverified', files:inventory(stage),
+      milestoneAcceptance:'pending', runtimeVerification:'Unverified',
     };
     if (target==='web') manifest.webRoot=path.posix.join('package',config.name);
     if (context) Object.assign(manifest, {
@@ -329,6 +288,8 @@ export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,
       releaseNotesVersion:notes.releases[0].version,releaseNotesSha256:fileSha256(path.join(stage,'release-notes.json')),
       releaseNotesPath:'release-notes.json',releaseNotesResourceVerification:'sidecar-byte-identical',licenses:['LICENSE.zh-CN.md','LICENSE.en.md'],
     });
+    if (flatRelease) return publishNshDesktopRelease(parent, stage, manifest, config.name);
+    manifest.files = inventory(stage);
     fs.writeFileSync(path.join(stage,'manifest.json'), JSON.stringify(manifest,null,2)+'\n');
     const output = safeOutputPath(root, path.join(parent, batch));
     fs.renameSync(stage, output);
@@ -339,6 +300,6 @@ export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,
 }
 
 if(process.argv[1] && import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href) {
-  try {const {values}=parseArgs({options:{root:{type:'string',default:'.'},mode:{type:'string',default:'local'},target:{type:'string'},e2e:{type:'string'},'e2e-reason':{type:'string'},'e2e-risk':{type:'string'},arch:{type:'string'},abi:{type:'string',multiple:true},format:{type:'string'},sign:{type:'string'},profile:{type:'string'},keystore:{type:'string'},'key-alias':{type:'string'},'asset-url':{type:'string'}}});const result=buildNshRelease({...values,e2eReason:values['e2e-reason'],e2eRisk:values['e2e-risk'],keyAlias:values['key-alias'],assetUrl:values['asset-url']});process.stdout.write(JSON.stringify({output:result.output,manifest:result.manifest,buildRun:result.buildRun,bundleFormat:result.bundleFormat,webRoot:result.webRoot,mode:result.mode,releaseChannel:result.releaseChannel,target:result.target,version:result.version,artifact:result.artifact,sha256:result.sha256,unitTests:result.unitTests})+'\n');}
+  try {const {values}=parseArgs({options:{root:{type:'string',default:'.'},mode:{type:'string',default:'local'},target:{type:'string'},e2e:{type:'string'},'e2e-reason':{type:'string'},'e2e-risk':{type:'string'},arch:{type:'string'},abi:{type:'string',multiple:true},format:{type:'string'},sign:{type:'string'},profile:{type:'string'},keystore:{type:'string'},'key-alias':{type:'string'},'asset-url':{type:'string'}}});const result=buildNshRelease({...values,e2eReason:values['e2e-reason'],e2eRisk:values['e2e-risk'],keyAlias:values['key-alias'],assetUrl:values['asset-url']});process.stdout.write(JSON.stringify({output:result.output,manifest:result.manifest,buildRun:result.buildRun,bundleFormat:result.bundleFormat,webRoot:result.webRoot,mode:result.mode,releaseChannel:result.releaseChannel,target:result.target,version:result.version,artifact:result.artifact,sha256:result.sha256,deliveryFiles:result.deliveryFiles,unitTests:result.unitTests})+'\n');}
   catch(error){process.stderr.write(`NSH build: ${error.message}\n`);process.exitCode=1;}
 }

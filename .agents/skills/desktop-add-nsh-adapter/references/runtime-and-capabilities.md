@@ -40,3 +40,13 @@ Mixed 成员的 `nsh.json` 设置 `rust: "."`，不设置 `root`。Rust 桥接�
 初始化派生的应用 ID 供工程试用。产品明确发布身份后，在 `nsh.json` 登记受控的反向域名 ID、应用图标和渠道 build 编号。项目版本门禁同步 Cargo 和 `nsh.json` 的版本。关于页通过 `appInfo().version` 读取运行时版本。
 
 检查 Rust、`nsh check` 和非空 `nsh test`；TUI 另走官方终端渲染测试。源码与 headless 回归只证明各自范围，实际窗口、托盘、OS 事件、设备和签名按真实宿主分别取证。
+
+### 分目录测试套件
+
+NSH 0.6.1 用应用根运行整套测试。对既有项目的 `tests/headless` 等只存放测试的子目录，CLI 可能将目录解析为应用而找不到 `App.tsx`。从实际应用根按稳定顺序枚举套件的 `*.test.ts` 与 `*.test.tsx`，拒绝空套件，每次传入一个文件并汇总失败路径。共享同一 `.nsh/` 的执行串行。需要真实图形窗口或输入时，在对应宿主以 `nsh test tests/native/example.test.tsx --target macos --foreground` 等实际目标运行；文件夹名称和 fixture 的 platform 值只表明组织和模拟条件。
+
+### 自定义原生运行器
+
+既有项目直接编译生成的 runner 时，将 TSX 入口实际导入的原生模块与各目标的 Cargo feature 对照，尤其检查使用 `--no-default-features` 的路径。例如导入 `nsh/base/plot` 时确认实际 runner 含 `plot`。给编译参数加入回归，并依照 [最终产物 E2E](../../desktop-test-final-artifact-e2e/SKILL.md#nsh-场景) 在适用的运行变更中正常启动最终制品，观察页面挂载及已启用的窗口或托盘行为。缺少注册模块时优先查看启动日志。若命令行诊断开关在引擎启动前退出，它只证明开关自身的执行。
+
+已有项目启用后台登录启动和单实例时，按实际安装包验证后台重复启动保持隐藏，正常前台再次启动恢复并聚焦窗口。更换可执行文件名时固定原安装标识和数据归属，只迁移本安装拥有的快捷方式和登录项并保留原参数，在真实宿主验证新装、原位升级和卸载。项目保留原生补丁时，见 [依赖补丁校验](../../desktop-manage-dependencies/references/compatibility-feedback.md#原生依赖补丁)。

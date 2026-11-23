@@ -267,7 +267,7 @@ const STREAMLINED_ENTRIES = [
     "实例化身份重置", "现有产品改名", "必须先通过 `$desktop-define-product` 确认范围", "不自动创建 Work Plan、候选或完整验收步骤",
     "用户明确要求 Git 发布时才进入 `$desktop-prepare-release`", "在本地主分支合并并打 tag 后结束",
   ]],
-  ["verifyDeliverySkill", ["当前构建已明确选择 E2E `enabled`", "没有 Work Plan 不阻断验收", "当前构建已经运行项目全部非空单元测试", "e2e_hint` 仅用于当时询问的建议默认值", "返回 `$desktop-implement-change` 修复并增加回归"]],
+  ["verifyDeliverySkill", ["当前构建已明确选择 E2E `enabled`", "没有 Work Plan 不阻断验收", "当前构建已经运行项目全部非空单元测试", "acceptance_scope.mjs resolve", "acceptance_scope.mjs verify", "e2e_hint` 仅用于当时询问的建议默认值", "返回 `$desktop-implement-change` 修复并增加回归"]],
   ["e2eSkill", ["当前构建选择为 `enabled`", "e2e_hint` 不能替代当前构建选择", "完整真实最终产物", "没有 Work Plan 不阻断 E2E", "返回 `$desktop-implement-change` 增加回归测试"]],
   ["buildReleaseSkill", [
     "本次请求已明确 `enabled`/`disabled` 时直接复用", "否则在任何测试或编译前询问用户一次", "只强制运行项目全部非空单元测试",
