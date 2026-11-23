@@ -25,6 +25,10 @@ helper 接受 `--root <根> --mode local|candidate [--target macos|windows|linux
 
 生成到唯一暂存目录，测试后、打包后复核源码与资源快照，拒绝中途漂移与覆盖旧批次。完整 `buildRun` 为 `nsh-<target>-<uuid>`。macOS 和 Windows 正式候选将最终包和各自的 `.sha256` 放在 `release/` 根，文件名含应用名、版本和 buildRun，过长的名称前缀按文件系统上限预留空间。清单、`release-notes.json`、双语许可证和 JUnit 保存在 `release/.nsh-evidence/<buildRun>/`。同盘独占落位后重算实际制品与摘要，最后原子提交该证据目录；中途失败只撤回本次已落位文件。构建展开目录在保全最终包和证据后移除。其他 NSH 正式目标沿用 `release/<buildRun>/`，本地试包沿用 `.nsh/packages/`。
 
+若官方 updater 生成归档，平铺批次在证据目录的 `updates/` 保留其原名及清单摘要。分发候选时须同时提供该批次的两份许可证，需对接 updater 时按对应渠道使用 `updates/` 中的官方归档，保持构建字节。
+
+发布进程异常退出后，从 `release/.nsh-evidence/.<buildRun>.lock/` 确认受影响批次。确认发布进程已结束且已获该批次的清理授权后，可运行 `node .agents/skills/desktop-build-nsh-release/scripts/nsh_release_layout.mjs --root . --target <target> --build-run <buildRun> --recover-interrupted`。恢复仅撤回仍与该批次暂存文件一致的未提交公开链接。证据已经提交时先复核其完整性，再清理该批次的暂存目录。
+
 关于页的“更新日志”按钮展示编译进应用的双语内容。helper 先从已校验的 schema v2 根日志按最新在前、两类各最多十条渲染到暂存文本，再用 `HARNESS_RELEASE_NOTES_ZH_PATH` 与 `HARNESS_RELEASE_NOTES_EN_PATH` 两个短路径通知 NSH 适配器的标准库 `build.rs` 复制到 `OUT_DIR`，Rust 通过 `include_str!` 嵌入。本地试包写入无已发布日志占位。外层 sidecar 按实际字节绑定根日志。实际窗口内的展示由适用的最终 E2E 取证。manifest 记录文件摘要、源码、工具版本、目标、签名边界和 E2E 选择，正式候选初始 `milestoneAcceptance: pending`、`runtimeVerification: Unverified`。
 
 通用 Git 发布由 [$desktop-prepare-release](../desktop-prepare-release/SKILL.md) 完成本地 merge/tag。因冻结的 `local_package` 调用时，先通过 [$desktop-switch-post-release-action 的已发布快照路由](../desktop-switch-post-release-action/SKILL.md#按已发布快照路由)，以返回的 `target` 调用 `candidate`。远程构建须另行复核已推送的渠道分支和 tag。

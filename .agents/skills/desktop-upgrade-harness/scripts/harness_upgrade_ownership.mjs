@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { MINIMUM_OWNERSHIP_RULES, REQUIRED_MANAGED_SOURCE_PATHS, SCHEMA_VERSION, VALID_MODES } from "./harness_upgrade_policy.mjs";
+import { MINIMUM_OWNERSHIP_RULES, REQUIRED_MANAGED_SOURCE_PATHS, REQUIRED_NSH_SOURCE_PATHS, SCHEMA_VERSION, VALID_MODES } from "./harness_upgrade_policy.mjs";
 import { UpgradeError, loadJson, lstatOrNull, safeRelativePath, snapshotFile, validateSnapshot } from "./harness_upgrade_safety.mjs";
 import { validateRetirementPreference } from "./harness_upgrade_retirement.mjs";
 
@@ -101,6 +101,7 @@ export function loadOwnership(file, { allowRecoverableManagedOmissions = false }
     if (index >= genericIndex) throw new UpgradeError(`conditional 所有权规则必须位于通用 managed 规则之前：${pattern}`);
   }
   for (const required of REQUIRED_MANAGED_SOURCE_PATHS) if (ownershipMode(required, data.default_mode, rules) !== "managed") throw new UpgradeError(`必需传播路径的有效所有权必须保持 managed：${required}`);
+  for (const required of REQUIRED_NSH_SOURCE_PATHS) if (ownershipMode(required, data.default_mode, rules) !== "conditional") throw new UpgradeError(`NSH 必需传播路径的有效所有权必须保持 conditional：${required}`);
   return { defaultMode: data.default_mode, rules, missingManagedRules };
 }
 

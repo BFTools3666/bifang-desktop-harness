@@ -8,7 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { checkContext, runGit, scopeDiffDigest, writeContext } from '../../desktop-prepare-release/scripts/release_context.mjs';
 import {
-  fileSha256, inventory, locateNshCandidate, publishNshDesktopRelease, sourceSnapshot,
+  fileSha256, inventory, locateNshCandidate, publishNshDesktopRelease, recoverNshDesktopRelease, sourceSnapshot,
   usesFlatNshRelease, verifyNshCandidate,
 } from './nsh_release_layout.mjs';
 
@@ -99,6 +99,28 @@ test('Windows without an official installer publishes just the actual ZIP', t =>
   assert.equal(path.extname(candidate.artifact), '.zip');
 });
 
+/** 平铺安装包同时保留官方更新器需要的原名、字节和批次清单记录。 */
+test('flat_desktop_publication_preserves_official_updater_archives', t => {
+  const {root, release} = fixture(t);
+  for (const [target, archives] of [
+    ['macos', ['macos-aarch64.tar.gz', 'macos-x86_64.tar.gz']],
+    ['windows', ['windows-x86_64.zip']],
+  ]) {
+    const {stage, manifest} = stageCandidate(release, target);
+    const expected = archives.map(archive => `---Beta-${version}-${archive}`);
+    for (const filename of expected) fs.writeFileSync(path.join(stage, 'package', filename), filename);
+    publishNshDesktopRelease(release, stage, manifest, name);
+    const candidate = locateNshCandidate(root, target, manifest.buildRun);
+    assert.ok(candidate.manifest.files.some(file => file.path.startsWith('updates/')));
+    for (const filename of expected) {
+      const file = path.join(candidate.evidenceDirectory, 'updates', filename);
+      assert.equal(fs.readFileSync(file, 'utf8'), filename);
+      assert.ok(candidate.manifest.files.some(entry => entry.path === `updates/${filename}` && entry.sha256 === fileSha256(file)));
+    }
+    assert.equal(fs.existsSync(path.join(candidate.evidenceDirectory, 'package')), false);
+  }
+});
+
 test('same-run case collisions are detected before overwriting anything', t => {
   const {release} = fixture(t);
   const {stage, manifest} = stageCandidate(release, 'windows');
@@ -127,6 +149,32 @@ test('publication restores its own output links when a later destination fails',
   assert.equal(remainingFiles.length, 1);
   assert.equal(fs.readFileSync(path.join(release, remainingFiles[0].name), 'utf8'), 'another writer');
   assert.deepEqual(fs.readdirSync(path.join(release, '.nsh-evidence')), []);
+});
+
+/** 模拟首个公开文件落位后进程直接退出，恢复只回收相同 inode 的本批链接。 */
+test('interrupted_publication_can_be_rolled_back_by_exact_build_run', t => {
+  const {root, release} = fixture(t);
+  const {stage, manifest} = stageCandidate(release, 'windows');
+  const module = new URL('./nsh_release_layout.mjs', import.meta.url).href;
+  const child = spawnSync(process.execPath, ['--input-type=module', '-e', `
+    import fs from 'node:fs';
+    import { publishNshDesktopRelease } from ${JSON.stringify(module)};
+    const [release, stage, manifest, name] = process.argv.slice(1);
+    const link = fs.linkSync;
+    fs.linkSync = (source, destination) => {
+      link(source, destination);
+      process.exit(91);
+    };
+    publishNshDesktopRelease(release, stage, JSON.parse(manifest), name);
+  `, release, stage, JSON.stringify(manifest), name], {encoding: 'utf8'});
+  assert.equal(child.status, 91, child.stderr);
+  assert.throws(() => locateNshCandidate(root, 'windows', manifest.buildRun), /committed/u);
+  const unrelated = `another_${manifest.buildRun}.zip`;
+  fs.writeFileSync(path.join(release, unrelated), 'unrelated bytes');
+  assert.equal(recoverNshDesktopRelease(root, 'windows', manifest.buildRun).status, 'rolled-back');
+  assert.deepEqual(fs.readdirSync(release).sort(), ['.nsh-evidence', unrelated]);
+  assert.deepEqual(fs.readdirSync(path.join(release, '.nsh-evidence')), []);
+  assert.equal(fs.readFileSync(path.join(release, unrelated), 'utf8'), 'unrelated bytes');
 });
 
 test('selected desktop candidate rejects extra files and changed public or evidence bytes', t => {
@@ -183,7 +231,7 @@ test('the locator CLI binds a committed NSH package to a real published Git cont
   git('config', '--local', 'user.email', 'nsh-release-layout@example.test');
   git('config', '--local', 'core.hooksPath', '.git/fixture-hooks');
   git('config', '--local', 'commit.gpgsign', 'false');
-  fs.writeFileSync(path.join(root, '.gitignore'), '/release/\n');
+  fs.writeFileSync(path.join(root, '.gitignore'), '/release/\n/knowledge/\n');
   fs.writeFileSync(path.join(root, 'release-notes.json'), '{}');
   git('add', '.gitignore', 'release-notes.json');
   git('commit', '--quiet', '-m', 'fixture source');
@@ -227,6 +275,13 @@ test('the locator CLI binds a committed NSH package to a real published Git cont
   assert.equal(verified.status, 0, verified.stderr);
   assert.equal(JSON.parse(verified.stdout).manifestSha256, fileSha256(result.manifest));
   assert.equal(JSON.parse(verified.stdout).artifact, path.join(release, result.artifact));
+  fs.mkdirSync(path.join(root, 'knowledge'));
+  fs.writeFileSync(path.join(root, 'knowledge', 'overview.md'), 'Locally generated report');
+  const withIgnoredReport = verify();
+  assert.equal(withIgnoredReport.status, 0, withIgnoredReport.stderr);
+  fs.appendFileSync(path.join(root, '.gitignore'), '# tracked drift\n');
+  assert.throws(() => verifyNshCandidate(root, 'macos', manifest.buildRun), /worktree must be clean/u);
+  git('restore', '.gitignore');
   git('tag', '--force', expectedTag, sourceHead);
   assert.throws(() => verifyNshCandidate(root, 'macos', manifest.buildRun), /tag does not point to HEAD/u);
 });

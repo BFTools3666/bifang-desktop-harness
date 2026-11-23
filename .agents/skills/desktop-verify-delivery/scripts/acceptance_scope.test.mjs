@@ -37,7 +37,7 @@ function fixture(t) {
   write("unchanged.txt", "An old feature.\n");
   const initial = commit("Initial feature");
   const releases = [];
-  const release = (version, channel, { legacy = false, legacyContext = false, annotated = false, abandoned = false } = {}) => {
+  const release = (version, channel, { legacy = false, contextSchema = 4, annotated = false, abandoned = false } = {}) => {
     const sourceHead = git("rev-parse", "HEAD");
     const tag = legacy ? `v${version}` : `v${version}-20261123`;
     releases.unshift({
@@ -50,14 +50,18 @@ function fixture(t) {
     if (!legacy) {
       mkdirSync(join(root, ".harness"), { recursive: true });
       write(".harness/release-context.json", canonicalBytes({
-        schemaVersion: legacyContext ? 3 : 4,
-        sourceHead, version, releaseDate: RELEASE_DATE, expectedTag: tag, defaultBranch: "main",
-        ...(legacyContext ? {} : { releaseChannel: channel }),
+        schemaVersion: contextSchema,
+        ...(contextSchema === 2 ? { gitPublication: "local" } : {}),
+        sourceHead, version, releaseDate: RELEASE_DATE, expectedTag: tag,
+        ...(contextSchema === 2 ? { remote: null } : {}),
+        defaultBranch: "main",
+        ...(contextSchema === 4 ? { releaseChannel: channel } : {}),
         releaseReview: {
           selection: "disabled", status: "Not run", scopeBase: sourceHead, sourceHead,
           scopeDiffSha256: "0".repeat(64), reviewedSourceCommit: null, checks: [], evidenceSummary: null,
           reason: "Optional review disabled.", remainingRisk: "Semantic issues may remain.",
         },
+        ...(contextSchema === 2 ? { candidateSelections: { macosSigningSelection: "not-applicable" } } : {}),
       }));
     }
     const releaseCommit = commit(`Release ${version}`);
@@ -70,7 +74,7 @@ function fixture(t) {
 
 test("scopes delta to nearest proven same-channel release and excludes unchanged features", (t) => {
   const item = fixture(t);
-  const previous = item.release("1.0.0", "release", { annotated: true, legacyContext: true });
+  const previous = item.release("1.0.0", "release", { annotated: true, contextSchema: 3 });
   item.write("beta-feature.txt", "Beta content subsequently shipped.\n");
   item.commit("New feature in beta");
   item.release("1.1.0", "beta");
@@ -101,6 +105,26 @@ test("legacy release with committed matching notes is a Release baseline", (t) =
   const previous = item.release("1.0.0", "release", { legacy: true });
   item.release("1.0.1", "release");
   assert.deepEqual(resolveAcceptanceScope(item.root).acceptanceScope.baseline, previous);
+});
+
+/** 升级后的首轮验收依然可从 schema 2 的正式标签界定本轮变化。 */
+test("schema_two_release_remains_a_release_baseline", (t) => {
+  const item = fixture(t);
+  const previous = item.release("1.0.0", "release", { contextSchema: 2 });
+  item.release("1.0.1", "release");
+  assert.deepEqual(resolveAcceptanceScope(item.root).acceptanceScope.baseline, previous);
+});
+
+/** 本机 Git 忽略子模块的偏好不能隐藏实际进入发布的 gitlink。 */
+test("changed_gitlink_is_listed_despite_local_diff_settings", (t) => {
+  const item = fixture(t);
+  item.release("1.0.0", "release");
+  item.git("config", "diff.ignoreSubmodules", "all");
+  mkdirSync(join(item.root, "embedded"));
+  item.git("update-index", "--add", "--cacheinfo", `160000,${item.initial},embedded`);
+  item.git("commit", "--quiet", "-m", "Add embedded revision");
+  item.release("1.0.1", "release");
+  assert.ok(resolveAcceptanceScope(item.root).changedPaths.includes("embedded"));
 });
 
 test("first release of a channel compares the full initial product tree", (t) => {
@@ -140,6 +164,7 @@ test("accepted candidate must bind the exact recomputed release range", (t) => {
     sourceCommit: published.commit,
     releaseContextSha256: acceptanceScope.releaseContextSha256,
     releaseChannel: "release",
+    expectedTag: published.tag,
     milestoneAcceptance: "accepted",
     acceptanceScope,
     functionalAcceptance: {
@@ -148,8 +173,8 @@ test("accepted candidate must bind the exact recomputed release range", (t) => {
     },
   };
   const path = join(item.directory, "manifest.json");
-  const invoke = () => spawnSync(process.execPath, [
-    SCRIPT, "verify", "--project-root", item.root, "--manifest", path,
+  const invoke = (...args) => spawnSync(process.execPath, [
+    SCRIPT, "verify", "--project-root", item.root, "--manifest", path, ...args,
   ], { encoding: "utf8" });
   writeFileSync(path, JSON.stringify(manifest));
   const verified = invoke();
@@ -162,8 +187,38 @@ test("accepted candidate must bind the exact recomputed release range", (t) => {
   assert.match(invoke().stderr, /acceptance scope does not match/u);
   writeFileSync(path, JSON.stringify({ ...manifest, releaseChannel: "beta" }));
   assert.match(invoke().stderr, /acceptance scope does not match/u);
+  for (const releaseChannel of [undefined, null]) {
+    writeFileSync(path, JSON.stringify({ ...manifest, releaseChannel }));
+    assert.match(invoke().stderr, /acceptance scope does not match/u);
+  }
+  writeFileSync(path, JSON.stringify({ ...manifest, releaseTag: "v0.0.0-20261123" }));
+  assert.match(invoke().stderr, /acceptance scope does not match/u);
+  for (const status of ["pending", "rejected"]) {
+    writeFileSync(path, JSON.stringify({ ...manifest, milestoneAcceptance: status }));
+    assert.equal(invoke().status, 0);
+    assert.match(invoke("--require-accepted").stderr, /must be accepted/u);
+  }
+  writeFileSync(path, JSON.stringify({ ...manifest, milestoneAcceptance: undefined }));
+  assert.match(invoke().stderr, /invalid acceptance status/u);
   writeFileSync(path, JSON.stringify({ ...manifest, functionalAcceptance: undefined }));
   assert.match(invoke().stderr, /missing valid functional acceptance evidence/u);
   writeFileSync(path, JSON.stringify({ ...manifest, functionalAcceptance: { status: "passed", scenarios: [] } }));
   assert.match(invoke().stderr, /missing valid functional acceptance evidence/u);
+});
+
+/** 省略渠道只兼容 schema 3 的 Release，显式空值仍阻断。 */
+test("schema_three_candidate_can_omit_release_channel", (t) => {
+  const item = fixture(t);
+  item.release("1.0.0", "release", { contextSchema: 3 });
+  const { acceptanceScope } = resolveAcceptanceScope(item.root);
+  const path = join(item.directory, "manifest.json");
+  const manifest = { ...acceptanceScope, acceptanceScope, milestoneAcceptance: "pending" };
+  const invoke = () => spawnSync(process.execPath, [SCRIPT, "verify", "--project-root", item.root,
+    "--manifest", path], { encoding: "utf8" });
+  delete manifest.releaseChannel;
+  writeFileSync(path, JSON.stringify(manifest));
+  const verified = invoke();
+  assert.equal(verified.status, 0, verified.stderr);
+  writeFileSync(path, JSON.stringify({ ...manifest, releaseChannel: null }));
+  assert.match(invoke().stderr, /acceptance scope does not match/u);
 });

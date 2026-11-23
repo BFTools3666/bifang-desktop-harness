@@ -4,7 +4,7 @@
 
 ## 2026-11-23 变化
 
-- `HARNESS-DESKTOP-FILES-AND-RELEASE-DELTA-ACCEPTANCE`（`required_version = pending`）：查找 NSH 桌面正式制品时可直接打开 `release/` 取 macOS 或 Windows 打包文件和校验和。候选功能验收按同渠道上一次发布到当前发布的差异执行。一次性测试套件退出后回收独占临时目录。见 [ADR-20261123-001](../adr/20261123_ADR.md)。
+- `HARNESS-DESKTOP-FILES-AND-RELEASE-DELTA-ACCEPTANCE`（`required_version = 202611231813`）：查找 NSH 桌面正式制品时可直接打开 `release/` 取 macOS 或 Windows 打包文件和校验和。候选功能验收按同渠道上一次发布到当前发布的差异执行。一次性测试套件退出后回收独占临时目录。见 [ADR-20261123-001](../adr/20261123_ADR.md)。
 
 - `HARNESS-CHANGE-TASK-ARTIFACT-CLEANUP`（`required_version = 202611231229`）：任务交付前清理本次生成且后续不再使用的一次性测试与构建中间产物。Rust 清理仅处理共享 Cargo target 中可确认由本次任务独占的精确路径。新下游的任务入口同样引用该规则。
 

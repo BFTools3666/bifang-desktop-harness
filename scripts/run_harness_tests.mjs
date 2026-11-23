@@ -52,6 +52,7 @@ export function main() {
     directory = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "harness-node-suite-"));
     owner = fs.lstatSync(directory, { bigint: true });
     const env = { ...process.env, TMPDIR: directory, TMP: directory, TEMP: directory };
+    console.error(`Harness 回归临时目录 ${directory}`);
     result = spawnSync(process.execPath, ["--test", ...tests], {
       cwd: ROOT, stdio: "inherit", env, windowsHide: true,
     });

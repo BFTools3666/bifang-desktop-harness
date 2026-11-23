@@ -60,6 +60,8 @@ for (const shouldFail of [false, true]) {
     const { result, temporary } = runFixture(t, body);
     assert.equal(result.status, shouldFail ? 1 : 0, result.stdout + result.stderr);
     assert.match(result.stdout, /fixture produces scratch and a visible result/u);
+    const announced = /^Harness 回归临时目录 (.+)$/mu.exec(result.stderr)?.[1];
+    assert.equal(announced && path.dirname(announced), temporary);
     assert.deepEqual(fs.readdirSync(temporary), ["existing-fixture"]);
   });
 }

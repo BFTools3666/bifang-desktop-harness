@@ -168,9 +168,9 @@ test("source_required_checkers_must_enter_rendered_candidate", (t) => {
   for (const relative of REQUIRED_MANAGED_CHECKERS) f.write(f.source, relative, `source:${relative}`);
   f.git(f.source, "add", ...REQUIRED_MANAGED_CHECKERS); f.git(f.source, "-c", "user.name=Harness Fixture", "-c", "user.email=harness-fixture@example.invalid", "commit", "-m", "add required checker"); f.sourceCommit = f.git(f.source, "rev-parse", "HEAD").stdout.trim();
   const missing = f.plan(2);
-  for (const relative of REQUIRED_MANAGED_CHECKERS) { assert.ok(missing.problems.some((item) => item.includes(relative) && item.includes("候选缺少源 Harness 必需 managed 路径"))); f.write(f.candidate, relative, `stale:${relative}`); }
+  for (const relative of REQUIRED_MANAGED_CHECKERS) { assert.ok(missing.problems.some((item) => item.includes(relative) && item.includes("候选缺少源 Harness 必需传播路径"))); f.write(f.candidate, relative, `stale:${relative}`); }
   const stale = f.plan(2);
-  for (const relative of REQUIRED_MANAGED_CHECKERS) { assert.ok(stale.problems.some((item) => item.includes(relative) && item.includes("必需 managed 路径内容不匹配"))); f.write(f.candidate, relative, `source:${relative}`); }
+  for (const relative of REQUIRED_MANAGED_CHECKERS) { assert.ok(stale.problems.some((item) => item.includes(relative) && item.includes("必需传播路径内容不匹配"))); f.write(f.candidate, relative, `source:${relative}`); }
   const present = f.plan(); for (const relative of REQUIRED_MANAGED_CHECKERS) assert.equal(f.classification(present, relative), "add");
   assert.equal(present.actions.some((item) => item.path === ".harness/release-context.json"), false);
 });

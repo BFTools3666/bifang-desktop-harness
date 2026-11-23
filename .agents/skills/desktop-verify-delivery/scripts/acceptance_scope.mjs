@@ -28,7 +28,17 @@ function readBlob(root, commit, path) {
 function historicalContext(root, commit) {
   const bytes = readBlob(root, commit, CONTEXT_RELATIVE_PATH);
   if (bytes === null) return null;
-  const context = validateContext(JSON.parse(UTF8.decode(bytes)));
+  const value = JSON.parse(UTF8.decode(bytes));
+  if (value?.schemaVersion === 2) {
+    // 旧 Git 发布模式及候选选择属于历史记录，验收基线只消费可用的发布身份与审查来源。
+    const { schemaVersion, gitPublication, remote, candidateSelections, ...identity } = value;
+    const validMode = (gitPublication === "local" && remote === null) ||
+      (gitPublication === "remote" && typeof remote === "string" && /^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(remote));
+    if (!validMode || !candidateSelections || typeof candidateSelections !== "object" || Array.isArray(candidateSelections) ||
+        !bytes.equals(canonicalBytes(value))) throw new Error(`invalid legacy release context at ${commit}`);
+    return validateContext({ ...identity, schemaVersion: 3 });
+  }
+  const context = validateContext(value);
   if (!bytes.equals(canonicalBytes(context))) throw new Error(`noncanonical release context at ${commit}`);
   return context;
 }
@@ -120,6 +130,7 @@ export function resolveAcceptanceScope(projectRoot) {
   const base = baseline?.commit ?? runGit(root, ["hash-object", "-t", "tree", "--stdin"]).stdout.trim();
   const changedPaths = UTF8.decode(runGit(root, [
     "diff", "--name-only", "-z", "--no-renames", "--no-ext-diff", "--no-textconv", "--no-relative",
+    "--ignore-submodules=none",
     base, current.sourceCommit, "--",
   ], { text: false }).stdout).split("\0").filter(Boolean);
   const acceptanceScope = {
@@ -133,17 +144,27 @@ export function resolveAcceptanceScope(projectRoot) {
     diffSha256: scopeDiffDigest(root, base, current.sourceCommit),
   };
   const releaseNotes = releases.filter(({ version }) => !baseline || compareOlder(baseline.version, version.slice(1)));
-  return { acceptanceScope, changedPaths, releaseNotes };
+  return { acceptanceScope, changedPaths, releaseNotes, releaseContextSchemaVersion: current.schemaVersion };
 }
 
 /** 复核已写入候选 manifest 的范围和顶层发布身份。 */
-export function verifyAcceptanceBinding(scope, manifest) {
+export function verifyAcceptanceBinding(scope, manifest, { releaseContextSchemaVersion, requireAccepted = false }) {
+  const channel = !Object.hasOwn(manifest, "releaseChannel") && releaseContextSchemaVersion === 3
+    ? "release" : manifest.releaseChannel;
+  // 本地 CLI/Tauri 依赖上下文摘要绑定，NSH 和矩阵清单另记录各自的顶层标签字段。
+  const tags = ["expectedTag", "releaseTag"].filter((key) => Object.hasOwn(manifest, key));
   if (manifest.version !== scope.version ||
       manifest.sourceCommit !== scope.sourceCommit ||
       manifest.releaseContextSha256 !== scope.releaseContextSha256 ||
-      (manifest.releaseChannel ?? "release") !== scope.releaseChannel ||
+      channel !== scope.releaseChannel || tags.some((key) => manifest[key] !== scope.releaseTag) ||
       !isDeepStrictEqual(manifest.acceptanceScope, scope)) {
     throw new Error("candidate manifest acceptance scope does not match the verified release range");
+  }
+  if (!["pending", "rejected", "accepted"].includes(manifest.milestoneAcceptance)) {
+    throw new Error("candidate manifest has an invalid acceptance status");
+  }
+  if (requireAccepted && manifest.milestoneAcceptance !== "accepted") {
+    throw new Error("candidate must be accepted for readiness verification");
   }
   if (manifest.milestoneAcceptance === "accepted") verifyFunctionalAcceptance(manifest);
 }
@@ -165,11 +186,11 @@ function verifyFunctionalAcceptance(manifest) {
 export function main(argv) {
   const [command, ...args] = argv;
   const { values } = parseArgs({
-    args, options: { "project-root": { type: "string" }, manifest: { type: "string" } },
+    args, options: { "project-root": { type: "string" }, manifest: { type: "string" }, "require-accepted": { type: "boolean" } },
   });
   if (!values["project-root"] || !["resolve", "verify"].includes(command) ||
-      (command === "verify") !== Boolean(values.manifest)) {
-    throw new Error("usage: acceptance_scope.mjs resolve --project-root <root> | verify --project-root <root> --manifest <candidate-manifest>");
+      (command === "verify") !== Boolean(values.manifest) || (values["require-accepted"] && command !== "verify")) {
+    throw new Error("usage: acceptance_scope.mjs resolve --project-root <root> | verify --project-root <root> --manifest <candidate-manifest> [--require-accepted]");
   }
   const result = resolveAcceptanceScope(values["project-root"]);
   if (command === "verify") {
@@ -177,7 +198,10 @@ export function main(argv) {
     const file = lstatSync(path);
     if (!file.isFile() || file.isSymbolicLink()) throw new Error("candidate manifest must be a regular file");
     const manifest = JSON.parse(UTF8.decode(readFileSync(path)));
-    verifyAcceptanceBinding(result.acceptanceScope, manifest);
+    verifyAcceptanceBinding(result.acceptanceScope, manifest, {
+      releaseContextSchemaVersion: result.releaseContextSchemaVersion,
+      requireAccepted: values["require-accepted"],
+    });
   }
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }

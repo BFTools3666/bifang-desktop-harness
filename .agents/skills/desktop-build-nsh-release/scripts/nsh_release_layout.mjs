@@ -190,9 +190,67 @@ function stagePublicFile(source, publicStage, name, sha256) {
   return file;
 }
 
+/** 保全上游 updater 识别的归档原名，展开目录清理前将更新文件纳入批次证据。 */
+function preserveUpdaterArchives(stage, appName, version, target) {
+  // NSH 0.6.1 的 platform_archive_name 逐字符将非 ASCII 字母数字替换为连字符。
+  const stem = appName.replace(/[^A-Za-z0-9]/gu, '-');
+  const prefix = `${stem}-${version}-${target}-`;
+  const architectures = target === 'macos' ? /^(?:aarch64|x86_64)\.tar\.gz$/u : /^[a-z0-9_]+\.zip$/u;
+  const packageDirectory = path.join(stage, 'package');
+  const updates = fs.readdirSync(packageDirectory).filter(name =>
+    name.startsWith(prefix) && architectures.test(name.slice(prefix.length)));
+  if (updates.length === 0) return;
+  const directory = path.join(stage, 'updates');
+  fs.mkdirSync(directory);
+  for (const name of updates) {
+    fs.renameSync(requireFile(stage, `package/${name}`), path.join(directory, name));
+  }
+}
+
 function removePublicationPath(file, remove) {
   try { remove(file); }
   catch (error) { process.stderr.write(`NSH release cleanup preserved ${file}: ${error.message}\n`); }
+}
+
+/** 只撤回仍与本批暂存文件指向同一普通文件的公开链接。 */
+function removeOwnedPublicationLink(source, destination) {
+  const staged = fs.lstatSync(source, {bigint: true});
+  const entry = fs.lstatSync(destination, {bigint: true, throwIfNoEntry: false});
+  if (staged.isFile() && entry?.isFile() && staged.dev === entry.dev && staged.ino === entry.ino) {
+    fs.unlinkSync(destination);
+  }
+}
+
+/** 恢复精确的中断批次。活跃进程、无法确认的归属和已提交制品皆予以保留。 */
+export function recoverNshDesktopRelease(root, target, buildRun) {
+  assertBuildRun(target, buildRun);
+  if (!desktopFormats.has(target)) throw new Error('only flat desktop publication can be recovered');
+  const release = path.join(fs.realpathSync(root), 'release');
+  const evidenceRoot = path.join(release, evidenceFolder);
+  const lock = path.join(evidenceRoot, '.' + buildRun + '.lock');
+  for (const directory of [release, evidenceRoot, lock]) requireDirectory(directory);
+  const owner = JSON.parse(fs.readFileSync(requireFile(lock, 'owner.json'), 'utf8'));
+  if (owner.buildRun !== buildRun || !Number.isSafeInteger(owner.pid) || owner.pid <= 0) {
+    throw new Error('invalid NSH publication owner');
+  }
+  try { process.kill(owner.pid, 0); }
+  catch (error) {
+    if (error.code !== 'ESRCH') throw error;
+    const committed = fs.lstatSync(path.join(evidenceRoot, buildRun), {throwIfNoEntry: false});
+    if (committed) locateNshCandidate(root, target, buildRun);
+    else {
+      const staged = path.join(lock, 'public');
+      if (fs.lstatSync(staged, {throwIfNoEntry: false})) {
+        requireDirectory(staged);
+        for (const name of publicNames(staged, buildRun)) {
+          removeOwnedPublicationLink(requireFile(staged, name), path.join(release, name));
+        }
+      }
+    }
+    fs.rmSync(lock, {recursive: true});
+    return {buildRun, status: committed ? 'committed' : 'rolled-back'};
+  }
+  throw new Error('NSH publication owner is still active');
 }
 
 /** 同盘硬链接独占落位，证据目录最后原子提交。失败只撤回此次已落位文件。 */
@@ -211,14 +269,19 @@ export function publishNshDesktopRelease(release, stage, manifest, appName) {
   const legacyDirectory = path.join(release, buildRun);
   const lock = path.join(evidenceRoot, '.' + buildRun + '.lock');
   fs.mkdirSync(lock);
-  let publicStage;
+  const publicStage = path.join(lock, 'public');
   const linked = [];
+  let preserveLock = false;
   try {
     if (publicNames(release, buildRun).length ||
         fs.lstatSync(committed, {throwIfNoEntry: false}) || fs.lstatSync(legacyDirectory, {throwIfNoEntry: false})) {
       throw new Error('NSH release buildRun already exists');
     }
-    publicStage = fs.mkdtempSync(path.join(release, '.nsh-public-'));
+    fs.writeFileSync(path.join(lock, 'owner.json'), JSON.stringify({buildRun, pid: process.pid}), {flag: 'wx'});
+    fs.mkdirSync(publicStage);
+    const stagedEvidence = path.join(lock, 'evidence');
+    fs.renameSync(stage, stagedEvidence);
+    stage = stagedEvidence;
     const packageDirectory = path.join(stage, 'package');
     requireDirectory(packageDirectory);
     const stem = `${clipFilenamePrefix(appName, 96)}_${clipFilenamePrefix(version, 48)}_${buildRun}`;
@@ -234,6 +297,7 @@ export function publishNshDesktopRelease(release, stage, manifest, appName) {
         deliveryFiles.push(stagePublicFile(installer, publicStage, stem + '-setup.exe'));
       }
     }
+    preserveUpdaterArchives(stage, appName, version, target);
     fs.rmSync(packageDirectory, {recursive: true});
     Object.assign(manifest, {
       releaseLayout: 'flat-desktop',
@@ -258,16 +322,15 @@ export function publishNshDesktopRelease(release, stage, manifest, appName) {
     return {output: release, manifest: path.join(committed, manifestName), ...manifest};
   } catch (error) {
     for (const {source, destination} of linked.reverse()) {
-      removePublicationPath(destination, file => {
-        const entry = fs.lstatSync(file, {throwIfNoEntry: false});
-        const staged = fs.lstatSync(source);
-        if (entry?.isFile() && staged.dev === entry.dev && staged.ino === entry.ino) fs.unlinkSync(file);
-      });
+      try { removeOwnedPublicationLink(source, destination); }
+      catch (cleanupError) {
+        preserveLock = true;
+        process.stderr.write(`NSH release cleanup preserved ${lock}: ${cleanupError.message}\n`);
+      }
     }
     throw error;
   } finally {
-    if (publicStage) removePublicationPath(publicStage, file => fs.rmSync(file, {recursive: true, force: true}));
-    removePublicationPath(lock, file => fs.rmdirSync(file));
+    if (!preserveLock) removePublicationPath(lock, file => fs.rmSync(file, {recursive: true}));
   }
 }
 
@@ -319,12 +382,12 @@ export function verifyNshCandidate(root, target, buildRun) {
   for (const key of ['version', 'sourceCommit', 'expectedTag', 'releaseContextSha256', 'releaseReview']) {
     if (!isDeepStrictEqual(manifest[key], context[key])) throw new Error(`NSH candidate release context mismatch: ${key}`);
   }
-  const releaseChannel = manifest.releaseChannel ?? (context.schemaVersion === 3 ? 'release' : undefined);
+  const releaseChannel = !Object.hasOwn(manifest, 'releaseChannel') && context.schemaVersion === 3
+    ? 'release' : manifest.releaseChannel;
   if (releaseChannel !== context.releaseChannel) throw new Error('NSH candidate release context mismatch: releaseChannel');
-  // 快照含构建宿主的路径与文件模式，跨宿主仍复核已发布 Git 与制品字节。
-  if (!/^[0-9a-f]{64}$/u.test(manifest.sourceSnapshot) ||
-      (manifest.host === process.platform && manifest.sourceSnapshot !== sourceSnapshot(fs.realpathSync(root)))) {
-    throw new Error('NSH candidate source snapshot changed');
+  // 工作区快照用于构建期间的漂移监测。候选可转移，以已发布源码和最终证据绑定。
+  if (!/^[0-9a-f]{64}$/u.test(manifest.sourceSnapshot)) {
+    throw new Error('invalid NSH candidate build source snapshot');
   }
   if (manifest.releaseNotesVersion !== `v${manifest.version}` ||
       manifest.reviewSelection !== context.releaseReview.selection || manifest.reviewStatus !== context.releaseReview.status ||
@@ -338,12 +401,18 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
   try {
     const {values} = parseArgs({options: {
       root: {type: 'string', default: '.'}, target: {type: 'string'}, 'build-run': {type: 'string'},
+      'recover-interrupted': {type: 'boolean'},
     }});
-    const {artifact, artifactDirectory, evidenceDirectory, manifestFile, manifestSha256, deliveryFiles} =
-      verifyNshCandidate(values.root, values.target, values['build-run']);
-    process.stdout.write(JSON.stringify({
-      artifact, artifactDirectory, evidenceDirectory, manifest: manifestFile, manifestSha256, deliveryFiles,
-    }) + '\n');
+    if (values['recover-interrupted']) {
+      const result = recoverNshDesktopRelease(values.root, values.target, values['build-run']);
+      process.stdout.write(JSON.stringify(result) + '\n');
+    } else {
+      const {artifact, artifactDirectory, evidenceDirectory, manifestFile, manifestSha256, deliveryFiles} =
+        verifyNshCandidate(values.root, values.target, values['build-run']);
+      process.stdout.write(JSON.stringify({
+        artifact, artifactDirectory, evidenceDirectory, manifest: manifestFile, manifestSha256, deliveryFiles,
+      }) + '\n');
+    }
   } catch (error) {
     process.stderr.write(`NSH candidate: ${error.message}\n`);
     process.exitCode = 1;

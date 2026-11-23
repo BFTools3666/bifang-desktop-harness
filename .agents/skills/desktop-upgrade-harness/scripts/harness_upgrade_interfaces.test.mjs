@@ -7,6 +7,7 @@ import test from "node:test";
 import { inapplicableGuiCandidate, parseInterfaceSelection } from "./harness_upgrade_interfaces.mjs";
 import { snapshotFile } from "./harness_upgrade_safety.mjs";
 import { HarnessUpgradeFixture, MANAGED } from "./harness_upgrade_test_support.mjs";
+import { REQUIRED_NSH_SOURCE_PATHS } from "./harness_upgrade_policy.mjs";
 
 const METADATA = "[workspace.metadata.agent-first-harness]\n";
 const CURRENT_PIN = '[workspace.dependencies]\nnsh-core = { version = "0.6.1", git = "https://github.com/longbridge/nsh.git", rev = "2f51d8611677c8a6bbad937b39756e8d0cc45350" }\n';
@@ -89,6 +90,10 @@ test("gui_candidate_selection_excludes_the_other_framework_and_non_gui_projects"
 /** 官方 NSH Skill 的安装路径与适配器遵守相同的接口裁剪。 */
 test("upgrade_plans_route_installed_official_skills_only_to_nsh_targets", (t) => {
   const f = new HarnessUpgradeFixture(t);
+  for (const relative of REQUIRED_NSH_SOURCE_PATHS) f.write(f.source, relative, `current:${relative}\n`);
+  f.git(f.source, "add", ...REQUIRED_NSH_SOURCE_PATHS);
+  f.git(f.source, "-c", "user.name=Harness Fixture", "-c", "user.email=harness-fixture@example.invalid", "commit", "-m", "Add NSH release helpers");
+  f.sourceCommit = f.git(f.source, "rev-parse", "HEAD").stdout.trim();
   const vendorEntries = ["nsh", "nsh-design-guides"].map(name => ".agents/skills/" + name + "/SKILL.md");
   for (const entry of vendorEntries) f.write(f.candidate, entry, "official NSH skill\n");
   f.write(f.target, "Cargo.toml", METADATA + 'interfaces = ["cli"]\n');
@@ -96,6 +101,7 @@ test("upgrade_plans_route_installed_official_skills_only_to_nsh_targets", (t) =>
   for (const entry of vendorEntries) {
     assert.ok(cliPlan.problems.some(problem => problem.includes(entry)), entry);
   }
+  assert.ok(REQUIRED_NSH_SOURCE_PATHS.every(relative => !cliPlan.problems.some(problem => problem.includes(relative))));
   const cargo = '[workspace]\nmembers = ["sample_tool_nsh"]\n' + CURRENT_PIN + METADATA
     + 'project-id = "sample_tool"\ninterfaces = ["nsh"]\nnsh-targets = ["mobile"]\ntarget-platforms = ["ios"]\n';
   f.write(f.target, "Cargo.toml", cargo);
@@ -103,6 +109,16 @@ test("upgrade_plans_route_installed_official_skills_only_to_nsh_targets", (t) =>
   f.write(f.target, "sample_tool_nsh/src/lib.rs", 'pub fn fixture() {}\n');
   f.write(f.target, "sample_tool_nsh/nsh.json", '{"rust":"."}\n');
   f.write(f.target, "sample_tool_nsh/App.tsx", 'import { mount } from "nsh";\nmount(() => null);\n');
+  const missing = f.plan(2);
+  for (const relative of REQUIRED_NSH_SOURCE_PATHS) {
+    assert.ok(missing.problems.some(problem => problem.includes("候选缺少") && problem.includes(relative)));
+    f.write(f.candidate, relative, `stale:${relative}\n`);
+  }
+  const stale = f.plan(2);
+  for (const relative of REQUIRED_NSH_SOURCE_PATHS) {
+    assert.ok(stale.problems.some(problem => problem.includes("内容不匹配") && problem.includes(relative)));
+    f.write(f.candidate, relative, `current:${relative}\n`);
+  }
   const nshPlan = f.plan();
   for (const entry of vendorEntries) assert.equal(f.classification(nshPlan, entry), "add");
 

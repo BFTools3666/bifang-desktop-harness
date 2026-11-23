@@ -32,6 +32,11 @@ export const REQUIRED_MANAGED_SOURCE_PATHS = [
   ".agents/skills/desktop-configure-git-commits/scripts/configure_git_commit.test.mjs",
   ".agents/skills/desktop-prepare-release/scripts/release_git.mjs",
   ".agents/skills/desktop-prepare-release/scripts/release_git.test.mjs",
+  ".agents/skills/desktop-prepare-release/scripts/harness_version_clock.mjs",
+  ".agents/skills/desktop-prepare-release/scripts/release_context.mjs",
+  ".agents/skills/desktop-prepare-release/scripts/release_notes.mjs",
+  ".agents/skills/desktop-verify-delivery/scripts/acceptance_scope.mjs",
+  ".agents/skills/desktop-verify-delivery/scripts/acceptance_scope.test.mjs",
   ".agents/skills/desktop-handoff-project/SKILL.md",
   ".agents/skills/desktop-handoff-project/agents/openai.yaml",
   ".agents/skills/desktop-inspect-release-notes/SKILL.md",
@@ -81,6 +86,14 @@ export const REQUIRED_MANAGED_SOURCE_PATHS = [
   ".agents/skills/desktop-switch-post-release-action/agents/openai.yaml",
   ".agents/skills/desktop-switch-post-release-action/scripts/post_release_action.mjs",
   ".agents/skills/desktop-switch-post-release-action/scripts/post_release_action.test.mjs",
+];
+
+/** NSH 发布模块只随采用 NSH 的下游候选传播，并与上游版本保持一致。 */
+export const REQUIRED_NSH_SOURCE_PATHS = [
+  ".agents/skills/desktop-build-nsh-release/scripts/build_nsh_release.mjs",
+  ".agents/skills/desktop-build-nsh-release/scripts/nsh_portable_entry.mjs",
+  ".agents/skills/desktop-build-nsh-release/scripts/nsh_release_layout.mjs",
+  ".agents/skills/desktop-build-nsh-release/scripts/nsh_release_layout.test.mjs",
 ];
 
 export const MINIMUM_OWNERSHIP_RULES = new Map([

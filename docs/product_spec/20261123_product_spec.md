@@ -10,7 +10,7 @@
 
 ## 当前范围确认
 
-- `HARNESS-DESKTOP-FILES-AND-RELEASE-DELTA-ACCEPTANCE`（`required_version = pending`）：NSH 的 macOS 和 Windows 正式制品、摘要直放 `release/`，按目标和 buildRun 绑定证据。功能验收覆盖同渠道上一发布至当前发布之间的变化及直接影响，首发覆盖已批准的初始交付。见 [ADR-20261123-001](../adr/20261123_ADR.md)。
+- `HARNESS-DESKTOP-FILES-AND-RELEASE-DELTA-ACCEPTANCE`（`required_version = 202611231813`）：NSH 的 macOS 和 Windows 正式制品、摘要直放 `release/`，按目标和 buildRun 绑定证据。功能验收覆盖同渠道上一发布至当前发布之间的变化及直接影响，首发覆盖已批准的初始交付。见 [ADR-20261123-001](../adr/20261123_ADR.md)。
 
 - `HARNESS-RETIRE-TUI-GPUI-LEGACY`（`required_version = 202611121850`）：CLI、MCP 和 DESKTOP 可组合，DESKTOP 固定使用 Tauri 2。NSH 独立选择 desktop、mobile、web、tui，全部采用正式运行时固定提交与匹配 CLI。官方 NSH TUI 是子目标，不恢复独立 TUI。创建和升级候选排除退役接口工程资产，已有不受支持的配置须在原项目迁移。见 [ADR-20261112-002](../adr/20261123_ADR.md)。
 
@@ -509,7 +509,7 @@
 
 ## 当前版本与未来候选
 
-- 当前版本：`202611231229`；上海时区格式 `YYYYMMDDHHMM`，唯一事实来源为根 `Version.md`；时间版本起始值 `202607301002`。该值由本次正式发布按当前上海时间取号；登记分支合并到本地默认主分支、tag 创建并精确复读成功后才是 `Released`。下游发布后按已确认的 `post_release_action` 执行并检测所选路径；Harness 源只执行用户当次授权的后续动作。
+- 当前版本：`202611231813`；上海时区格式 `YYYYMMDDHHMM`，唯一事实来源为根 `Version.md`；时间版本起始值 `202607301002`。该值由本次正式发布按当前上海时间取号；登记分支合并到本地默认主分支、tag 创建并精确复读成功后才是 `Released`。下游发布后按已确认的 `post_release_action` 执行并检测所选路径；Harness 源只执行用户当次授权的后续动作。
 - 变更标识：`HARNESS-CHANGE-RELEASE-TIME-AND-REQUIREMENT-FIRST-VERSIONING`；`required_version = 202609281202`。本次规则变化已在 Harness 正式发布开始时物化时间版本；开发阶段未改动数值。
 - 历史变更标识：`HARNESS-FEAT-OPTIONAL-REMOTE-GIT-RELEASE`；`required_version = 202609141917`，此前已发布。本次唯一 Git 发布决定取代其双模式发布及自动远端副作用；远端推送由发布后的独立用户请求触发。
 - 变更标识：`HARNESS-FEAT-MANAGED-MULTI-REMOTE-PUBLISH`；`required_version = 202609141917`，已由此前 Harness 时间版本发布物化。受管 `publish` 已支持用户显式授权的补充远端，唯一主远端与补充远端边界保持不变；该命令仍不创建 tag 或清理资源。
