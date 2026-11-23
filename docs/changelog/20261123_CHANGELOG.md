@@ -4,7 +4,7 @@
 
 ## 2026-11-23 变化
 
-- `HARNESS-CHANGE-TASK-ARTIFACT-CLEANUP`（所需 Harness 版本 `pending`，等待发布）：任务交付前清理本次生成且后续不再使用的一次性测试与构建中间产物。Rust 清理仅处理共享 Cargo target 中可确认由本次任务独占的精确路径。新下游的任务入口同样引用该规则。
+- `HARNESS-CHANGE-TASK-ARTIFACT-CLEANUP`（`required_version = 202611231229`）：任务交付前清理本次生成且后续不再使用的一次性测试与构建中间产物。Rust 清理仅处理共享 Cargo target 中可确认由本次任务独占的精确路径。新下游的任务入口同样引用该规则。
 
 ## 2026-11-22 变化
 
