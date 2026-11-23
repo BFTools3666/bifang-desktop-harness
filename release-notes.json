@@ -3,6 +3,17 @@
   "releases": [
     {
       "releaseDate": "2026-11-23",
+      "version": "v202611232148",
+      "featureOptimizations": [],
+      "bugFixes": [
+        {
+          "zh-CN": "维护 Harness 或开发新建 NSH 工程时，请在测试命令中指定受影响的文件或用例。省略选择器会在启动测试前退出，运行全量回归须提供本次人工授权引用。既有 NSH 工程升级后可按运行时说明迁移测试别名。",
+          "en-US": "When maintaining Harness or developing a newly generated NSH project, select the affected test files or cases. Commands without selectors exit before running tests. A full regression run requires a reference to current human authorization. Existing NSH projects can migrate their test scripts after upgrading by following the runtime guide."
+        }
+      ]
+    },
+    {
+      "releaseDate": "2026-11-23",
       "version": "v202611231813",
       "featureOptimizations": [
         {
@@ -188,30 +199,6 @@
         {
           "zh-CN": "升级候选会拒绝上游专用入口与退役资产。显式使用 GPUI 的旧项目须先单独处理，再升级到本版。",
           "en-US": "Upgrade candidates reject upstream-only entry points and retired assets. Existing projects that explicitly use GPUI require separate handling before upgrading to this version."
-        }
-      ]
-    },
-    {
-      "releaseDate": "2026-11-08",
-      "version": "v202611082001",
-      "featureOptimizations": [
-        {
-          "zh-CN": "NSH 桌面模板的设置、关于和赞助页面采用统一布局与双语状态反馈。",
-          "en-US": "NSH desktop templates now use consistent layouts and bilingual state feedback for Settings, About, and Sponsor pages."
-        },
-        {
-          "zh-CN": "NSH 移动模板加入固定底部导航、安全区域留白与状态栏外观同步。",
-          "en-US": "NSH mobile templates now provide fixed bottom navigation, safe area spacing, and matching status bar appearance."
-        }
-      ],
-      "bugFixes": [
-        {
-          "zh-CN": "暂停与正式工具链不兼容的 TUI 预览目标，并统一 NSH 0.4.0 CLI 与 Cargo 依赖。",
-          "en-US": "Paused the TUI preview target that conflicted with the formal toolchain and aligned NSH 0.4.0 CLI and Cargo dependencies."
-        },
-        {
-          "zh-CN": "补齐移动候选的 Device Hub 与模拟器交互检查，避免误判无法验证。",
-          "en-US": "Added Device Hub and simulator interaction checks for mobile candidates to avoid incorrectly marking them untestable."
         }
       ]
     }

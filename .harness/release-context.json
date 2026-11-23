@@ -1,26 +1,20 @@
 {
   "schemaVersion": 3,
-  "sourceHead": "d96154389330b8bf740d6d03c36aa77ca68ab78a",
-  "version": "202611231813",
+  "sourceHead": "819077077937a27c7bc66ffbc6ed96b9675b03bf",
+  "version": "202611232148",
   "releaseDate": "2026-11-23",
-  "expectedTag": "v202611231813-20261123",
+  "expectedTag": "v202611232148-20261123",
   "defaultBranch": "master",
   "releaseReview": {
-    "selection": "enabled",
-    "status": "passed",
-    "scopeBase": "83174ad50fc51718b94af705a8729d5461ed2b66",
-    "sourceHead": "d96154389330b8bf740d6d03c36aa77ca68ab78a",
-    "scopeDiffSha256": "1c2f8cbecf5f66d8c3376ccd9c784b50818bff196ed932fc006924503a6a8596",
-    "reviewedSourceCommit": "d96154389330b8bf740d6d03c36aa77ca68ab78a",
-    "checks": [
-      "behavior-correctness",
-      "core-adapter-boundary",
-      "external-contracts",
-      "responsibility-and-size",
-      "temporary-markers"
-    ],
-    "evidenceSummary": "按上一正式发布至本次源码的差异复审 NSH 平铺制品与中断恢复、历史验收基线与状态绑定、接口裁剪和升级传播。核对行为、core 与接口边界、外部契约、职责和规模、临时标记。Harness 发布审查和硬门禁通过，37 条非阻断提示不涉及新阻断。全量 Node 回归 1263 项通过、17 项条件跳过，最终更新归档与恢复专项复核通过，中性 Rust 资产格式、Clippy 与 7 项测试通过。",
-    "reason": null,
-    "remainingRisk": null
+    "selection": "disabled",
+    "status": "Not run",
+    "scopeBase": "25be68a4f6e661af54880413562a1c37a1fd59af",
+    "sourceHead": "819077077937a27c7bc66ffbc6ed96b9675b03bf",
+    "scopeDiffSha256": "aea63ff5e6431040faaad9ea10be837a7327ea858be46e0adae458bf18869b90",
+    "reviewedSourceCommit": null,
+    "checks": [],
+    "evidenceSummary": null,
+    "reason": "沿用负责人要求的当前验收范围，仅执行门禁、生成和传播专项及发布硬校验。",
+    "remainingRisk": "未运行系统级全量回归及其他平台产品验收。"
   }
 }
