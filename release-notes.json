@@ -2,6 +2,17 @@
   "schemaVersion": 2,
   "releases": [
     {
+      "releaseDate": "2026-11-23",
+      "version": "v202611231229",
+      "featureOptimizations": [
+        {
+          "zh-CN": "任务交付前会清理本次生成且已不再使用的临时测试文件和构建中间产物。最终安装包、验收记录和共享 Cargo 缓存继续保留。这项规则也会随新建项目的任务入口下发。",
+          "en-US": "Before handing off a task, clean up temporary test files and build intermediates created by that task when they are no longer in use. Keep final installers, verification records, and shared Cargo caches. New projects include this rule in their task instructions."
+        }
+      ],
+      "bugFixes": []
+    },
+    {
       "releaseDate": "2026-11-22",
       "version": "v202611222032",
       "featureOptimizations": [
@@ -213,30 +224,6 @@
         {
           "zh-CN": "修复无本机正式候选时仍可选择本地打包、导致发布后路由为空的问题。",
           "en-US": "Prevent local packaging from being selected when the current host has no supported release target."
-        }
-      ]
-    },
-    {
-      "releaseDate": "2026-11-07",
-      "version": "v202611071243",
-      "featureOptimizations": [
-        {
-          "zh-CN": "同步 NSH 桌面能力问询、Skill 与设计标准，明确不可用能力由限制规则关闭。",
-          "en-US": "Align NSH desktop capability questions, the Skill, and design guidance, with unavailable capabilities disabled by the capability rules."
-        }
-      ],
-      "bugFixes": [
-        {
-          "zh-CN": "深链接先在原生宿主排队，再由 TSX 主动领取；关窗后转交未领取链接，避免启动阶段或窗口关闭时丢失。",
-          "en-US": "Queue deep links in the native host for the TSX UI to claim and transfer unclaimed links after a window closes, preventing lost links during startup and window closure."
-        },
-        {
-          "zh-CN": "macOS 单实例 IPC 重试复用请求 ID 并去重，避免同一深链接重复交付。",
-          "en-US": "Reuse and deduplicate macOS single-instance IPC request IDs across retries so the same deep link is delivered only once."
-        },
-        {
-          "zh-CN": "修复 Linux 托盘关窗回调的借用冲突，并以原子替换注册深链接入口，避免覆盖符号链接指向的文件。",
-          "en-US": "Fix Linux tray close-callback borrowing and atomically replace the deep-link desktop entry to avoid overwriting a symlink target."
         }
       ]
     }

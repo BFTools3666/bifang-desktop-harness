@@ -1,17 +1,17 @@
 {
   "schemaVersion": 3,
-  "sourceHead": "dad8ff002ace5a08333055d210cbc55e05a44d76",
-  "version": "202611222032",
-  "releaseDate": "2026-11-22",
-  "expectedTag": "v202611222032-20261122",
+  "sourceHead": "f221e39bf1fad325ae3ec1c155f67b122432e723",
+  "version": "202611231229",
+  "releaseDate": "2026-11-23",
+  "expectedTag": "v202611231229-20261123",
   "defaultBranch": "master",
   "releaseReview": {
     "selection": "enabled",
     "status": "passed",
-    "scopeBase": "e6c65965f72302bc49e7f60deda0592d1a8bd4b0",
-    "sourceHead": "dad8ff002ace5a08333055d210cbc55e05a44d76",
-    "scopeDiffSha256": "094a183cf74a46c9021f154e654215a602212b6476d025511cfbc48f4a81f06c",
-    "reviewedSourceCommit": "dad8ff002ace5a08333055d210cbc55e05a44d76",
+    "scopeBase": "a3473fbdaead7a76fab9d85f7c94c420b9c50171",
+    "sourceHead": "f221e39bf1fad325ae3ec1c155f67b122432e723",
+    "scopeDiffSha256": "3c6ea312c5763064daebf0bb8279e1e3e96297304212ae5ad00f50f77ef11710",
+    "reviewedSourceCommit": "f221e39bf1fad325ae3ec1c155f67b122432e723",
     "checks": [
       "behavior-correctness",
       "core-adapter-boundary",
@@ -19,7 +19,7 @@
       "responsibility-and-size",
       "temporary-markers"
     ],
-    "evidenceSummary": "已核对 NSH 0.6.1 官方标签、两套 Skills、直接依赖、初始化和升级传播，以及实际设备的原生 Rust 目标和用户级 Cargo 配置。macOS arm64 全量 Node 回归 1240 项通过、17 项按条件跳过，Rust 中性 CLI 7 项通过。只用用户级 Cargo 配置、不继承目录变量的 NSH 真实试包通过 Rust、渲染、架构、签名和摘要检查。知识图自动检查通过。应用交互和其他系统运行未取证。已复核 37 条非阻断提示。",
+    "evidenceSummary": "已复核新建下游的清理规则传播、共享 Cargo 目标与交付证据保留边界、模块职责、外部契约及临时标记。改动限于规则、生成的入口文案和配套测试。全量 Node 回归 1240 项通过、17 项按条件跳过，任务清理规则生成专项测试通过。已复核 37 条既有非阻断提示，其中临时标记属于验证器测试夹具。",
     "reason": null,
     "remainingRisk": null
   }
