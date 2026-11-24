@@ -11,9 +11,11 @@ test('installer_names_preserve_display_identity_and_normalize_architecture', () 
     const label = ['x86_64', 'x64'].includes(arch) ? 'x64' : 'arm64';
     for (const [platform, suffix] of [['windows', 'Windows.exe'], ['macos', 'macOS.dmg']]) {
       assert.equal(installerArtifactName({ productName: '测试应用 Desktop', version: '1.4.4', platform, arch }),
-        `测试应用 Desktop_1.4.4_${label}-setup for ${suffix}`);
+        `测试应用 Desktop_1.4.4_${label}_setup for ${suffix}`);
     }
   }
+  assert.equal(installerArtifactName({productName: '测试应用', version: '1.4.4', platform: 'macos', arch: 'universal'}),
+    '测试应用_1.4.4_universal_setup for macOS.dmg');
 });
 
 /** 拒绝会生成目录、非法 Windows 文件名、歧义版本或未知目标的输入。 */
@@ -28,6 +30,7 @@ test('invalid_installer_identity_version_and_target_fail_closed', () => {
   for (const target of [{ platform: 'linux' }, { arch: 'unknown' }, { platform: undefined }, { arch: undefined }]) {
     assert.throws(() => installerArtifactName({ ...valid, ...target }), /unsupported/);
   }
+  assert.throws(() => installerArtifactName({...valid, productName: '示'.repeat(80)}), /filesystem limit/u);
 });
 
 /** argv 中的中文和空格完整往返；缺失参数时退出失败且不输出名称。 */
@@ -35,7 +38,7 @@ test('cli_returns_exact_json_filename_and_rejects_missing_arguments', () => {
   const script = fileURLToPath(new URL('./installer_artifact_name.mjs', import.meta.url));
   const result = spawnSync(process.execPath, [script, '--product-name', '测试应用 Desktop', '--version', '1.4.4', '--platform', 'windows', '--arch', 'x86_64'], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(JSON.parse(result.stdout), { filename: '测试应用 Desktop_1.4.4_x64-setup for Windows.exe' });
+  assert.deepEqual(JSON.parse(result.stdout), { filename: '测试应用 Desktop_1.4.4_x64_setup for Windows.exe' });
   const missing = spawnSync(process.execPath, [script], { encoding: 'utf8' });
   assert.equal(missing.status, 1);
   assert.equal(missing.stdout, '');

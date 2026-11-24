@@ -99,10 +99,16 @@ function releaseAtTag(root, tagged) {
 /** 从当前已发布 HEAD 解析范围，不依赖语义审查开关或工作树推测。 */
 export function resolveAcceptanceScope(projectRoot) {
   const root = resolveRoot(projectRoot);
+  const current = checkContext({ projectRoot: root }, { published: true });
+  return resolveReleaseRange(root, current);
+}
+
+/** CI 由远端渠道专用门禁验证上下文后，复用完全相同的发布历史解析。 */
+export function resolveReleaseRange(projectRoot, current) {
+  const root = resolveRoot(projectRoot);
   if (runGit(root, ["rev-parse", "--is-shallow-repository"]).stdout.trim() !== "false") {
     throw new Error("acceptance scope requires non-shallow release history");
   }
-  const current = checkContext({ projectRoot: root }, { published: true });
   const bytes = readBlob(root, current.sourceCommit, NOTES_PATH);
   if (!bytes) throw new Error("current release must track release-notes.json");
   const { releases } = parseDocumentBytes(bytes);

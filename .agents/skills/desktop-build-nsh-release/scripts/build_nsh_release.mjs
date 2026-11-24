@@ -18,6 +18,8 @@ import {
 } from '../../desktop-implement-change/scripts/nsh_runtime_policy.mjs';
 import { iosPackagingIdentity,restoreIosDisplayIdentity } from './nsh_ios_identity.mjs';
 import { prepareNshPortableEntry } from './nsh_portable_entry.mjs';
+import { prepareNshDesktopInstaller } from './nsh_desktop_installer.mjs';
+import { loadRegressionPlan, runRegressionPlan } from '../../desktop-verify-delivery/scripts/regression_scope.mjs';
 import { fileSha256, inventory, publishNshDesktopRelease, sourceSnapshot, usesFlatNshRelease } from './nsh_release_layout.mjs';
 
 import { addNshIosBindgenSdk, resolveNshPackageOptions } from './nsh_package_options.mjs';
@@ -164,19 +166,21 @@ export function packageFacts(root,metadata,target) {
   return { gui: path.dirname(pkg.manifest_path), version: pkg.version, policy: facts };
 }
 /** 构建前解析候选选择，测试和封包不掺入运行验收。 */
-export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,...packageInput}) {
+export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,regressionPlan,...packageInput}) {
   target = resolveNshPackageTarget(target);
   root=fs.realpathSync(root);
   if(!['local','candidate'].includes(mode)) throw new Error('mode must be local or candidate');
   if(mode==='candidate' && !['enabled','disabled'].includes(e2e)) throw new Error('candidate requires explicit e2e');
   if(mode==='candidate' && e2e==='disabled' && [e2eReason,e2eRisk].some(value=>typeof value!=='string' || !value.trim())) throw new Error('disabled E2E requires reason and remaining risk');
   if(readDependencyLockPolicy(root)==='tracked') throw new Error('NSH generated runtime workspace does not propagate tracked locks; packaging is blocked until a frozen resolution route is implemented');
+  if (typeof regressionPlan !== 'string' || !regressionPlan.trim()) throw new Error('explicit --regression-plan is required; unfiltered regression is forbidden');
   const context = mode === 'candidate' ? checkContext({projectRoot:root},{published:true}) : null;
   const releaseChannel = context?.releaseChannel ?? 'dev';
   const testEnv = { ...releaseNoteBuildInputs(null, null).env, HARNESS_RELEASE_CHANNEL: releaseChannel };
   delete testEnv.NSH_KEYSTORE_PASSWORD;
   const metadata=JSON.parse(run('cargo',['metadata','--offline','--no-deps','--format-version','1'],root,testEnv,true));
   const facts=packageFacts(root,metadata,target);
+  const plan = loadRegressionPlan(root, regressionPlan, {local: mode === 'local'});
   assertNshDefaultCargoBuildTarget(facts.gui, testEnv);
   const targetDirectory = resolveCargoDeviceTarget({ projectRoot: root, metadata, environment: testEnv });
   const nshTestEnv = nshCargoEnvironment(targetDirectory, testEnv);
@@ -216,18 +220,11 @@ export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,
   const before = sourceSnapshot(root);
   const batch = `nsh-${target}-${randomUUID()}`;
   const flatRelease = usesFlatNshRelease(mode, target);
-  const parent = safeOutputPath(root, path.join(root, mode === 'candidate' ? 'release' : '.nsh/packages'));
+  const parent = safeOutputPath(root, path.join(root, mode === 'candidate' || flatRelease ? 'release' : '.nsh/packages'));
   fs.mkdirSync(parent, {recursive:true});
   const stage = fs.mkdtempSync(path.join(parent, '.nsh-package-'));
   try {
-    const testArgs = ['test','--workspace','--all-targets','--all-features','--target','host-tuple'];
-    const tests = run('cargo', [...testArgs,'--','--list'], root, testEnv, true);
-    if (!/^.+: test$/mu.test(tests)) throw new Error('nonempty workspace tests required');
-    run('cargo', testArgs, root, testEnv);
-    run('nsh', ['check'], facts.gui, nshTestEnv);
-    const report = path.join(stage, 'nsh-tests.xml');
-    run('nsh', ['test', '.', '--junit', report], facts.gui, nshTestEnv);
-    const renderTestCases = passingNshCases(fs.readFileSync(report, 'utf8'));
+    const regression = runRegressionPlan(root, plan, {directory: stage, env: nshTestEnv, run});
     if (sourceSnapshot(root) !== before) throw new Error('source changed during tests');
 
     const {env, temporary} = releaseNoteBuildInputs(stage, notes, packageOptions.env);
@@ -249,14 +246,17 @@ export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,
       run('codesign', ['--verify','--deep','--strict',path.join(packageRoot, config.name + '.app')], root);
     }
 
-    const { bundleFormat, signing, abis } = packageOptions;
+    const { signing, abis } = packageOptions;
+    let { bundleFormat } = packageOptions;
     validateNshArtifacts(packageRoot, target, {name:config.name, bundleFormat});
     if (mode === 'candidate') {
       for (const name of ['release-notes.json','LICENSE.zh-CN.md','LICENSE.en.md']) fs.copyFileSync(path.join(root,name),path.join(stage,name));
     }
+    const installer = flatRelease ? prepareNshDesktopInstaller({target, stage, packageRoot, name: config.name}, run) : null;
+    if (installer) bundleFormat = installer.bundleFormat;
     const archive = bundleFormat === 'app.tar.gz' ? 'application.tar.gz' : bundleFormat === 'web.tar.gz' ? 'web.tar.gz' : null;
     if (archive) run('tar', ['-czf',path.join(stage,archive),'-C',packageRoot,'.'], root);
-    const artifact = archive ?? path.posix.join('package', config.name + '.' + bundleFormat);
+    const artifact = installer?.artifact ?? archive ?? path.posix.join('package', config.name + '.' + bundleFormat);
     const artifactSha = fileSha256(path.join(stage, artifact));
     fs.writeFileSync(path.join(stage, artifact + '.sha256'), `${artifactSha}  ${path.basename(artifact)}\n`);
     if (sourceSnapshot(root) !== before) throw new Error('source changed during packaging');
@@ -269,7 +269,7 @@ export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,
       ...(abis ? {androidAbis:abis} : {}),
       buildMode:['web','android','ios','ios-simulator'].includes(target) || packageOptions.arch && packageOptions.arch !== process.arch ? 'cross' : 'native',
       buildRun:batch, bundleFormat,
-      artifactKind:target==='web'?'web-archive':bundleFormat==='aab'?'application-archive':['apk','ipa'].includes(bundleFormat)?'installer':'application-archive',
+      artifactKind:target==='web'?'web-archive':bundleFormat==='aab'?'application-archive':['dmg','exe','apk','ipa'].includes(bundleFormat)?'installer':'application-archive',
       artifact, sha256:artifactSha, checksum:artifact+'.sha256', version:facts.version, appId:config.id, appBuild:config.build ?? 1,
       sourceCommit:context?.sourceCommit??null, sourceSnapshot:before, tool:version,
       e2eSelection:mode==='candidate'?e2e:'not-applicable',
@@ -277,7 +277,7 @@ export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,
       ...(e2e==='disabled'?{e2eReason,e2eRemainingRisk:e2eRisk}:{}),
       signingSelection:signing, signingSource:packageOptions.args.includes('--sign') || packageOptions.args.includes('--keystore')
         ? 'explicit-official-signing' : 'official-local-packaging-default',
-      unitTests:{status:'passed',testCases:tests.split('\n').filter(line=>line.endsWith(': test')).length,nshRenderTests:'passed',nshRenderTestCases:renderTestCases},
+      unitTests:regression,
       milestoneAcceptance:'pending', runtimeVerification:'Unverified',
     };
     if (target==='web') manifest.webRoot=path.posix.join('package',config.name);
@@ -300,6 +300,6 @@ export function buildNshRelease({root,mode='local',target,e2e,e2eReason,e2eRisk,
 }
 
 if(process.argv[1] && import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href) {
-  try {const {values}=parseArgs({options:{root:{type:'string',default:'.'},mode:{type:'string',default:'local'},target:{type:'string'},e2e:{type:'string'},'e2e-reason':{type:'string'},'e2e-risk':{type:'string'},arch:{type:'string'},abi:{type:'string',multiple:true},format:{type:'string'},sign:{type:'string'},profile:{type:'string'},keystore:{type:'string'},'key-alias':{type:'string'},'asset-url':{type:'string'}}});const result=buildNshRelease({...values,e2eReason:values['e2e-reason'],e2eRisk:values['e2e-risk'],keyAlias:values['key-alias'],assetUrl:values['asset-url']});process.stdout.write(JSON.stringify({output:result.output,manifest:result.manifest,buildRun:result.buildRun,bundleFormat:result.bundleFormat,webRoot:result.webRoot,mode:result.mode,releaseChannel:result.releaseChannel,target:result.target,version:result.version,artifact:result.artifact,sha256:result.sha256,deliveryFiles:result.deliveryFiles,unitTests:result.unitTests})+'\n');}
+  try {const {values}=parseArgs({options:{root:{type:'string',default:'.'},mode:{type:'string',default:'local'},target:{type:'string'},e2e:{type:'string'},'e2e-reason':{type:'string'},'e2e-risk':{type:'string'},'regression-plan':{type:'string'},arch:{type:'string'},abi:{type:'string',multiple:true},format:{type:'string'},sign:{type:'string'},profile:{type:'string'},keystore:{type:'string'},'key-alias':{type:'string'},'asset-url':{type:'string'}}});const result=buildNshRelease({...values,regressionPlan:values['regression-plan'],e2eReason:values['e2e-reason'],e2eRisk:values['e2e-risk'],keyAlias:values['key-alias'],assetUrl:values['asset-url']});process.stdout.write(JSON.stringify({output:result.output,manifest:result.manifest,buildRun:result.buildRun,bundleFormat:result.bundleFormat,webRoot:result.webRoot,mode:result.mode,releaseChannel:result.releaseChannel,target:result.target,version:result.version,artifact:result.artifact,sha256:result.sha256,deliveryFiles:result.deliveryFiles,unitTests:result.unitTests})+'\n');}
   catch(error){process.stderr.write(`NSH build: ${error.message}\n`);process.exitCode=1;}
 }

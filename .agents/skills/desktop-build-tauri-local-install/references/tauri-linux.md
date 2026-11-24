@@ -60,8 +60,8 @@ AppImage 不受 Debian 包名约束，直接使用 Tauri 输出。
 ~~~sh
 host_target=$(rustc -vV | sed -n 's/^host: //p')
 test -n "$host_target"
-cargo test --workspace --all-targets --all-features --target "$host_target"
-pnpm --dir <gui-root> test
+cargo test -p <受影响package> --lib --target "$host_target" <精确用例筛选>
+pnpm --dir <gui-root> exec vitest run <精确测试文件>
 (cd <gui-root> && CI=true pnpm tauri build --bundles deb,appimage --no-sign --target "$host_target")
 node .agents/skills/desktop-build-tauri-local-install/scripts/normalize_tauri_deb.mjs \
   --project-root . --cargo-manifest <tauri-cargo-manifest> --package-name <ascii-package-name> \

@@ -114,18 +114,18 @@ Harness Git 发布完成后询问用户是否继续生成源码归档；只有�
 
 `agent-first-harness-template-vYYYYMMDDHHMM.扩展名`
 
-下游 Tauri 的最终 exe/dmg 安装包（含本地试包与正式候选）使用：
+下游 NSH 与 Tauri 的最终 exe/dmg 安装包（含本地试包与正式候选）直接复制到项目根 `release/`，使用：
 
-`{程序展示名称}_{程序版本}_{架构}-setup for {系统}.{exe|dmg}`
+`{程序展示名称}_{程序版本}_{架构}_setup for {系统}.{exe|dmg}`
 
-- 程序展示名称来自已确认的打包配置：Tauri 使用实际生效的 `productName`；不使用 crate、binary 或项目机器标识替代。保留中文与名称内空格，两个字段分隔符固定为下划线。
-- 程序版本使用当前 GUI Cargo 包的无 `v` 原始稳定版本。架构 `x86_64/x64` 统一为 `x64`，`aarch64/arm64` 统一为 `arm64`；目标系统严格为 `Windows.exe` 或 `macOS.dmg`，不按构建宿主推断目标。
-- 共用名称生成器为 `.agents/skills/desktop-collect-release-artifacts/scripts/installer_artifact_name.mjs`；仅返回名称，不修改文件。不得为命名改写打包器原始输出定位、应用包内部名称。完成所有签名、公证与最终字节检查后，才按该名称复制最终安装包；候选 checksum 正文、相邻 `<artifact>.sha256`、`<artifact>.manifest.json` 和清单引用使用同一名称，摘要取最终字节。
-- 中性规范示例：`测试应用_1.4.4_x64-setup for Windows.exe`、`测试应用_1.4.4_arm64-setup for macOS.dmg`。包含空格或中文的路径必须以完整 argv 或宿主字面路径操作，不按空格拆分。
+- 程序展示名称来自已确认的打包配置：Tauri 使用实际生效的 `productName`，NSH 使用渠道处理后的 `nsh.json` 的 `name`；不使用 crate、binary 或项目机器标识替代。保留中文与名称内空格，字段分隔符固定为下划线，安装器后缀使用 `_setup`。
+- 程序版本使用当前 GUI/NSH Cargo 包的无 `v` 原始稳定版本。架构 `x86_64/x64` 统一为 `x64`，`aarch64/arm64` 统一为 `arm64`；macOS 双架构包使用 `universal`。目标系统严格为 `Windows.exe` 或 `macOS.dmg`，不按构建宿主推断目标。过长文件名明确失败，不能截断应用名或加入随机批次 ID。
+- 共用名称生成器为 `.agents/skills/desktop-implement-change/scripts/installer_artifact_name.mjs`；仅返回名称，不修改文件。不得为命名改写打包器原始输出定位、应用包内部名称。完成所有签名、公证与最终字节检查后，才按该名称复制最终安装包；候选 checksum 正文、相邻 `<artifact>.sha256`、`<artifact>.manifest.json` 和清单引用使用同一名称，摘要取最终字节。
+- 中性规范示例：`测试应用_1.4.4_x64_setup for Windows.exe`、`测试应用_1.4.4_arm64_setup for macOS.dmg`。包含空格或中文的路径必须以完整 argv 或宿主字面路径操作，不按空格拆分。
 
 其他下游归档（含 CLI）继续使用 `产品名-vMAJOR.MINOR.PATCH-平台-架构.扩展名`；本条不重命名 Tauri Linux 本地试包。
 
-Harness 源码归档在用户另行要求生成时，只创建相邻 `<artifact>.sha256` 并核对来源提交、摘要与两份根许可证，不创建产品 manifest。终端下游实际生成产品归档或安装包时同时生成相邻 `.sha256` 和 manifest。`pending` 产品候选清单至少包含项目、版本、已发布的 40 位源码提交、预期 Git tag、发布上下文 SHA-256、`releaseChannel`、明确的构建/运行身份、构建模式、平台、架构、目标、宿主、产物名、SHA-256、全量单元测试结果、当前 `e2eSelection`、`reviewSelection`/`reviewStatus`、`releaseNotesVersion`/`releaseNotesSha256`/`releaseNotesPath`、签名选择与证据及 `milestoneAcceptance: pending`。跨平台 provider 只在远端渠道分支/tag 与本地已发布 HEAD 一致后使用。审查启用时须有绑定上下文与源码 HEAD 的结构化证据；关闭且无硬要求时须记录非空原因和风险且不附审查证据。macOS 安装包另记录 `macosSigningSelection`/`macosSigningSource`；仅已批准配置、本次主动要求或渠道硬要求可启用签名，不因本机恰好存在身份、工具或凭据自行启用。
+Harness 源码归档在用户另行要求生成时，只创建相邻 `<artifact>.sha256` 并核对来源提交、摘要与两份根许可证，不创建产品 manifest。终端下游实际生成产品归档或安装包时同时生成相邻 `.sha256` 和 manifest。`pending` 产品候选清单至少包含项目、版本、已发布的 40 位源码提交、预期 Git tag、发布上下文 SHA-256、`releaseChannel`、明确的构建/运行身份、构建模式、平台、架构、目标、宿主、产物名、SHA-256、差异回归测试结果、当前 `e2eSelection`、`reviewSelection`/`reviewStatus`、`releaseNotesVersion`/`releaseNotesSha256`/`releaseNotesPath`、签名选择与证据及 `milestoneAcceptance: pending`。跨平台 provider 只在远端渠道分支/tag 与本地已发布 HEAD 一致后使用。审查启用时须有绑定上下文与源码 HEAD 的结构化证据；关闭且无硬要求时须记录非空原因和风险且不附审查证据。macOS 安装包另记录 `macosSigningSelection`/`macosSigningSource`；仅已批准配置、本次主动要求或渠道硬要求可启用签名，不因本机恰好存在身份、工具或凭据自行启用。
 
 候选构建在清理目录、测试或编译前，以及写 manifest 前，均须只读校验 `.harness/release-context.json` 与本地默认主分支/tag。两次读取的文件 SHA-256、`sourceCommit`、`expectedTag`、`releaseChannel` 和 `releaseReview` 必须一致；manifest 的审查证据或 `Not run` 原因/风险从上下文原样复制。E2E 和适用签名选择在现有构建动作中解析并写入候选证据；使用远程 provider 时另复核已推送的远端渠道分支/tag。
 
@@ -136,11 +136,41 @@ Harness 源码归档在用户另行要求生成时，只创建相邻 `<artifact>
 - 实际分发前必须生成并核对该版本的第三方依赖许可证与 NOTICE 清单。本项目的专有商业许可不替代、覆盖或限制第三方许可证依法授予的权利。
 - 商业合同或订单负责确定客户、费用、期限、授权数量和特殊授权；发布物中的通用许可证不得被误报为双方已经签署的商业文件。
 
-所有下游构建结果统一写入项目根忽略的 `release/`，它不是 `ready` 标志。CLI/Tauri 使用本次构建结果的扁平目录：每次构建先验证独立 Git 根，拒绝目录重解析和路径越界，原子隔离旧目录并创建全新空目录；最终文件、摘要与 manifest 先在同根暂存区验证，再以目录级原子重命名提交。NSH 每次按 `nsh-<target>-<uuid>` 形式的 `buildRun` 交付一个目标。macOS 和 Windows 的正式打包文件及各自的 `.sha256` 直接放在 `release/`，以含构建标识的文件名并存。`release/.nsh-evidence/<buildRun>/manifest.json` 绑定对应文件和证据，证据集合提交后才视为发布候选完整。其他 NSH 目标仍按 `release/<buildRun>/` 保存，历史桌面目录也可按原 `buildRun` 读取。验收和状态更新只使用显式选定的构建及其清单。远程工作流必须先证明用户已另行推送同一已发布 HEAD 和 tag，检出并复核显式批准的 40 位提交，且只上传 manifest 声明的精确文件；本机构建无需远端。当前选定集合不得混入其他项目、旧版本、旧运行、未完成、重复、额外或来源不明文件。manifest 状态仅用 `pending`、`rejected`、`accepted`；`ready` 是纯只读就绪结论。
+所有下游构建结果统一写入项目根忽略的 `release/`，它不是 `ready` 标志。CLI/Tauri 使用本次构建结果的扁平目录：每次构建先验证独立 Git 根，拒绝目录重解析和路径越界，原子隔离旧目录并创建全新空目录；最终文件、摘要与 manifest 先在同根暂存区验证，再以目录级原子重命名提交。NSH 每次按 `nsh-<target>-<uuid>` 形式的 `buildRun` 绑定一个目标的证据。macOS 和 Windows 的本地与正式最终 DMG/EXE 及 `.sha256` 直接放在 `release/`，使用共用安装包名称，公开文件名不含 buildRun。同名冲突保留已有字节并停止。`release/.nsh-evidence/<buildRun>/manifest.json` 绑定对应文件和证据，证据集合提交后才视为发布候选完整。其他 NSH 目标仍按 `release/<buildRun>/` 保存，历史桌面目录也可按原 `buildRun` 读取。验收和状态更新只使用显式选定的构建及其清单。远程工作流必须先证明用户已另行推送同一已发布 HEAD 和 tag，检出并复核显式批准的 40 位提交，且只上传 manifest 声明的精确文件；本机构建无需远端。当前选定集合不得混入其他项目、旧版本、旧运行、未完成、重复、额外或来源不明文件。manifest 状态仅用 `pending`、`rejected`、`accepted`；`ready` 是纯只读就绪结论。
 
 构建请求、执行、重试、测试结果、产物路径/摘要/签名状态，以及候选 E2E、完整验收和就绪复核，均只进入忽略的 `release/` 原子证据及最终回复，不自动写入 Product Spec、ADR、Changelog、Product Status、Work Plan 或 Verification。Git 发布已在合并主分支并创建 tag 时结束；下一开发分支须以该主分支/tag 的精确版本和 40 位 HEAD 调用 `finalize-release`，恢复版本周期。真实渠道分发或独立回顾审计可按其独立触发条件追加记录，但不得反向批准活动候选。
 
 发布审查启用时，CLI/Tauri manifest 另记录 `reviewedSourceCommit`，其值与 `.harness/release-context.json` 的 `releaseReview.reviewedSourceCommit` 一致；NSH manifest 保留完整的嵌套 `releaseReview`。两种清单的审查提交均等于上下文 `sourceHead`；最终构建 HEAD/manifest `sourceCommit` 是发布元数据提交和普通合并完成后由主分支与 tag 指向的候选提交，两者不要求相等，但已审查 `sourceHead` 必须是最终提交的祖先；启用审查时最终提交相对它只能改变被冻结的两份发布元数据，不要求线性历史。关闭审查时，CLI/Tauri manifest 的顶层 `reviewedSourceCommit` 与 `reviewEvidence` 缺席。NSH manifest 从嵌套 `releaseReview` 读取原因和剩余风险。发布上下文保存审查选择、结果和可复算的范围摘要，后续候选只读复核这些事实。
+
+## 发布差异测试范围
+
+候选构建、NSH/Tauri/Rust 构建 Skill 与验收统一使用同渠道上一真实发布的 tag 到当前发布提交之间的差异。构建、发布、启用 E2E 或 CI 自动触发均不授权全量回归。首次发布使用已批准的初始范围；历史缺失先补齐依据，不能退回全仓测试。
+
+在任何测试或编译前，从项目根运行：
+
+```text
+node .agents/skills/desktop-verify-delivery/scripts/regression_scope.mjs resolve --project-root .
+node .agents/skills/desktop-verify-delivery/scripts/regression_scope.mjs verify --project-root . --plan <外置计划.json>
+node .agents/skills/desktop-verify-delivery/scripts/regression_scope.mjs run --project-root . --plan <外置计划.json> --evidence-directory <本次暂存证据目录>
+```
+
+Agent 根据 resolve 返回的真实 `acceptanceScope` 和 `changedPaths` 自主编写外置计划，不修改已发布源码、不重复询问已授权的定向测试。JSON 使用 `schemaVersion: 1`，`scope` 原样复制 `acceptanceScope`，`tests` 列出精确选择器，每项用非空 `changes` 与 `reason` 说明对应变化或直接影响；`excludedChanges` 用同样字段逐项说明无需测试的变化。所有 changedPaths 均须解释。仅文档/元数据变化可用空 tests 加 `noTestsReason`，不能伪造通过数量；首发另记录 `initialScopeAuthorization`。测试类型如下：
+
+| runner | 必填选择器 | 执行范围 |
+|---|---|---|
+| cargo | `manifest`、`package`、`target`（`lib`、`test:名称` 或 `bin:名称`）、非空 `filter` | 当前宿主的明确 Cargo target 和匹配用例，先列出再运行 |
+| nsh | 项目根相对的精确 `file`（`.test.ts`/`.test.tsx`），可选 `filter` | 单个测试文件；禁止 `nsh test .` 附带全量 Rust 测试 |
+| frontend | 实际 `package.json` 的 `manifest`、相对该目录的精确 `files`，可选 `filter` | 项目声明并安装的本地 Vitest |
+
+计划示例（scope 必须替换为当前 resolve 的完整对象，不能手填摘要）：
+
+```json
+{"schemaVersion":1,"scope":{},"tests":[{"runner":"cargo","manifest":"Cargo.toml","package":"sample_core","target":"lib","filter":"changed_behavior","changes":["sample_core/src/changed.rs"],"reason":"覆盖本版改变的规则及直接影响"}],"excludedChanges":[]}
+```
+
+NSH 构建入口必须接收 `--regression-plan <外置计划.json>`，内部校验后执行。本地试包先用 `regression_scope.mjs resolve --project-root . --local` 取得真实上一发布与当前工作树的范围，原样复制完整 scope；verify/run 同时加 `--local`。范围包含未提交与未跟踪的实际源码字节，不能自报空 changedPaths 绕过测试。选择器无效、失败或零命中立即停止，不发现目录、不补跑其他 package、平台或完整套件。全量回归须有本次人类的独立明确请求，不能用常驻策略、历史授权或 Agent 自填原因替代。
+
+`regression-plan.json` 与 `regression-results.json` 保存在本次候选证据中，manifest 的 `unitTests` 原样记录范围、计划摘要、精确命令、实际通过数量及结果。验收复核同一证据，不再重复全量测试。
 
 ## Git 发布后构建与完整验收
 
@@ -164,9 +194,9 @@ Git 发布在本地默认主分支和版本 tag 指向同一最终 HEAD 时结�
 
 1. 发布准备先判定 Harness 源或终端下游，复核工作树、范围、疑似秘密和提交完整性。提交源码及已触发记录并冻结 `sourceHead`；按当次 `reviewSelection` 对累计差异执行审查或记录 `Not run` 原因与风险。Harness 版本此时从当前上海时区分钟直接取值。
 2. 生成并复核双语 `release-notes.json` 与仅含 Git 发布身份和审查结论的 `.harness/release-context.json`，只提交这两份发布元数据。生命周期以精确上下文 SHA-256 普通合并登记分支至本地默认主分支，创建并复读版本 tag；最终主分支、tag 和上下文一致即完成 Git 发布。
-3. 完成初始化的下游读取本次发布冻结的 `postReleaseAction` 并执行所选后续路径。`local_package` 从 clean 且带已发布 tag 的默认主分支，先运行 `check-post-release` 和只读 `route`。本次请求明确指定其他系统时，向 `route` 传入相应的 `--interface` 和 `--target`。按唯一返回的接口/目标进入对应正式候选打包 Skill；该次构建单独解析 E2E 和 GUI 签名选择（仅在适用时），运行全部非空单元测试，并把选择、构建事实和产物写入忽略的 `release/`。只在该目标的真实产物、摘要与 manifest 复核通过后报告本次本地打包动作完成；`pending` 候选不代表验收或其他平台完成。`push_release_branch` 推送并复读远端默认主分支、同名渠道分支和 tag，三者必须等于同一已发布 HEAD。缺失选择或任何检查失败时报告 Git 发布事实和后续路径阻断，不自动改选候选目标。Harness 源按当次用户要求处理源码归档或远端动作。
+3. 完成初始化的下游读取本次发布冻结的 `postReleaseAction` 并执行所选后续路径。`local_package` 从 clean 且带已发布 tag 的默认主分支，先运行 `check-post-release` 和只读 `route`。本次请求明确指定其他系统时，向 `route` 传入相应的 `--interface` 和 `--target`。按唯一返回的接口/目标进入对应正式候选打包 Skill；该次构建单独解析 E2E 和 GUI 签名选择（仅在适用时），运行发布差异对应的非空回归测试，并把选择、构建事实和产物写入忽略的 `release/`。只在该目标的真实产物、摘要与 manifest 复核通过后报告本次本地打包动作完成；`pending` 候选不代表验收或其他平台完成。`push_release_branch` 推送并复读远端默认主分支、同名渠道分支和 tag，三者必须等于同一已发布 HEAD。缺失选择或任何检查失败时报告 Git 发布事实和后续路径阻断，不自动改选候选目标。Harness 源按当次用户要求处理源码归档或远端动作。
 4. 候选使用相同更新日志并逐字节比较。Tauri macOS 默认 unsigned；已批准配置、当前请求或渠道硬要求才启用签名、公证和 stapling。`system_notification = enabled` 与 unsigned 冲突须在构建前阻断。任何路径不得自动创建、索取或输出凭据。
-5. `$desktop-verify-delivery` 在准入和最终状态写入前只读核对 clean 默认主分支、tag、发布上下文和本次选定集合的全部 manifest。远程候选另外复核远端 refs。按同渠道上一发布的已验证 tag 到当前发布提交圈定功能范围。用实际 Git 差异与双语更新日志标出新增、变化、修复及直接受影响的交互，按当前冒烟/E2E 选择和产品/渠道硬要求执行相关场景。首次发布使用已批准的初始交付范围，无法证明历史时先补齐基线依据。记录基线、当前提交、适用场景和结果，复核范围与最终字节后原子推进为 `accepted`。构建已执行的全量单元测试证据在验收时直接复用。
+5. `$desktop-verify-delivery` 在准入和最终状态写入前只读核对 clean 默认主分支、tag、发布上下文和本次选定集合的全部 manifest。远程候选另外复核远端 refs。按同渠道上一发布的已验证 tag 到当前发布提交圈定功能范围。用实际 Git 差异与双语更新日志标出新增、变化、修复及直接受影响的交互，按当前冒烟/E2E 选择和产品/渠道硬要求执行相关场景。首次发布使用已批准的初始交付范围，无法证明历史时先补齐基线依据。记录基线、当前提交、适用场景和结果，复核范围与最终字节后原子推进为 `accepted`。构建已执行的差异回归测试证据在验收时直接复用。
 6. 就绪复核只读检查本次选定集合的 `accepted` 状态、已记录的验收范围与场景证据、Git 引用、版本、更新日志、最终哈希和签名，不改写 manifest 或 tracked 项目记忆；NSH 其他批次的状态不构成该目标就绪证据。后续渠道分发按用户独立要求执行；渠道处理若改变候选字节，须重新构建和验收。
 
 ## Harness 模板发布检查清单
@@ -195,7 +225,7 @@ Harness 根目录没有具体产品，因此下游产物、manifest、签名、�
 
 ## 下游项目发布检查清单
 
-本清单只接受已通过完整验收的真实候选。日常开发只运行本次必要单元测试；显式构建运行项目全部非空单元测试，E2E 只在最终候选形成后按当前选择执行。
+本清单只接受已通过完整验收的真实候选。日常开发只运行本次必要单元测试；显式构建运行项目发布差异对应的非空回归测试，E2E 只在最终候选形成后按当前选择执行。
 
 - [ ] 项目根是独立 Git 顶层目录，工作树干净，当前发布源码已有 40 位提交；manifest `sourceCommit` 精确等于实际构建 HEAD，父仓库、尚无提交或未记录修改不得替代发布源码身份。
 - [ ] 构建 HEAD 位于上下文默认主分支，本地 `v{版本}-{YYYYMMDD}` 等于 manifest `sourceCommit`；远程 provider 另要求远端渠道分支与 tag 同时等于该 HEAD。发布流程不清理登记分支或 Worktree，也不按前缀扫描链外资源。
@@ -203,7 +233,7 @@ Harness 根目录没有具体产品，因此下游产物、manifest、签名、�
 - [ ] 中性 `scaffold status` 已由获批的真实业务命令和测试删除或替换，不再返回 `productDefinitionRequired=true`。
 - [ ] 不存在已知未实现逻辑或未修复行为偏差；若用户要求的活动 Work Plan 存在，相关 Todo 全部为 `done`。
 - [ ] 候选是完整、可运行、符合批准场景的真实产物，不是模拟实现、测试替身、占位、脚手架或开发预览。
-- [ ] 当前构建的编译、项目全部非空单元测试、必要集成/契约和产物存在性均有通过证据。
+- [ ] 当前构建的编译、项目发布差异对应的非空回归测试、必要集成/契约和产物存在性均有通过证据。
 - [ ] 单元测试覆盖核心成功路径和最高风险失败路径。
 - [ ] 若选择 CLI，其统一 JSON 信封、错误结构、输出流和退出码契约验证通过；未选择时明确为不适用。
 - [ ] Windows、macOS、Linux 各平台的实际验证状态已公开；未运行的平台明确标记为 `Unverified`。

@@ -39,6 +39,6 @@ E2E 只在运行候选的实际系统取证。明确请求了跨平台构建时�
 
 移动候选从实际安装的应用核对受影响的交互，例如安全区、底栏布局与选中态、切页、语言或主题。macOS 上先通过 Computer Use 检查可操作的 Device Hub（`com.apple.dt.Devices`，若可用）与 Simulator.app；`simctl` 可以辅助安装和截图，但未见 Simulator.app 窗口不足以判定模拟器无法点击。确无可操作界面时记录已检查的工具和未验证范围，不以 headless 渲染测试替代真实交互。
 
-macOS NSH 官方 `.app` 归档从已解析的候选制品隔离解包，核对解包路径、Mach-O 入口、归档与 manifest SHA-256 后才启动。Web 只从候选归档的完整静态目录提供页面；Android APK 与 iOS 候选在适用的真实设备或模拟器上安装运行。Android AAB 使用宿主已有的 `bundletool`，从已校验摘要的候选原件在隔离目录生成设备适用的 APK 集，再安装到所选设备。证据记录 AAB 摘要、工具版本、设备和派生 APK 集摘要。该证据只覆盖本地设备运行。 [Android 官方 bundletool 指南](https://developer.android.com/tools/bundletool#deploy_apks_to_a_connected_device)
+macOS NSH 从已解析的最终 DMG 只读挂载，核对唯一 `.app`、Applications 拖拽目标、Mach-O 入口及 manifest SHA-256，再从该候选进入已批准的安装与运行场景；结束后卸载映像。Windows 从同批已校验的最终官方 EXE 安装器进入已批准场景，不用 ZIP 或开发 runner 代替。历史 `.app` 归档候选仍按原 manifest 隔离解包并复核。Web 只从候选归档的完整静态目录提供页面；Android APK 与 iOS 候选在适用的真实设备或模拟器上安装运行。Android AAB 使用宿主已有的 `bundletool`，从已校验摘要的候选原件在隔离目录生成设备适用的 APK 集，再安装到所选设备。证据记录 AAB 摘要、工具版本、设备和派生 APK 集摘要。该证据只覆盖本地设备运行。 [Android 官方 bundletool 指南](https://developer.android.com/tools/bundletool#deploy_apks_to_a_connected_device)
 
 NSH 桌面关于页已启用且更新日志场景适用时，点击元素自身的“更新日志”按钮，逐语言对照候选清单绑定的 `release-notes.json` 两类与版本，观察编译进应用的内容。交互结束重新复算原始候选包、清单与 sidecar 字节，测试解包目录只在确认路径后清理。

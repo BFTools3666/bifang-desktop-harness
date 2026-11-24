@@ -74,7 +74,7 @@
 
 ## 工程资产传播
 
-发布验收的候选须同时包含 `desktop-verify-delivery` 的 `acceptance_scope.mjs` 及其回归、所用的 `desktop-prepare-release` 上下文与日志模块，以及调用它们的验收与 E2E 入口。收集入口适用于 CLI 和 Tauri。仅 NSH 工程保留 `desktop-build-nsh-release` 的 `nsh_release_layout.mjs` 与回归，并核对打包和验收定位指向同一 helper。上游 `scripts/run_harness_tests.mjs` 和 `scripts/harness_validation/` 内的回归不进入下游候选。
+发布验收的候选须同时包含 `desktop-verify-delivery` 的 `acceptance_scope.mjs`、`regression_scope.mjs` 及其回归、`desktop-implement-change` 中的共用 `installer_artifact_name.mjs`、所用的 `desktop-prepare-release` 上下文与日志模块，以及调用它们的验收与 E2E 入口。收集入口适用于 CLI 和 Tauri；NSH 的共用名称模块不能依赖已裁剪的收集 Skill。仅 NSH 工程保留 `desktop-build-nsh-release` 的 `nsh_release_layout.mjs`、`nsh_desktop_installer.mjs` 与回归，并核对打包和验收定位指向同一 helper。上游 `scripts/run_harness_tests.mjs` 和 `scripts/harness_validation/` 内的回归不进入下游候选。
 
 `docs/design_standards/README.md` 与 `docs/design_standards/ui_foundation.md` 是全部终端下游保留的身份中立 managed 工程资料，候选必须包含与源一致的字节；GUI 实现从索引先读共用基座，非 GUI 只保留知识而不启用界面。新增文件仍走已复核的 `add` 流程，不修改运行时主题或业务代码。根 `DESIGN.md` 继续按未知本地文件默认 `protected`，不得放入升级候选或来源锁；既有下游无该文件时直接从标准索引接入，不覆盖其自有设计。合并 AGENTS/README 时指向受管索引，不能生成依赖一个可能缺席的根入口的本地链接。
 

@@ -124,7 +124,7 @@ export function validateDailyProjectMemory(errors) {
     [path.join(SKILLS_ROOT, "desktop-define-product", "SKILL.md"), ["只在产品边界需要决定时", "不默认加载全部历史", "范围确认后直接交给 `$desktop-implement-change`", "普通缺陷修复、不改变可观察行为的纯重构"]],
     [path.join(SKILLS_ROOT, "desktop-plan-change", "SKILL.md"), ["只在持久计划能解决真实协调问题时建立 Todo", "多步骤、多模块、中等风险、可并行或 Agent 偏好本身不构成准入", "日常计划不得自行增加这些步骤", "计划存在和 Todo 完成都不自动触发 Product Spec、ADR、Product Status、Verification 或 Changelog"]],
     [path.join(SKILLS_ROOT, "desktop-implement-change", "SKILL.md"), ["直接实现请求", "纯文档、元数据、格式或不可合理单测", "只更新被独立事件触发的记忆", "未触发时不写占位"]],
-    [path.join(SKILLS_ROOT, "desktop-verify-delivery", "SKILL.md"), ["没有 Work Plan 不阻断验收", "当前构建已经运行项目全部非空单元测试", "验收证据只写忽略的 `release/`", "不得在 tracked 源码中补写项目记忆或占位记录"]],
+    [path.join(SKILLS_ROOT, "desktop-verify-delivery", "SKILL.md"), ["没有 Work Plan 不阻断验收", "当前构建已经运行发布差异对应的非空回归测试", "验收证据只写忽略的 `release/`", "不得在 tracked 源码中补写项目记忆或占位记录"]],
     [path.join(SKILLS_ROOT, "desktop-prepare-release", "SKILL.md"), ["已独立触发的 Changelog", "双语 `release-notes.json`", "本步骤不创建候选或修改 Changelog"]],
     [path.join(SKILLS_ROOT, "desktop-collect-release-artifacts", "SKILL.md"), ["发布就绪复核仍要求所有匹配 manifest 组成完整 `Milestone accepted` 原子集合"]],
     [path.join(ROOT, "docs", "RUST_CLI_TEMPLATE.md"), ["只使用 `pending`/`rejected`/`accepted` 的候选状态", "纯只读就绪复核"]],

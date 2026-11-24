@@ -64,6 +64,16 @@ test("NSH release rejects missing candidate log rendering", () => {
   expectErrors(validateMutation(validateNshBuildContract, "supportGenerator", NSH_SUPPORT_GENERATOR, "releaseNotes: translations[locale].about.release_notes"), "NSH release contract missing");
 });
 
+/** 候选构建不得通过恢复旧命令绕过差异计划门禁。 */
+test('nsh_build_rejects_restored_full_workspace_and_directory_test_commands', () => {
+  const source = fs.readFileSync(NSH_RELEASE_HELPER, 'utf8');
+  for (const command of ["run('cargo', ['test', '--workspace'], root);", "run('nsh', ['test', '.'], root);"]) {
+    expectErrors(validateContents(validateNshBuildContract, 'buildHelper', NSH_RELEASE_HELPER,
+      source + '\n' + command + '\n'), 'must not run unfiltered');
+  }
+  expectErrors(validateMutation(validateNshBuildContract, 'buildHelper', NSH_RELEASE_HELPER, 'loadRegressionPlan('), 'NSH release contract missing');
+});
+
 test("release ignore requires exact root-anchored rules", () => {
   const cases = [
     ["/target/\n/release/\n/.release-clean.*\n", false],

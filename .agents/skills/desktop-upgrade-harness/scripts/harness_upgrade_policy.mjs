@@ -35,6 +35,9 @@ export const REQUIRED_MANAGED_SOURCE_PATHS = [
   ".agents/skills/desktop-prepare-release/scripts/harness_version_clock.mjs",
   ".agents/skills/desktop-prepare-release/scripts/release_context.mjs",
   ".agents/skills/desktop-prepare-release/scripts/release_notes.mjs",
+  ".agents/skills/desktop-implement-change/scripts/installer_artifact_name.mjs",
+  ".agents/skills/desktop-verify-delivery/scripts/regression_scope.mjs",
+  ".agents/skills/desktop-verify-delivery/scripts/regression_scope.test.mjs",
   ".agents/skills/desktop-verify-delivery/scripts/acceptance_scope.mjs",
   ".agents/skills/desktop-verify-delivery/scripts/acceptance_scope.test.mjs",
   ".agents/skills/desktop-handoff-project/SKILL.md",
@@ -94,6 +97,8 @@ export const REQUIRED_MANAGED_SOURCE_PATHS = [
 export const REQUIRED_NSH_SOURCE_PATHS = [
   ".agents/skills/desktop-build-nsh-release/scripts/build_nsh_release.mjs",
   ".agents/skills/desktop-build-nsh-release/scripts/nsh_portable_entry.mjs",
+  ".agents/skills/desktop-build-nsh-release/scripts/nsh_desktop_installer.mjs",
+  ".agents/skills/desktop-build-nsh-release/scripts/nsh_desktop_installer.test.mjs",
   ".agents/skills/desktop-build-nsh-release/scripts/nsh_release_layout.mjs",
   ".agents/skills/desktop-build-nsh-release/scripts/nsh_release_layout.test.mjs",
 ];

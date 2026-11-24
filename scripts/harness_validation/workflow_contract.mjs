@@ -3,13 +3,14 @@
 export const CHECKOUT_USE = "actions/checkout@11d5960a326750d5838078e36cf38b85af677262";
 export const SETUP_NODE_USE = "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020";
 export const UPLOAD_USE = "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02";
-export const EXPECTED_WORKFLOW_SHA256 = "95cc6385b2d79fe516f2ebf01d04f6ef0cccd0ebeb2ff5c97e9550cad052c374";
+export const EXPECTED_WORKFLOW_SHA256 = "ce21d75b1222e4e0226507d8b9f9d0de01e34e44da2c887edac31914b2a349c3";
 export const EXPECTED_INPUTS = new Set([
   "confirm_candidate_build",
   "source_commit",
   "release_context_sha256",
   "version",
   "e2e_selection",
+  "regression_plan",
 ]);
 export const EXPECTED_NAMED_STEPS = [
   "确认已授权候选预检",

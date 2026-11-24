@@ -1,33 +1,35 @@
 # Agent-first Harness 模板产品规格
 
-> 记忆日期：2026-11-23
+> 记忆日期：2026-11-24
 >
 > 状态：Approved
 >
 > 初次批准日期：2026-07-21
 >
-> 最近范围确认：2026-11-23（测试范围门禁、桌面正式制品布局和发布功能验收范围）
+> 最近范围确认：2026-11-24（候选差异回归、NSH/Tauri 稳定安装包命名与位置）
 
 ## 当前范围确认
 
-- `HARNESS-FIX-VERIFICATION-SCOPE-GATE`（`required_version = 202611232148`）：日常开发仅按精确选择器运行直接受影响的测试。扩大范围须由当次人类明确要求。Harness 源与新建 NSH 的受管测试入口执行范围检查。见 [ADR-20261123-002](../adr/20261123_ADR.md)。
+- `HARNESS-DELTA-REGRESSION-INSTALLER-20261124`（`required_version = pending`）：候选与 CI 按同渠道上一发布差异执行明确计划中的测试；缺少计划、零命中或失败不回退全量。NSH/Tauri 的最终 DMG/EXE 直接位于项目根 `release/`，文件名使用 `{应用名}_{版本号}_{arch}_setup for {系统}`；buildRun 只用于证据，官方更新归档保留。见 [ADR-20261124-001](../adr/20261124_ADR.md)。
 
-- `HARNESS-DESKTOP-FILES-AND-RELEASE-DELTA-ACCEPTANCE`（`required_version = 202611231813`）：NSH 的 macOS 和 Windows 正式制品、摘要直放 `release/`，按目标和 buildRun 绑定证据。功能验收覆盖同渠道上一发布至当前发布之间的变化及直接影响，首发覆盖已批准的初始交付。见 [ADR-20261123-001](../adr/20261123_ADR.md)。
+- `HARNESS-FIX-VERIFICATION-SCOPE-GATE`（`required_version = 202611232148`）：日常开发仅按精确选择器运行直接受影响的测试。扩大范围须由当次人类明确要求。Harness 源与新建 NSH 的受管测试入口执行范围检查。见 [ADR-20261123-002](../adr/20261124_ADR.md)。
 
-- `HARNESS-RETIRE-TUI-GPUI-LEGACY`（`required_version = 202611121850`）：CLI、MCP 和 DESKTOP 可组合，DESKTOP 固定使用 Tauri 2。NSH 独立选择 desktop、mobile、web、tui，全部采用正式运行时固定提交与匹配 CLI。官方 NSH TUI 是子目标，不恢复独立 TUI。创建和升级候选排除退役接口工程资产，已有不受支持的配置须在原项目迁移。见 [ADR-20261112-002](../adr/20261123_ADR.md)。
+- `HARNESS-DESKTOP-FILES-AND-RELEASE-DELTA-ACCEPTANCE`（`required_version = 202611231813`）：NSH 的 macOS 和 Windows 正式制品、摘要直放 `release/`，按目标和 buildRun 绑定证据。功能验收覆盖同渠道上一发布至当前发布之间的变化及直接影响，首发覆盖已批准的初始交付。见 [ADR-20261123-001](../adr/20261124_ADR.md)。
+
+- `HARNESS-RETIRE-TUI-GPUI-LEGACY`（`required_version = 202611121850`）：CLI、MCP 和 DESKTOP 可组合，DESKTOP 固定使用 Tauri 2。NSH 独立选择 desktop、mobile、web、tui，全部采用正式运行时固定提交与匹配 CLI。官方 NSH TUI 是子目标，不恢复独立 TUI。创建和升级候选排除退役接口工程资产，已有不受支持的配置须在原项目迁移。见 [ADR-20261112-002](../adr/20261124_ADR.md)。
 
 ### 新项目初始化问询
 
-- 变更标识：`HARNESS-CHANGE-SEQUENTIAL-INITIALIZATION-QUESTIONS`；`required_version = 202611081358`，仅在正式发布时物化 Harness 时间版本。负责人要求首次基础表单、后续条件题及其他结构化补问每轮只问一个字段；程序类型与 NSH 能力等多选项优先弹出复选控件供勾选并确认，不要求用户手打选项。空表单先问中文名时提供可点击的“改用英文名”，避免只提供英文名的用户被卡住。宿主仅支持单选工具时，逐个选项点击选择/不选择，再点击确认最终集合；没有可点击选项工具时如实说明限制，不伪称已弹出复选框。提前明确给出的合法字段仍直接复用，最终完整汇总继续单独确认。见 [ADR-20261108-003](../adr/20261123_ADR.md)。
+- 变更标识：`HARNESS-CHANGE-SEQUENTIAL-INITIALIZATION-QUESTIONS`；`required_version = 202611081358`，仅在正式发布时物化 Harness 时间版本。负责人要求首次基础表单、后续条件题及其他结构化补问每轮只问一个字段；程序类型与 NSH 能力等多选项优先弹出复选控件供勾选并确认，不要求用户手打选项。空表单先问中文名时提供可点击的“改用英文名”，避免只提供英文名的用户被卡住。宿主仅支持单选工具时，逐个选项点击选择/不选择，再点击确认最终集合；没有可点击选项工具时如实说明限制，不伪称已弹出复选框。提前明确给出的合法字段仍直接复用，最终完整汇总继续单独确认。见 [ADR-20261108-003](../adr/20261124_ADR.md)。
 - 变更标识：`HARNESS-CHANGE-SIMPLIFIED-INITIALIZATION-FORM`；`required_version = 202611081358`，仅在正式发布时物化 Harness 时间版本。负责人要求取消系统平台问题，CLI/MCP/DESKTOP 默认支持 Windows/macOS/Linux 全平台，NSH 只问自己的能力；Agent 策略直接默认，发布后动作首次发布时询问，并明确 DESKTOP 可与 CLI/MCP 组合、NSH 只能单选。
 - 基础字段按顺序逐项询问中英文展示名（至少一个由用户直接提供）、ASCII `snake_case` 项目标识、项目路径、负责人和程序类型。CLI、MCP 可互相组合，也可与 DESKTOP 组合，默认派生完整 Windows/macOS/Linux；NSH 与其余类型互斥，只问桌面、移动、Web、TUI 能力，并分别派生完整对应平台。DESKTOP 直接派生 Tauri；适用的桌面九项配置仍逐项确认。具体平台及派生来源在写入前完整汇总确认，旧表单显式平台答案不再影响新项目。
-- 六项 Agent 策略按固定默认值物化，不出现策略模式问题；新下游 schema 5 先记录 `post_release_action: pending`，首次发布前展示可用动作并持久化用户选择。未选择时不得开始 Git 发布，已初始化下游的持久选择不受此变更重置。见 [ADR-20261108-002](../adr/20261123_ADR.md) 与 [ADR-20261108-001](../adr/20261123_ADR.md)。
+- 六项 Agent 策略按固定默认值物化，不出现策略模式问题；新下游 schema 5 先记录 `post_release_action: pending`，首次发布前展示可用动作并持久化用户选择。未选择时不得开始 Git 发布，已初始化下游的持久选择不受此变更重置。见 [ADR-20261108-002](../adr/20261124_ADR.md) 与 [ADR-20261108-001](../adr/20261124_ADR.md)。
 
 ### NSH 全目标 Mixed 与桌面能力
 
 - 受管 NSH 入口仅支持官方 v0.6.1 提交 `2f51d8611677c8a6bbad937b39756e8d0cc45350` 与匹配 CLI。旧工程须先迁移，详见 [NSH 运行时](../../.agents/skills/desktop-add-nsh-adapter/references/runtime-and-capabilities.md)。
 
-- `HARNESS-NSH-05-OFFICIAL`（`required_version = 202611121850`）：所有新 NSH 目标使用同版本官方运行时、Mixed TSX 和共享 Rust core。仅 desktop 保存九字段桌面 profile，表单只询问适用项。官方多窗口固定提供；托盘、单实例、深链接按选择接入，深链接要求单实例；自启、通知与 OS 全局快捷键在中性模板固定关闭。选择 NSH 时，官方 `nsh`、`nsh-design-guides` 随脚手架自动安装到项目 `.agents/skills/`。见 [ADR-20261112-003](../adr/20261123_ADR.md)。
+- `HARNESS-NSH-05-OFFICIAL`（`required_version = 202611121850`）：所有新 NSH 目标使用同版本官方运行时、Mixed TSX 和共享 Rust core。仅 desktop 保存九字段桌面 profile，表单只询问适用项。官方多窗口固定提供；托盘、单实例、深链接按选择接入，深链接要求单实例；自启、通知与 OS 全局快捷键在中性模板固定关闭。选择 NSH 时，官方 `nsh`、`nsh-design-guides` 随脚手架自动安装到项目 `.agents/skills/`。见 [ADR-20261112-003](../adr/20261124_ADR.md)。
 - 新 NSH 的 desktop、mobile、Web 均走官方 `nsh package`；TUI 只支持官方运行与测试，0.6.1 没有 TUI 打包目标。组合工程的移动/Web 包通过保留应用资源和 Cargo 相对路径的工作区副本隔离桌面窗口、单实例与模板恢复协议。旧工程迁移在原项目中处理。
 
 ### NSH 顶层程序类型与目标能力
@@ -40,8 +42,8 @@
 - 变更标识：`HARNESS-FEAT-NSH`；`required_version = 202611061129`，由既有正式发布绑定，日常维护不改 Harness 时间版本。该版本首次引入 NSH 工程链路；当前顶层分类与说明以上节新决定为准。
 - 统一初始化表单、Cargo metadata、九字段 profile、版本及 Git 发布生命周期不分叉。NSH 使用共享 core、自含运行时知识、专用 adapter/build/初始化 E2E；当前界面由本日 Mixed 决定更新，不接入 Tauri 前端/插件。原产品业务与签名不进入模板。
 - Android/iOS/Web 只允许 NSH；语言、三态主题和设置固定。桌面目标的关于/赞助/侧栏按选择，托盘、单实例、深链接可选；自启、通知和 OS 全局快捷键未接入中性模板，具体以本日 Mixed 决定为准。NSH 原生构建、Web 静态包、移动 SDK/签名和设备分别取证；初始化中性工程不冒充产品验收。
-- 本地试包与已发布候选分开；候选复核 clean 发布源码/tag/上下文、完整非空 Rust 与 NSH 测试、日志/许可证/文件摘要及当次 E2E。NSH 受管打包尚未验证 tracked 锁能传递到生成的 runtime workspace，因此该锁模式打包失败关闭，默认 ignored 可正常执行。初始化后删除专用派生入口，升级只传播所选接口的工程能力。
-- 详见 [ADR-20261106-001](../adr/20261123_ADR.md)。
+- 本地试包与已发布候选分开；候选复核 clean 发布源码/tag/上下文、差异范围非空 Rust 与 NSH 测试、日志/许可证/文件摘要及当次 E2E。NSH 受管打包尚未验证 tracked 锁能传递到生成的 runtime workspace，因此该锁模式打包失败关闭，默认 ignored 可正常执行。初始化后删除专用派生入口，升级只传播所选接口的工程能力。
+- 详见 [ADR-20261106-001](../adr/20261124_ADR.md)。
 
 
 - 变更标识：`HARNESS-REMOVE-UPDATES-TELEMETRY`；`required_version = 202611051535`。负责人明确要求从 Harness 摘掉应用更新与统计逻辑；初始化、Skills、支持资产、构建和升级工程层不再提供 updater、强更或使用统计能力。关于页保留权威版本与本地发布日志；既有下游产品实现继续受升级保护。本次正式发布将该变化绑定到上述所需版本，发布状态以 Git 引用复核为准。
@@ -71,13 +73,13 @@
 - Task 场景：`user_owned_tasks` 默认 `disabled`，关闭时不自动创建或拆分左侧 Task，但用户明确要求仍可创建；`enabled` 是按结果边界自动创建的长期授权。一个 Task 固定一个可验收结果、范围、禁止范围、完成条件和所选执行环境；交付物类型、外部副作用、禁止范围或验收责任变化（阶段变化仅在用户明确要求隔离时）必须新建 Task，同结果测试/review/checkpoint 与必要缺陷修复保留。同一 Local cwd 串行，独立 Worktree 按不重叠所有权并行。创建前核对项目与 Task 历史；仅 Local 环境检查同一 cwd 的 active 写入占用；Git 按有效 task_worktrees 选择 Worktree/Local，非 Git 使用 Local，以 `Task {序号} | 已分配 | {单一结果}` 调用一次 user-owned `create_thread`。只有真实 `threadId` 才继续，并复核标题、`projectId`、cwd、状态、干净工作区及起始提交；`clientThreadId` 或任一不符均零实现、不重复创建、不退化。
 - 决策场景：创建新下游时按固定顺序每轮只问一个尚未解析的双语名称、标识、路径、负责人或程序类型字段；不再询问系统平台。CLI、MCP 可组合，也可与 DESKTOP 组合并默认完整 Windows/macOS/Linux；NSH 只能单选，再问 NSH 能力并派生平台。可选项以可点击控件确认，多选优先复选；宿主只有单选控件时逐项点选并确认集合。六项 Agent 策略直接按固定默认值物化，不单独询问；发布后动作首次发布前再选。初始化后可用“开启/关闭左侧 Task”或“开启/关闭自动 Task 拆分”手动切换，只影响后续结果边界。
 - 输入：当前 Harness 源只接收 Harness 工程维护信息，或创建终端下游所需的中文项目展示名、英文项目展示名（至少直接提供一个）、ASCII `snake_case` 标识、项目路径、负责人和程序类型；项目路径可以是最终根目录或父目录。选择 NSH 时再确认桌面、移动、Web、TUI 子目标；桌面派生 Windows/macOS/Linux，移动派生 Android/iOS，Web 派生 Web，TUI 派生 Windows/macOS/Linux。选择 DESKTOP 或 NSH 桌面时还包括八项条件能力的启用/禁用最终配置与精简/详细侧栏选择；仅适用且可选的能力由用户逐项确认，不可用能力按框架与平台派生为 `disabled` 并明示来源；侧栏仅在用户明确选择默认、跳过或提交空白时使用详细模式，未答继续等待；Tauri 的 `os`（system-locale）、window-state 是不询问的两项 Rust-only 固定基线，dialog 是不询问的固定 WebView 基线。发布后动作不是初始化问题，新项目策略先记 `pending`，首次发布前再明确选择；产品目的、业务规则、产品专属 UI/文案/数据、远程地址、凭据、产品构建与发布要求必须在初始化完成并切换到终端下游后重新提出。
-- 输出：独立终端项目根、共享核心与所选适配器；DESKTOP 下游输出包含九项最终配置、所选生命周期/页面/侧栏且无禁用能力残留的适配器；NSH 按所选子目标生成 `_nsh`，只有桌面子目标写九字段 profile；Tauri 另包含两项 Rust-only 固定基线与 dialog 固定 WebView 基线，其中明确选择默认、跳过或提交空白时 `sidebar_mode = detailed`，未答继续等待。完成实现并提供本次必要单元测试证据；显式 Git 发布输出本地默认主分支与 tag 对同一最终 HEAD 的复核，按当次选择处理语义审查；所选 `local_package` 后续路径输出本次一个已选接口/目标、经过全量单元测试的可追溯候选，并解析本次 E2E 与适用签名。Windows 本地开发试包只输出未签名非候选安装程序及风险；macOS 默认 unsigned 且不探测签名条件，只有已配置、主动要求或渠道硬要求时才签名并公证。
+- 输出：独立终端项目根、共享核心与所选适配器；DESKTOP 下游输出包含九项最终配置、所选生命周期/页面/侧栏且无禁用能力残留的适配器；NSH 按所选子目标生成 `_nsh`，只有桌面子目标写九字段 profile；Tauri 另包含两项 Rust-only 固定基线与 dialog 固定 WebView 基线，其中明确选择默认、跳过或提交空白时 `sidebar_mode = detailed`，未答继续等待。完成实现并提供本次必要单元测试证据；显式 Git 发布输出本地默认主分支与 tag 对同一最终 HEAD 的复核，按当次选择处理语义审查；所选 `local_package` 后续路径输出本次一个已选接口/目标、经过差异回归测试的可追溯候选，并解析本次 E2E 与适用签名。Windows 本地开发试包只输出未签名非候选安装程序及风险；macOS 默认 unsigned 且不探测签名条件，只有已配置、主动要求或渠道硬要求时才签名并公证。
 
 ## MVP 包含
 
 ### Task 自主执行
 
-- Task 自主执行及其历史版本绑定见 [ADR-20261010-003](../adr/20261123_ADR.md)。
+- Task 自主执行及其历史版本绑定见 [ADR-20261010-003](../adr/20261124_ADR.md)。
 - `user_owned_tasks` 是项目唯一自动创建左侧 Task 子树的开关，默认关闭；初始化和手动切换都记录真实选择及确认来源/日期。单次显式创建不改变永久选择，关闭时当前会话直接完成工作。
 - Task/工作树完整流程集中到 `$desktop-task-workflow`；旧三个 Skill 保留兼容路由。已授权范围内可自主阅读、编辑、测试、修复和提交，自检通过自动执行，无需额外人工 BOUND 授权；不伪造宿主审批，不用文档自授系统权限。
 - 独立工作树按非重叠所有权尽量并行准备、创建和执行。创建只在共享状态预留/登记时使用短锁，checkout 在锁外并行；同 Local cwd 及最终整合串行。
@@ -163,7 +165,7 @@
 ### 候选验证边界
 
 - 变更标识：`HARNESS-REMOVE-QUANTITATIVE-RELEASE-PROBES`；所需 Harness 版本：`202609172303`。
-- Harness 与下游发布流程不再维护启动、交互、CPU、内存等量化探针，不解析对应选择，不生成专用候选，不写入对应 manifest 字段、豁免或运行时绑定。候选验证继续由项目全部非空单元测试、当前 E2E 选择、签名/公证、制品字节与渠道硬要求组成。
+- Harness 与下游发布流程不再维护启动、交互、CPU、内存等量化探针，不解析对应选择，不生成专用候选，不写入对应 manifest 字段、豁免或运行时绑定。候选验证继续由项目发布差异对应的非空回归测试、当前 E2E 选择、签名/公证、制品字节与渠道硬要求组成。
 
 ### 发布语义审查按次选择与审查后证据边界
 
@@ -355,7 +357,7 @@
 - 代码行为变化的本次必要测试至少覆盖核心成功路径和最高风险失败路径；缺陷修复增加回归测试。纯文档、元数据、格式或不可合理单测的机械变更不创建空洞测试，只做证明文件可解析或差异完整所必需的最小检查。
 - 安全、隐私、数据迁移、破坏性操作、生产/付费/凭据副作用、对外兼容契约、签名、发布和渠道硬要求仍必须取得相应授权或满足硬门禁；这些是当前风险所必需的边界，不得扩张为每次开发的通用步骤。
 - 构建只在用户本次显式请求，或本次发布冻结的已确认 `local_package` 构成持久授权时进入对应构建 Skill。Windows GUI 普通本地试包不提交、不生成发布日志、不写 `release/`，也不询问 E2E 或审查。正式 Git 发布由 `$desktop-prepare-release` 整理源码、版本、审查和双语日志，提交 `.harness/release-context.json` 后以其 SHA-256 调用单一路径 `release`，本地主分支合并并创建、复读 tag 后结束。终端下游按持久选择在 Git 发布后为本次一个明确接口/目标形成本地候选（具体规则见 [发布规则](../RELEASE.md#git-发布后构建与完整验收)），或推送并复读远端默认主分支、同名渠道分支和 tag；本地候选仍从 clean 已发布 HEAD 构建并在本次确定 E2E 与适用签名，远程 provider 另复核 refs。Harness 源不创建产品候选、manifest 或产品验收结论。
-- 每次构建必须运行项目全部单元测试并确认发现数量非零。Rust 构建运行 workspace 全成员、全 targets、全 features 的测试；缺省/显式 `ignored` 不要求项目锁文件，显式 `tracked` 则先核对适用锁文件并使用冻结解析。Tauri GUI 构建同时运行完整 Rust workspace 与前端单元测试套件。任何单元测试失败或零测试都阻断构建。
+- 构建仅执行上一同渠道发布以来变化及直接受影响功能的非空测试，首发使用批准的初始范围。候选计划绑定基线、当前提交、差异摘要和精确选择器，未匹配、零命中或失败立即停止；打包、发布、E2E 开关和 CI 自动触发均不授权全量回归。锁策略按 ignored/tracked 保持。
 - 发布构建 E2E 不与单元测试或编译混跑。选择启用或产品/渠道硬要求时，只在完整最终候选存在后对该候选运行；选择禁用时记录 `Not run` 和剩余风险。唯一例外是 DESKTOP/NSH 初始化的一次性目标宿主检查：Tauri 使用真实本机调试二进制，NSH 按已选目标使用真实桌面应用、移动设备或模拟器、Web 静态包。该检查是基线提交前的脚手架门禁，不消费候选构建选择，也不能产生候选验收、签名、发布或人工复核结论。
 
 ### 持久 Agent 策略
@@ -469,7 +471,7 @@
 - [x] Harness 正式发布只执行 Git 流程：Changelog 在 `sourceHead` 前完成，发布日志与上下文同一精确元数据提交，生命周期绑定上下文 SHA-256，本地默认主分支/tag 绑定同一 `sourceCommit` 后结束。产品候选、`release/` manifest 和产品验收均为 `Not applicable`；Harness 源源码归档仍由用户在 Git 发布后当次要求并生成相邻 SHA-256；下游选 `local_package` 时沿用产品打包 Skill。
 - [x] CLI/Tauri 扁平候选的 producer/collector 使用仓库外同文件系统 sibling 暂存和目录级原子提交。NSH 候选按目标和 buildRun 识别，macOS 和 Windows 的正式制品及摘要直接放在 `release/`，清单与证据按构建单独提交。验收前后复核上下文并重算本次选定集合的最终字节，原子推进其全部 manifest。下一开发分支在首个新改动前以已发布默认主分支/tag 调用 `finalize-release`，候选和 ready 不自动写 tracked 记忆。
 - [x] 每次显式发布候选构建都在开始前解析一次当前 E2E 选择，且持久偏好不能替代这次选择；Windows 本地开发试包不解析 E2E 选择。
-- [x] 每次构建都运行项目全部非空单元测试；Rust 覆盖 workspace/all-targets/all-features，Tauri GUI 同时覆盖完整 Rust 与前端单元测试套件。
+- [x] 构建使用绑定发布差异的明确测试计划，仅运行变化及直接受影响功能；无选择器、零命中或失败均拒绝，不自动退回全量。
 - [x] 里程碑只接受完整、可运行、符合批准场景且不含模拟实现/占位逻辑的真实产物。
 - [x] 正式候选验收功能范围为同渠道上一发布至当前发布之间的变化及直接影响。首发使用已批准的初始交付范围，验收复用构建单元测试证据并保留制品和渠道的必需检查。
 - [x] 验收发现缺失或偏差时返回开发循环、增加回归测试并重新验收；只有用户要求持久 Todo 时才重开或新增 Todo。

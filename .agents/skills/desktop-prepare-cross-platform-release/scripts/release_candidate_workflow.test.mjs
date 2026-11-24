@@ -36,9 +36,20 @@ test("dispatch_binds_release_context_digest", () => {
   assert.ok(!helper.includes("snapshot.gitPublication"));
 });
 
+/** CI 的构建确认和 E2E 选择不能替代当前差异计划。 */
+test('ci_refuses_test_discovery_and_execution_without_a_regression_plan', t => {
+  const directory = mkdtempSync(join(tmpdir(), 'workflow-regression-scope-'));
+  t.after(() => rmSync(directory, {recursive: true, force: true}));
+  for (const command of ['list-tests', 'run-tests']) {
+    const result = invoke(command, directory, {REGRESSION_PLAN: ''});
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /REGRESSION_PLAN/u);
+  }
+});
+
 test("context_is_captured_before_tests_and_reverified_before_manifest", () => {
   const capture = text.indexOf("verify_release_context.mjs capture");
-  const tests = text.indexOf("cargo test --workspace --all-targets --all-features");
+  const tests = text.indexOf("release_candidate_workflow.mjs run-tests");
   const verify = text.indexOf("verify_release_context.mjs verify");
   const manifest = text.indexOf("release_candidate_workflow.mjs write-manifest");
   assert.ok(capture >= 0 && capture < tests);
@@ -54,8 +65,8 @@ test("project_cargo_commands_apply_only_the_checked_lock_policy", () => {
   assert.match(helper, /assertDependencyLocks\(process\.cwd\(\), \{ rustTestManifests: \["Cargo\.toml"\] \}\)/u);
   assert.match(helper, /CARGO_LOCK_FLAG: policy === "tracked" \? "--locked" : ""/u);
   assert.match(helper, /"metadata", "--format-version", "1", "--no-deps", "--offline", \.\.\.lockArgs/u);
-  assert.match(helper, /"--target", environment\("HARNESS_RUST_HOST"\), \.\.\.cargoLockArgs\(\), "--", "--list"/u);
-  assert.match(text, /cargo test --workspace --all-targets --all-features --target "\$HARNESS_RUST_HOST" "\$\{lock_args\[@\]\}"/u);
+  assert.match(helper, /validateRegressionPlan\(root, plan, resolved\)/u);
+  assert.match(text, /release_candidate_workflow\.mjs run-tests/u);
   assert.match(text, /cargo build --workspace --release --target "\$HARNESS_RUST_HOST" "\$\{lock_args\[@\]\}"/u);
 });
 

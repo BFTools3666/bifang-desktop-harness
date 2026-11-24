@@ -7,6 +7,8 @@ import test from 'node:test';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { checkContext, runGit, scopeDiffDigest, writeContext } from '../../desktop-prepare-release/scripts/release_context.mjs';
+import { resolveAcceptanceScope } from '../../desktop-verify-delivery/scripts/acceptance_scope.mjs';
+import { runRegressionPlan } from '../../desktop-verify-delivery/scripts/regression_scope.mjs';
 import {
   fileSha256, inventory, locateNshCandidate, publishNshDesktopRelease, recoverNshDesktopRelease, sourceSnapshot,
   usesFlatNshRelease, verifyNshCandidate,
@@ -33,29 +35,33 @@ function writeArtifact(stage, relative, content) {
   return sha256;
 }
 
-function stageCandidate(release, target, {installer = true, buildRun = `nsh-${target}-${uuid}`} = {}) {
+function stageCandidate(release, target, {installer = true, legacy = false, buildRun = `nsh-${target}-${uuid}`} = {}) {
   const stage = fs.mkdtempSync(path.join(release, '.nsh-package-'));
   fs.mkdirSync(path.join(stage, 'package'));
   fs.writeFileSync(path.join(stage, 'package', 'expanded-runner'), 'expanded bytes');
   fs.writeFileSync(path.join(stage, 'nsh-tests.xml'), '<testsuites/>');
+  fs.writeFileSync(path.join(stage, 'regression-plan.json'), '{}');
+  fs.writeFileSync(path.join(stage, 'regression-results.json'), '{}');
   for (const file of licenses) fs.writeFileSync(path.join(stage, file), 'license');
   const releaseNotesPath = 'release-notes.json';
   fs.writeFileSync(path.join(stage, releaseNotesPath), '{}');
-  const artifact = target === 'macos' ? 'application.tar.gz' : 'package/Example.zip';
+  const artifact = legacy ? (target === 'macos' ? 'application.tar.gz' : 'package/Example.zip')
+    : target === 'macos' ? 'application.dmg' : installer ? 'package/Example-setup.exe' : 'package/Example.zip';
   const sha256 = writeArtifact(stage, artifact, 'primary bytes');
-  if (target === 'windows' && installer) {
+  if (legacy && target === 'windows' && installer) {
     fs.writeFileSync(path.join(stage, 'package/Example-setup.exe'), 'MZ installer bytes');
   }
   return {stage, manifest: {
     schemaVersion: 1, mode: 'candidate', interface: 'nsh', version, target, buildRun, artifact, sha256,
+    arch: target === 'macos' ? 'arm64' : 'x64', bundleFormat: target === 'macos' ? 'dmg' : installer ? 'exe' : 'zip',
     checksum: artifact + '.sha256', releaseNotesPath, licenses,
     releaseNotesSha256: fileSha256(path.join(stage, releaseNotesPath)),
   }};
 }
 
-test('NSH flat output is limited to formal macOS and Windows candidates', () => {
+test('desktop_final_installers_use_release_root_in_local_and_candidate_modes', () => {
   for (const target of ['macos', 'windows', 'linux', 'android', 'ios', 'ios-simulator', 'web']) {
-    assert.equal(usesFlatNshRelease('local', target), false);
+    assert.equal(usesFlatNshRelease('local', target), ['macos', 'windows'].includes(target));
     assert.equal(usesFlatNshRelease('candidate', target), ['macos', 'windows'].includes(target));
   }
 });
@@ -64,14 +70,14 @@ test('desktop packages and adjacent digests are flat while same-run evidence sta
   const {root, release} = fixture(t);
   fs.writeFileSync(path.join(release, 'unrelated.txt'), 'untouched');
   const publicFiles = ['.nsh-evidence', 'unrelated.txt'];
-  for (const [target, format] of [['macos', 'tar.gz'], ['windows', 'zip']]) {
+  for (const [target, format] of [['macos', 'dmg'], ['windows', 'exe']]) {
     const {stage, manifest} = stageCandidate(release, target);
-    const stem = `${name}_${version}_${manifest.buildRun}`;
+    const stem = `${name}_${version}_${target === 'macos' ? 'arm64_setup for macOS' : 'x64_setup for Windows'}`;
     const result = publishNshDesktopRelease(release, stage, manifest, name);
     assert.equal(result.output, release);
     assert.equal(result.manifest, path.join(release, '.nsh-evidence', manifest.buildRun, 'manifest.json'));
     assert.equal(result.artifact, stem + '.' + format);
-    const names = [result.artifact, ...(target === 'windows' ? [stem + '-setup.exe'] : [])];
+    const names = [result.artifact];
     assert.deepEqual(result.deliveryFiles.map(file => file.path), names);
     assert.equal(fs.existsSync(path.join(release, manifest.buildRun)), false);
     assert.equal(fs.existsSync(stage), false);
@@ -89,14 +95,34 @@ test('desktop packages and adjacent digests are flat while same-run evidence sta
   assert.equal(fs.readFileSync(path.join(release, 'unrelated.txt'), 'utf8'), 'untouched');
 });
 
-test('Windows without an official installer publishes just the actual ZIP', t => {
-  const {root, release} = fixture(t);
+test('archives_cannot_replace_final_installers_and_long_names_are_not_silently_truncated', t => {
+  const {release} = fixture(t);
   const {stage, manifest} = stageCandidate(release, 'windows', {installer: false});
-  publishNshDesktopRelease(release, stage, manifest, '示'.repeat(80));
-  const candidate = locateNshCandidate(root, 'windows', manifest.buildRun);
-  assert.equal(candidate.deliveryFiles.length, 1);
-  assert.ok(Buffer.byteLength(path.basename(candidate.artifact)) < 255);
-  assert.equal(path.extname(candidate.artifact), '.zip');
+  assert.throws(() => publishNshDesktopRelease(release, stage, manifest, name), /real DMG or EXE/u);
+  const next = stageCandidate(release, 'macos');
+  assert.throws(() => publishNshDesktopRelease(release, next.stage, next.manifest, '示'.repeat(80)), /filesystem limit/u);
+});
+
+/** 本地桌面安装器也直接落位 release，但不能被候选验收入口误认。 */
+test('local_desktop_installer_is_flat_and_is_not_a_release_candidate', t => {
+  const {root, release} = fixture(t);
+  const {stage, manifest} = stageCandidate(release, 'macos');
+  manifest.mode = 'local';
+  const result = publishNshDesktopRelease(release, stage, manifest, name);
+  assert.equal(result.artifact, '示例 Beta_1.2.3_arm64_setup for macOS.dmg');
+  assert.ok(fs.existsSync(path.join(release, result.artifact)));
+  assert.throws(() => locateNshCandidate(root, 'macos', manifest.buildRun), /identity or layout mismatch/u);
+});
+
+/** 不同批次不能靠随机后缀绕过稳定名称，也不能覆盖旧包。 */
+test('same_installer_identity_from_another_build_preserves_previous_bytes', t => {
+  const {release} = fixture(t);
+  const first = stageCandidate(release, 'macos');
+  const result = publishNshDesktopRelease(release, first.stage, first.manifest, name);
+  const next = stageCandidate(release, 'macos', {buildRun: 'nsh-macos-11234567-89ab-cdef-0123-456789abcdef'});
+  assert.throws(() => publishNshDesktopRelease(release, next.stage, next.manifest, name), /filename already exists/u);
+  assert.equal(fileSha256(path.join(release, result.artifact)), result.sha256);
+  assert.ok(fs.existsSync(result.manifest));
 });
 
 /** 平铺安装包同时保留官方更新器需要的原名、字节和批次清单记录。 */
@@ -177,6 +203,30 @@ test('interrupted_publication_can_be_rolled_back_by_exact_build_run', t => {
   assert.equal(fs.readFileSync(path.join(release, unrelated), 'utf8'), 'unrelated bytes');
 });
 
+/** 写入名称日志后尚未移动制品就退出时，恢复不得误删其他进程的同名文件。 */
+test('interruption_before_public_staging_preserves_unrelated_same_name_file', t => {
+  const {root, release} = fixture(t);
+  const {stage, manifest} = stageCandidate(release, 'windows');
+  const module = new URL('./nsh_release_layout.mjs', import.meta.url).href;
+  const child = spawnSync(process.execPath, ['--input-type=module', '-e', `
+    import fs from 'node:fs';
+    import { publishNshDesktopRelease } from ${JSON.stringify(module)};
+    const [release, stage, manifest, name] = process.argv.slice(1);
+    const write = fs.writeFileSync;
+    fs.writeFileSync = (file, bytes, options) => {
+      write(file, bytes, options);
+      if (String(file).endsWith('owner.json') && JSON.parse(bytes).files) process.exit(92);
+    };
+    publishNshDesktopRelease(release, stage, JSON.parse(manifest), name);
+  `, release, stage, JSON.stringify(manifest), name], {encoding: 'utf8'});
+  assert.equal(child.status, 92, child.stderr);
+  const unrelated = path.join(release, '示例 Beta_1.2.3_x64_setup for Windows.exe');
+  fs.writeFileSync(unrelated, 'unrelated bytes');
+  assert.equal(recoverNshDesktopRelease(root, 'windows', manifest.buildRun).status, 'rolled-back');
+  assert.equal(fs.readFileSync(unrelated, 'utf8'), 'unrelated bytes');
+  assert.deepEqual(fs.readdirSync(path.join(release, '.nsh-evidence')), []);
+});
+
 test('selected desktop candidate rejects extra files and changed public or evidence bytes', t => {
   const {root, release} = fixture(t);
   const {stage, manifest} = stageCandidate(release, 'macos');
@@ -198,7 +248,7 @@ test('selected desktop candidate rejects extra files and changed public or evide
 
 test('an existing desktop batch remains selectable by its exact legacy directory', t => {
   const {root, release} = fixture(t);
-  const {stage, manifest} = stageCandidate(release, 'windows');
+  const {stage, manifest} = stageCandidate(release, 'windows', {legacy: true});
   manifest.files = inventory(stage);
   fs.writeFileSync(path.join(stage, 'manifest.json'), JSON.stringify(manifest));
   const legacy = path.join(release, manifest.buildRun);
@@ -232,7 +282,9 @@ test('the locator CLI binds a committed NSH package to a real published Git cont
   git('config', '--local', 'core.hooksPath', '.git/fixture-hooks');
   git('config', '--local', 'commit.gpgsign', 'false');
   fs.writeFileSync(path.join(root, '.gitignore'), '/release/\n/knowledge/\n');
-  fs.writeFileSync(path.join(root, 'release-notes.json'), '{}');
+  const notes = JSON.stringify({schemaVersion: 2, releases: [{version: 'v' + version, releaseDate: '2026-11-23',
+    featureOptimizations: [{'zh-CN': '测试发布', 'en-US': 'Fixture release'}], bugFixes: []}]});
+  fs.writeFileSync(path.join(root, 'release-notes.json'), notes);
   git('add', '.gitignore', 'release-notes.json');
   git('commit', '--quiet', '-m', 'fixture source');
   const sourceHead = git('rev-parse', 'HEAD');
@@ -255,6 +307,13 @@ test('the locator CLI binds a committed NSH package to a real published Git cont
   const context = checkContext({projectRoot: root}, {published: true});
 
   const {stage, manifest} = stageCandidate(release, 'macos');
+  fs.writeFileSync(path.join(stage, 'release-notes.json'), notes);
+  const resolved = resolveAcceptanceScope(root);
+  const plan = {schemaVersion: 1, scope: resolved.acceptanceScope, initialScopeAuthorization: 'Approved fixture scope.',
+    tests: [], excludedChanges: resolved.changedPaths.map(file => ({changes: [file], reason: 'Only release metadata.'})),
+    noTestsReason: 'This fixture only exercises published metadata and installer layout.'};
+  for (const file of ['regression-plan.json', 'regression-results.json']) fs.unlinkSync(path.join(stage, file));
+  const unitTests = runRegressionPlan(root, plan, {directory: stage});
   Object.assign(manifest, {
     host: process.platform,
     sourceSnapshot: sourceSnapshot(root),
@@ -266,6 +325,8 @@ test('the locator CLI binds a committed NSH package to a real published Git cont
     reviewSelection: context.releaseReview.selection,
     reviewStatus: context.releaseReview.status,
     releaseNotesVersion: 'v' + version,
+    releaseNotesSha256: fileSha256(path.join(stage, 'release-notes.json')),
+    unitTests,
   });
   const result = publishNshDesktopRelease(release, stage, manifest, name);
   const script = fileURLToPath(new URL('./nsh_release_layout.mjs', import.meta.url));

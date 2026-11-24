@@ -7,8 +7,11 @@ import { isDeepStrictEqual, parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
 import { checkContext } from '../../desktop-prepare-release/scripts/release_context.mjs';
 import { NSH_BUILD_CACHE_NAMES } from './nsh_portable_entry.mjs';
+import { installerArtifactName } from '../../desktop-implement-change/scripts/installer_artifact_name.mjs';
+import { verifyRegressionEvidence } from '../../desktop-verify-delivery/scripts/regression_scope.mjs';
 
-const desktopFormats = new Map([['macos', 'tar.gz'], ['windows', 'zip']]);
+const desktopFormats = new Map([['macos', 'dmg'], ['windows', 'exe']]);
+const legacyFormats = new Map([['macos', 'tar.gz'], ['windows', 'zip']]);
 const targets = ['macos', 'windows', 'linux', 'android', 'ios', 'ios-simulator', 'web'];
 const evidenceFolder = '.nsh-evidence';
 const manifestName = 'manifest.json';
@@ -16,7 +19,7 @@ const releaseNotesName = 'release-notes.json';
 const licenses = ['LICENSE.zh-CN.md', 'LICENSE.en.md'];
 
 export function usesFlatNshRelease(mode, target) {
-  return mode === 'candidate' && desktopFormats.has(target);
+  return ['local', 'candidate'].includes(mode) && desktopFormats.has(target);
 }
 
 /** 流式计算制品摘要，常驻缓冲区与制品大小无关。 */
@@ -97,16 +100,6 @@ function safeLeafName(value) {
   return safeRelativePath(value) && !value.includes('/');
 }
 
-/** 保留应用与版本的可识别前缀，为批次 ID 及后缀预留文件系统长度。 */
-function clipFilenamePrefix(value, bytes) {
-  let prefix = '';
-  for (const character of value.normalize('NFC')) {
-    if (Buffer.byteLength(prefix + character) > bytes) break;
-    prefix += character;
-  }
-  return prefix;
-}
-
 function requireDirectory(directory) {
   if (!fs.lstatSync(directory, {throwIfNoEntry: false})?.isDirectory()) {
     throw new Error(`expected an ordinary release directory: ${directory}`);
@@ -150,7 +143,20 @@ function validateDigest(directory, file) {
 }
 
 function validatePublicFiles(directory, manifest) {
-  const format = desktopFormats.get(manifest.target);
+  if (manifest.releaseLayout === 'flat-installer') {
+    const filename = installerArtifactName({productName: manifest.productName, version: manifest.version,
+      platform: manifest.target, arch: manifest.arch});
+    const primary = {path: filename, sha256: manifest.sha256, checksum: filename + '.sha256'};
+    if (manifest.artifact !== filename || manifest.checksum !== primary.checksum ||
+        manifest.bundleFormat !== desktopFormats.get(manifest.target) ||
+        !isDeepStrictEqual(manifest.deliveryFiles, [primary])) throw new Error('invalid flat NSH installer identity');
+    const expected = [filename, primary.checksum].map(normalizeName).sort();
+    const names = fs.readdirSync(directory).filter(name => normalizeName(name).startsWith(normalizeName(filename)));
+    if (!isDeepStrictEqual(names.map(normalizeName).sort(), expected)) throw new Error('flat NSH release file set changed');
+    validateDigest(directory, primary);
+    return;
+  }
+  const format = legacyFormats.get(manifest.target);
   if (!format || !safeLeafName(manifest.artifact) ||
       !manifest.artifact.endsWith(`_${manifest.buildRun}.${format}`)) {
     throw new Error('invalid flat NSH candidate filename');
@@ -174,12 +180,16 @@ function validatePublicFiles(directory, manifest) {
 function validateEvidence(directory, manifest) {
   const actual = inventory(directory).filter(file => file.path !== manifestName);
   if (!isDeepStrictEqual(actual, manifest.files)) throw new Error('NSH candidate evidence file set or bytes changed');
+  if (manifest.mode === 'local') return;
   if (manifest.releaseNotesPath !== releaseNotesName || !isDeepStrictEqual(manifest.licenses, licenses) ||
       fileSha256(requireFile(directory, releaseNotesName)) !== manifest.releaseNotesSha256) {
     throw new Error('NSH candidate release notes or licenses metadata changed');
   }
   for (const license of licenses) requireFile(directory, license);
-  requireFile(directory, 'nsh-tests.xml');
+  if (manifest.releaseLayout === 'flat-installer') {
+    requireFile(directory, 'regression-plan.json');
+    requireFile(directory, 'regression-results.json');
+  } else requireFile(directory, 'nsh-tests.xml');
 }
 
 function stagePublicFile(source, publicStage, name, sha256) {
@@ -242,7 +252,10 @@ export function recoverNshDesktopRelease(root, target, buildRun) {
       const staged = path.join(lock, 'public');
       if (fs.lstatSync(staged, {throwIfNoEntry: false})) {
         requireDirectory(staged);
-        for (const name of publicNames(staged, buildRun)) {
+        const names = owner.files ?? publicNames(staged, buildRun);
+        if (!Array.isArray(names) || names.some(name => !safeLeafName(name))) throw new Error('invalid NSH publication file journal');
+        for (const name of names) {
+          if (!fs.lstatSync(path.join(staged, name), {throwIfNoEntry: false})) continue;
           removeOwnedPublicationLink(requireFile(staged, name), path.join(release, name));
         }
       }
@@ -284,23 +297,23 @@ export function publishNshDesktopRelease(release, stage, manifest, appName) {
     stage = stagedEvidence;
     const packageDirectory = path.join(stage, 'package');
     requireDirectory(packageDirectory);
-    const stem = `${clipFilenamePrefix(appName, 96)}_${clipFilenamePrefix(version, 48)}_${buildRun}`;
+    const filename = installerArtifactName({productName: appName, version, platform: target, arch: manifest.arch});
+    if (manifest.bundleFormat !== desktopFormats.get(target) || !manifest.artifact.endsWith('.' + manifest.bundleFormat)) {
+      throw new Error('NSH final desktop artifact must be a real DMG or EXE installer');
+    }
+    const publicFiles = [filename, filename + '.sha256'];
+    const occupied = fs.readdirSync(release).some(name => publicFiles.map(normalizeName).includes(normalizeName(name)));
+    if (occupied) throw new Error('NSH installer filename already exists; existing bytes and evidence were preserved');
+    fs.writeFileSync(path.join(lock, 'owner.json'), JSON.stringify({buildRun, pid: process.pid, files: publicFiles}));
     const primary = stagePublicFile(requireFile(stage, manifest.artifact), publicStage,
-      stem + '.' + desktopFormats.get(target), manifest.sha256);
+      filename, manifest.sha256);
     fs.unlinkSync(requireFile(stage, manifest.checksum));
     const deliveryFiles = [primary];
-    if (target === 'windows') {
-      const installers = fs.readdirSync(packageDirectory).filter(name => name.endsWith('-setup.exe'));
-      if (installers.length > 1) throw new Error('expected at most one official Windows installer');
-      if (installers.length) {
-        const installer = requireFile(stage, `package/${installers[0]}`);
-        deliveryFiles.push(stagePublicFile(installer, publicStage, stem + '-setup.exe'));
-      }
-    }
     preserveUpdaterArchives(stage, appName, version, target);
     fs.rmSync(packageDirectory, {recursive: true});
     Object.assign(manifest, {
-      releaseLayout: 'flat-desktop',
+      releaseLayout: 'flat-installer',
+      productName: appName,
       artifact: primary.path,
       sha256: primary.sha256,
       checksum: primary.checksum,
@@ -310,7 +323,7 @@ export function publishNshDesktopRelease(release, stage, manifest, appName) {
     validateEvidence(stage, manifest);
     fs.writeFileSync(path.join(stage, manifestName), JSON.stringify(manifest, null, 2) + '\n', {flag: 'wx'});
 
-    for (const file of publicNames(publicStage, buildRun)) {
+    for (const file of publicFiles) {
       const source = path.join(publicStage, file);
       const destination = path.join(release, file);
       fs.linkSync(source, destination);
@@ -356,7 +369,7 @@ export function locateNshCandidate(root, target, buildRun) {
   const manifest = JSON.parse(manifestBytes.toString('utf8'));
   if (manifest.schemaVersion !== 1 || manifest.interface !== 'nsh' || manifest.mode !== 'candidate' ||
       manifest.target !== target || manifest.buildRun !== buildRun ||
-      (flatExists ? manifest.releaseLayout !== 'flat-desktop' : manifest.releaseLayout !== undefined)) {
+      (flatExists ? !['flat-desktop', 'flat-installer'].includes(manifest.releaseLayout) : manifest.releaseLayout !== undefined)) {
     throw new Error('NSH candidate identity or layout mismatch');
   }
   validateEvidence(evidenceDirectory, manifest);
@@ -393,6 +406,12 @@ export function verifyNshCandidate(root, target, buildRun) {
       manifest.reviewSelection !== context.releaseReview.selection || manifest.reviewStatus !== context.releaseReview.status ||
       manifest.releaseNotesSha256 !== fileSha256(path.join(root, releaseNotesName))) {
     throw new Error('NSH candidate review or release notes no longer match the released source');
+  }
+  if (manifest.releaseLayout === 'flat-installer') {
+    const plan = JSON.parse(fs.readFileSync(requireFile(result.evidenceDirectory, 'regression-plan.json'), 'utf8'));
+    const regression = JSON.parse(fs.readFileSync(requireFile(result.evidenceDirectory, 'regression-results.json'), 'utf8'));
+    verifyRegressionEvidence(root, plan, regression);
+    if (!isDeepStrictEqual(manifest.unitTests, regression)) throw new Error('NSH candidate regression manifest mismatch');
   }
   return result;
 }

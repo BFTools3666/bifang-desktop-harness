@@ -120,7 +120,7 @@ NSH 桌面默认提供官方多窗口。表单按托盘、单实例、有条件�
 
 日常开发直接使用 `$desktop-implement-change`，只增加并运行本次变更需要的单元/回归测试；新功能或独立 Bug 修复首次写入前创建受管 feature 分支。Git 发布只整理并提交代码、合并本地默认主分支及创建并复读 tag。首次发布前先询问并记录 `post_release_action`，发布开始时冻结已确认选择，随后按本次快照对一个本机目标执行正式候选打包，或向远端默认主分支与所选渠道分支推送同一已发布提交及 tag，并检测所选路径；未来可用 `$desktop-switch-post-release-action` 切换，旧发布继续按旧快照。下游下一周期先从已发布主分支/tag 建新分支，并在首个新改动前调用 `finalize-release`。随后对新改动先判断是否疑似新需求：疑似新需求优先按 `feature` 提升 Minor；确认没有新需求的问题修复或用户可感知优化按新稳定 ID 的 `bug-fix` 提升 Patch；经证据确认的记录冲突使用 `record-reconciliation` 独立提升 Minor。行为保持的重构、文档和内部清理不提升版本，也不自动增加计划、全仓检查、构建、E2E 或验收。
 
-显式候选构建只接受已有 clean 默认主分支和精确版本 tag；构建入口只读验证并消费 `.harness/release-context.json`，本次另行解析 E2E 和适用签名选择，把选择与结果写入候选证据。远程跨平台 provider 另要求远端渠道分支与 tag 已复读为同一已发布 HEAD。候选须运行全部非空单元测试。普通 Windows 本地安装试包是开发制品，不要求发布日志或 clean HEAD。构建事实只写入适用产物位置和最终回复，不自动更新项目记忆。普通 GUI 页面状态在当前进程跨路由保留；命中 `$mantine-list-view` 的列表页使用类型化 URL、当前标签页 sessionStorage、Query-only 行数据与本地列偏好，并按成功总页数纠正越界。按钮、链接和开关由自身处理动作，父级容器不得代理子动作。
+显式候选构建只接受已有 clean 默认主分支和精确版本 tag；构建入口只读验证并消费 `.harness/release-context.json`，本次另行解析 E2E 和适用签名选择，把选择与结果写入候选证据。远程跨平台 provider 另要求远端渠道分支与 tag 已复读为同一已发布 HEAD。候选须运行发布差异对应的非空回归测试。普通 Windows 本地安装试包是开发制品，不要求发布日志或 clean HEAD。构建事实只写入适用产物位置和最终回复，不自动更新项目记忆。普通 GUI 页面状态在当前进程跨路由保留；命中 `$mantine-list-view` 的列表页使用类型化 URL、当前标签页 sessionStorage、Query-only 行数据与本地列偏好，并按成功总页数纠正越界。按钮、链接和开关由自身处理动作，父级容器不得代理子动作。
 
 Core-first 是强制规则：值域、跨字段关系、业务默认值和可复用状态转换进入 shared core；CLI/MCP/DESKTOP/NSH 只负责各自协议、展示和系统能力。系统托盘、窗口、通知和登录项等宿主机制留在适用 adapter，但其业务效果仍调用 core。
 

@@ -74,8 +74,18 @@ test('legacy_gui_nsh_cannot_enter_build', () => fixture(root => {
   fs.mkdirSync(path.join(member, 'src'), { recursive: true });
   fs.writeFileSync(path.join(member, 'Cargo.toml'), '[package]\nname = "sample_tool_gui"\nversion = "0.1.0"\nedition = "2024"\n');
   fs.writeFileSync(path.join(member, 'src', 'lib.rs'), '');
-  assert.throws(() => buildNshRelease({ root, target: 'web' }), /requires NSH workspace/u);
+  const regressionPlan = path.join(root, 'local-plan.json');
+  fs.writeFileSync(regressionPlan, JSON.stringify({schemaVersion: 1, scope: {kind: 'development'},
+    changedPaths: [], tests: [], excludedChanges: [], noTestsReason: 'Only testing the workspace rejection gate.'}));
+  assert.throws(() => buildNshRelease({ root, target: 'web', regressionPlan }), /requires NSH workspace/u);
   assert.equal(fs.existsSync(path.join(root, 'target')), false);
+}));
+
+/** 缺少本次精确测试范围时，不启动 Cargo 或创建输出目录。 */
+test('unscoped_nsh_build_is_rejected_before_any_test_or_output', () => fixture(root => {
+  fs.writeFileSync(path.join(root, 'Cargo.toml'), '[workspace]\n');
+  assert.throws(() => buildNshRelease({root, target: 'web'}), /regression-plan/u);
+  assert.deepEqual(fs.readdirSync(root), ['Cargo.toml']);
 }));
 
 test('tracked_resolution_and_unanswered_candidate_selection_fail_before_build',()=>fixture(root=>{

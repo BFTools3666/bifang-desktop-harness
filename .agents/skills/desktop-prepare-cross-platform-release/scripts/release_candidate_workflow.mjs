@@ -5,6 +5,7 @@ import {
   appendFileSync,
   existsSync,
   lstatSync,
+  mkdtempSync,
   mkdirSync,
   readFileSync,
   readdirSync,
@@ -22,6 +23,9 @@ import { fileURLToPath } from "node:url";
 
 import { assertDependencyLocks } from "../../desktop-implement-change/scripts/project_lock_policy.mjs";
 import { resolveCargoDeviceTarget } from "../../desktop-implement-change/scripts/cargo_device_config.mjs";
+import { resolveReleaseRange } from "../../desktop-verify-delivery/scripts/acceptance_scope.mjs";
+import { runRegressionPlan, validateRegressionPlan, verifyRegressionResult } from "../../desktop-verify-delivery/scripts/regression_scope.mjs";
+import { calculateSnapshot } from "./verify_release_context.mjs";
 
 const OID_PATTERN = /^[0-9a-f]{40}$/;
 const MINIMUM_NODE = [24, 0, 0];
@@ -240,20 +244,22 @@ function hashReleaseNotes() {
   appendGithubFile("GITHUB_ENV", { RELEASE_NOTES_SHA256: digest });
 }
 
-/** 先列出并确认至少一个 Rust 测试，再由 workflow 执行完整测试。 */
-function listTests() {
-  const result = run(
-    "cargo",
-    ["test", "--workspace", "--all-targets", "--all-features", "--target", environment("HARNESS_RUST_HOST"), ...cargoLockArgs(), "--", "--list"],
-    { check: false },
-  );
-  process.stdout.write(result.stdout);
-  process.stderr.write(result.stderr);
-  if (result.status !== 0) return result.status;
-  const count = result.stdout.split(/\r?\n/).filter((line) => line.trimEnd().endsWith(": test")).length;
-  if (count === 0) throw new WorkflowError("未发现测试");
-  process.stdout.write(`发现 ${count} 个测试\n`);
-  return 0;
+/** CI 自动触发不授权全量测试；派发计划须绑定同渠道上一发布。 */
+async function regressionPlan() {
+  const plan = JSON.parse(environment("REGRESSION_PLAN"));
+  const root = realpathSync(process.cwd());
+  const snapshot = await calculateSnapshot(root, environment("SOURCE_COMMIT"), environment("RELEASE_CONTEXT_SHA256"));
+  const context = JSON.parse(readFileSync(join(root, ".harness/release-context.json"), "utf8"));
+  const resolved = resolveReleaseRange(root, {...context, ...snapshot, schemaVersion: context.schemaVersion});
+  return validateRegressionPlan(root, plan, resolved);
+}
+
+/** 在运行器私有临时目录保留差异计划与实际结果，随后嵌入同一候选清单。 */
+async function runTests() {
+  const plan = await regressionPlan();
+  const directory = mkdtempSync(join(environment("RUNNER_TEMP"), "harness-regression-"));
+  runRegressionPlan(realpathSync(process.cwd()), plan, {directory});
+  appendGithubFile("GITHUB_ENV", {HARNESS_REGRESSION_RESULTS: join(directory, "regression-results.json")});
 }
 
 /** 复核测试没有改变源码提交或 clean 状态。 */
@@ -404,6 +410,12 @@ function writeManifest() {
   }
   const review = snapshot.releaseReview;
   const target = environment("HARNESS_RUST_HOST");
+  const regressionPlan = JSON.parse(environment("REGRESSION_PLAN"));
+  const unitTests = JSON.parse(readFileSync(environment("HARNESS_REGRESSION_RESULTS"), "utf8"));
+  verifyRegressionResult(regressionPlan, unitTests);
+  if (unitTests.scope.sourceCommit !== snapshot.sourceCommit ||
+      unitTests.scope.releaseContextSha256 !== snapshot.releaseContextSha256 ||
+      unitTests.scope.releaseChannel !== channel) throw new WorkflowError("回归证据未绑定当前候选发布");
   const manifest = {
     project: environment("PRODUCT_NAME"),
     version: environment("VERSION"),
@@ -416,7 +428,8 @@ function writeManifest() {
     host: `${type()} ${release()} ${arch()} ${platform()} ${osVersion()}`,
     archive: archiveName,
     sha256: digest,
-    tests: "passed",
+    unitTests,
+    regressionPlan,
     e2eSelection: environment("E2E_SELECTION"),
     releaseContextSha256: snapshot.releaseContextSha256,
     releaseTag: snapshot.expectedTag,
@@ -478,7 +491,7 @@ function commitCandidate() {
 }
 
 /** 执行一个固定 workflow 子命令。 */
-export function main(argv = process.argv.slice(2)) {
+export async function main(argv = process.argv.slice(2)) {
   const command = argv[0];
   try {
     if (argv.length !== 1) throw Object.assign(new WorkflowError("workflow helper 参数无效"), { cliExit: 2 });
@@ -491,7 +504,8 @@ export function main(argv = process.argv.slice(2)) {
       case "check-lock-policy": checkLockPolicy(); break;
       case "verify-version": verifyVersion(); break;
       case "hash-release-notes": hashReleaseNotes(); break;
-      case "list-tests": return listTests();
+      case "list-tests": await regressionPlan(); break;
+      case "run-tests": await runTests(); break;
       case "verify-post-test": verifyPostTest(); break;
       case "resolve-artifact": resolveArtifact(); break;
       case "write-manifest": writeManifest(); break;
@@ -506,5 +520,5 @@ export function main(argv = process.argv.slice(2)) {
 }
 
 if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
-  process.exitCode = main();
+  process.exitCode = await main();
 }

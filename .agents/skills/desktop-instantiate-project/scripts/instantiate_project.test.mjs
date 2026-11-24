@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 import { planInstantiation, prepareInstantiation } from './instantiate_project.mjs';
 import { POLICY_PRESET } from './initialization_questions.mjs';
 import { includedSourcePath, removeUpstreamOnly, renderPreparedFiles, renderProjectSkillMap, SKILL_GROUPS, snapshotSource } from './instantiation_files.mjs';
@@ -52,7 +53,22 @@ test('prepare_installs_fixed_identity_and_preserves_legal_and_vendor_bytes', t =
   for (const file of ["cargo_device_config.mjs", "cargo_device_config.test.mjs", "run_scoped_tests.mjs", "run_scoped_tests.test.mjs"]) {
     assert.ok(prepared.files.some(item => item.path === ".agents/skills/desktop-implement-change/scripts/" + file));
   }
+  assert.ok(prepared.files.some(item => item.path === '.agents/skills/desktop-implement-change/scripts/installer_artifact_name.mjs'));
+  assert.ok(prepared.files.some(item => item.path === '.agents/skills/desktop-verify-delivery/scripts/regression_scope.mjs'));
   assert.equal(prepared.files.some(item => item.path.includes('check_no_python')), false);
+});
+
+/** NSH 裁剪收集 Skill 后，安装包与差异测试模块的依赖闭包仍能加载。 */
+test('nsh_packaging_loads_shared_naming_after_collection_skill_is_pruned', t => {
+  const f = fixture(t, 'nsh');
+  const plan = planInstantiation(f.input);
+  prepareInstantiation(f.input, plan.planDigest);
+  fs.rmSync(path.join(f.target, '.agents/skills/desktop-collect-release-artifacts'), {recursive: true, force: true});
+  for (const module of ['nsh_release_layout.mjs', 'build_nsh_release.mjs']) {
+    const url = pathToFileURL(path.join(f.target, '.agents/skills/desktop-build-nsh-release/scripts', module)).href;
+    execFileSync(process.execPath, ['--input-type=module', '-e',
+      'const url = process.argv[1]; process.argv.splice(1); await import(url);', url], {cwd: f.target});
+  }
 });
 
 /** 技能分类完整覆盖当前项目；下游地图只列实际保留项并保留项目自有入口。 */

@@ -17,7 +17,7 @@ description: 在本地 Git 发布后、另行授权推送完成且用户明确�
    ```
 
    随后锁定 40 位 `sourceCommit`、`releaseContextSha256`、本地默认分支、`releaseChannel`、`expectedTag` 与 `releaseReview`。在派发前另用只读远端 ref 查询，证明用户独立授权推送后，远端 `refs/heads/<releaseChannel>` 和发布 tag 都精确指向该提交；缺少任一 ref 或未获推送授权即停止，不自行推送。发布上下文只描述本地 Git 发布和审查事实，不包含远端模式、候选 E2E 或签名选择。
-3. 准备以已验证的远端渠道 ref 派发手动提供方工作流，只接受固定 `confirm_candidate_build`、`version`、`source_commit`、`release_context_sha256` 和 `e2e_selection` 输入。摘要必须来自上一步；审查只能从已跟踪上下文读取，Rust CLI 的 macOS 签名选择由本次构建判定为 `not-applicable` 并写入候选 manifest。版本通过 `$desktop-manage-version check --phase build` 核对，更新日志只读检查并计算摘要。
+3. 准备以已验证的远端渠道 ref 派发手动提供方工作流，只接受固定 `confirm_candidate_build`、`version`、`source_commit`、`release_context_sha256`、`e2e_selection` 和 `regression_plan` 输入。摘要必须来自上一步；审查只能从已跟踪上下文读取，Rust CLI 的 macOS 签名选择由本次构建判定为 `not-applicable` 并写入候选 manifest。版本通过 `$desktop-manage-version check --phase build` 核对，更新日志只读检查并计算摘要。
 4. GitHub 的 `workflow_dispatch` 还要求同一 workflow 文件已存在于远端 advertised 默认分支；发布后的渠道分支和 tag 齐备并不能代替此要求。真正派发前运行只读预检：
 
    ```text
@@ -31,7 +31,7 @@ description: 在本地 Git 发布后、另行授权推送完成且用户明确�
    - schema、版本、`expectedTag: v{version}-{YYYYMMDD}`、发布上下文中的本地默认分支、同渠道的远端跟踪 ref 与已 fetch tag 分别有效；后两者指向同一发布提交，本地默认分支名称可不同于渠道分支；
    - 本地 Git 发布上下文未携带候选构建或远端发布模式选择。
    规范快照只能原子写到 runner 临时目录。
-7. CI 安装当前 stable 并用 `check-rust-runtime` 验证其达到项目 `rust-version` 下限后；该下限不用于选择或下载历史工具链。借助 `prepare-runner-cargo` 保留 CI 环境与用户级 Cargo 配置；全新运行器没有配置时，为该运行器配置用户级共享 `cargo-target`。随后由 `release_candidate_workflow.mjs check-lock-policy` 按根 Cargo 元数据调用共享 `assertDependencyLocks`，在任何 Cargo metadata、测试或构建前确定锁标志。缺省或 `ignored` 不要求 `Cargo.lock`，保持原有命令；显式 `tracked` 要求实际 workspace 锁文件受 Git 跟踪且未被忽略，Cargo metadata、列测试、全部非空 `cargo test --workspace --all-targets --all-features --target <host>` 和 release 构建均使用 `--locked`。由共用 Cargo helper 比较工作区与设备级 Cargo metadata，使用两处一致的已配置 `target_directory`。读取实际工具链的 `rustc -vV` 与 `rustc --print cfg`，确认与运行器系统及架构一致后，把该宿主 triple 显式用于列测试、实际测试和正式编译。安全刷新 `release/`，测试后复核 clean/HEAD，再运行 release 构建。不得启动二进制或混入格式/lint/E2E。
+7. CI 安装当前 stable 并用 `check-rust-runtime` 验证其达到项目 `rust-version` 下限后；该下限不用于选择或下载历史工具链。借助 `prepare-runner-cargo` 保留 CI 环境与用户级 Cargo 配置；全新运行器没有配置时，为该运行器配置用户级共享 `cargo-target`。随后由 `release_candidate_workflow.mjs check-lock-policy` 按根 Cargo 元数据调用共享 `assertDependencyLocks`，在任何 Cargo metadata、测试或构建前确定锁标志。缺省或 `ignored` 不要求 `Cargo.lock`，保持原有命令；显式 `tracked` 要求实际 workspace 锁文件受 Git 跟踪且未被忽略，Cargo metadata、差异计划中选定的 Cargo 测试和 release 构建均使用 `--locked`。由共用 Cargo helper 比较工作区与设备级 Cargo metadata，使用两处一致的已配置 `target_directory`。读取实际工具链的 `rustc -vV` 与 `rustc --print cfg`，确认与运行器系统及架构一致后，把该宿主 triple 显式用于列测试、实际测试和正式编译。根据本次 `regression_plan` 输入，用 `regression_scope.mjs` 解析同渠道上一发布并核对每个变化的测试归属，仅执行精确选择器；缺失、零命中或失败停止，不回退全量。安全刷新 `release/`，测试后复核 clean/HEAD，再运行 release 构建。不得启动二进制或混入格式/lint/E2E。
 8. 从该次 Cargo 的 `target_directory/<host>/release/` 找到实际二进制，并在签名前使用候选程序名。Beta 将 Cargo 二进制复制为 `<程序名>-beta` 或 `<程序名>-beta.exe`，归档同样使用 Beta 程序名。工作流把 `HARNESS_RELEASE_CHANNEL` 传给测试、编译和签名步骤。按批准配置探测并执行非交互签名钩子。签名开始后失败必须失败；条件不存在且策略允许时记录 `unsigned` 与原因。不得暴露凭据或接受任意签名命令输入。
 9. 在项目根同级安全暂存目录生成确定性归档、相邻 SHA-256 和 manifest；归档包含最终二进制与原样 `release-notes.json`。写 manifest 前调用 `verify_release_context.mjs verify`，逐字段比较捕获快照，证明 HEAD、clean、上下文 bytes/hash、远端渠道 ref 和版本 tag 未漂移。
 10. manifest 至少记录 `project`、机器 `version`、`sourceCommit`、`releaseContextSha256`、`releaseChannel`、`remoteReleaseBranch`、`buildRun`/`buildMode`、平台/架构/target/host、归档/摘要、测试、当次构建 E2E 选择、完整 `releaseReview` 及其审查投影、更新日志版本/摘要/路径、签名状态/原因/证据和 `milestoneAcceptance: pending`。审查只从上下文复制；E2E 与签名事实来自本次构建输入和运行结果。
@@ -55,6 +55,6 @@ description: 在本地 Git 发布后、另行授权推送完成且用户明确�
 
 ## 完成输出
 
-报告本地 Git 发布和独立推送的 ref 复核、工作流路径与 action 固定引用、原生矩阵、`sourceCommit`、`releaseContextSha256`、版本/tag、全量非空单元测试、候选/摘要/manifest、签名、运行器结果、`pending` 状态与下一步；不更新项目记忆。
+报告本地 Git 发布和独立推送的 ref 复核、工作流路径与 action 固定引用、原生矩阵、`sourceCommit`、`releaseContextSha256`、版本/tag、差异范围非空回归测试、候选/摘要/manifest、签名、运行器结果、`pending` 状态与下一步；不更新项目记忆。
 
 现有发布日志只读复核使用 `$desktop-inspect-release-notes`；构建不整理或写入条目，内部直接复用原读取库的脚本保持原路径。

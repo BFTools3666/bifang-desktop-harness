@@ -53,7 +53,7 @@ test("CRLF workflow bytes canonicalize to reviewed content", () => {
   assert.deepEqual(validateWorkflowText(baseWorkflow(), { crlf: true }), []);
 });
 
-const NATIVE_TEST_COMMAND = '          cargo test --workspace --all-targets --all-features --target "$HARNESS_RUST_HOST" "${lock_args[@]}"\n';
+const NATIVE_TEST_COMMAND = '          node .agents/skills/desktop-prepare-cross-platform-release/scripts/release_candidate_workflow.mjs run-tests\n';
 const workflowMutations = [
   ["missing per-build E2E selection", "      e2e_selection:\n", "      retired_selection:\n", "e2e_selection"],
   ["non-disabled E2E default", "        default: disabled\n", "        default: enabled\n", "default: disabled"],
@@ -68,7 +68,7 @@ const workflowMutations = [
   ["format gate injected into build", NATIVE_TEST_COMMAND, `          cargo fmt --all -- --check\n${NATIVE_TEST_COMMAND}`, "forbidden candidate behavior"],
   ["lint gate injected into build", NATIVE_TEST_COMMAND, `          cargo clippy --workspace\n${NATIVE_TEST_COMMAND}`, "forbidden candidate behavior"],
   ["project Cargo output override", "    steps:\n", "      CARGO_TARGET_DIR: target\n    steps:\n", "forbidden candidate behavior"],
-  ["test target differs from the runner", NATIVE_TEST_COMMAND, NATIVE_TEST_COMMAND.replace('$HARNESS_RUST_HOST', 'x86_64-pc-windows-msvc'), "workflow candidate verification sequence"],
+  ["unfiltered workspace testing replaces the delta plan", NATIVE_TEST_COMMAND, '          cargo test --workspace --all-targets --all-features\n', "workflow candidate verification sequence"],
   ["Unix packaging loses success guard", "        if: runner.os != 'Windows' && success()\n", "        if: runner.os != 'Windows'\n", "exact guard"],
   ["Windows packaging loses success guard", "        if: runner.os == 'Windows' && success()\n", "        if: runner.os == 'Windows'\n", "exact guard"],
   ["upload loses success guard", "        if: success()\n        with:\n", "        with:\n", "upload step"],
@@ -247,6 +247,12 @@ test("write-manifest binds real archive bytes, release review, build E2E, and si
       version: "1.2.3", expectedTag: "v1.2.3-20260923",
       releaseReview: { selection: "disabled", status: "Not run", reason: "fixture", remainingRisk: "fixture-risk" },
     })}\n`, "utf8");
+    const scope = {kind: "release-delta", sourceCommit: "a".repeat(40), releaseContextSha256: contextDigest, releaseChannel: "release"};
+    const regressionPlan = {schemaVersion: 1, scope, tests: [], noTestsReason: "Only metadata in this fixture."};
+    const regression = {status: "not-applicable", testCases: 0, scope, results: [], reason: regressionPlan.noTestsReason,
+      planSha256: createHash("sha256").update(JSON.stringify(regressionPlan, null, 2) + "\n").digest("hex")};
+    const regressionFile = path.join(fixture.sandbox, "regression-results.json");
+    fs.writeFileSync(regressionFile, JSON.stringify(regression));
     const result = runCandidateHelper(["write-manifest"], {
       cwd: fixture.root,
       env: {
@@ -257,6 +263,7 @@ test("write-manifest binds real archive bytes, release review, build E2E, and si
         SIGNING_REASON: "configured-hook-succeeded", SIGNING_EVIDENCE: "configured-hook-verify-exit-0",
         RELEASE_NOTES_SHA256: createHash("sha256").update(releaseNotes).digest("hex"),
         RELEASE_CONTEXT_SHA256: contextDigest, RELEASE_CONTEXT_SNAPSHOT: snapshot,
+        HARNESS_REGRESSION_RESULTS: regressionFile, REGRESSION_PLAN: JSON.stringify(regressionPlan),
       },
     });
     assert.equal(result.status, 0, result.stderr);
@@ -266,6 +273,8 @@ test("write-manifest binds real archive bytes, release review, build E2E, and si
     assert.equal(manifest.releaseContextSha256, contextDigest);
     assert.equal(manifest.releaseTag, "v1.2.3-20260923");
     assert.equal(manifest.reviewStatus, "Not run");
+    assert.deepEqual(manifest.unitTests, regression);
+    assert.equal(manifest.regressionPlan.schemaVersion, 1);
     assert.equal("candidateSelections" in manifest, false);
     assert.equal("gitPublication" in manifest, false);
     assert.equal(manifest.signingEvidence.verification, "configured-hook-verify-exit-0");

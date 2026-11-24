@@ -28,6 +28,10 @@ on:
           - disabled
           - enabled
         default: disabled
+      regression_plan:
+        description: "绑定同渠道上一发布差异的精确回归计划 JSON"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -46,6 +50,7 @@ jobs:
       SOURCE_COMMIT: ${{ inputs.source_commit }}
       RELEASE_CONTEXT_SHA256: ${{ inputs.release_context_sha256 }}
       E2E_SELECTION: ${{ inputs.e2e_selection }}
+      REGRESSION_PLAN: ${{ inputs.regression_plan }}
       RELEASE_CONTEXT_SNAPSHOT: ${{ runner.temp }}/release-context-snapshot.json
       BUILD_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
     steps:
@@ -129,7 +134,7 @@ jobs:
             exit 1
           fi
           node .agents/skills/desktop-prepare-cross-platform-release/scripts/release_candidate_workflow.mjs list-tests
-          cargo test --workspace --all-targets --all-features --target "$HARNESS_RUST_HOST" "${lock_args[@]}"
+          node .agents/skills/desktop-prepare-cross-platform-release/scripts/release_candidate_workflow.mjs run-tests
           node .agents/skills/desktop-prepare-cross-platform-release/scripts/release_candidate_workflow.mjs verify-post-test
           cargo build --workspace --release --target "$HARNESS_RUST_HOST" "${lock_args[@]}"
       - name: 尝试 Unix 签名

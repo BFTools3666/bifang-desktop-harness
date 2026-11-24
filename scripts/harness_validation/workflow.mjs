@@ -136,7 +136,7 @@ export function validateCandidateWorkflowHelper(errors, helper = CANDIDATE_WORKF
     "function nativeRustTarget(",
     "resolveCargoDeviceTarget({ projectRoot: process.cwd(), metadata, locked: lockArgs.length > 0 })",
     "function hashReleaseNotes(",
-    "function listTests(",
+    "function regressionPlan(", "function runTests(",
     "function verifyPostTest(",
     "function resolveArtifact(",
     "function writeManifest(",
@@ -144,7 +144,7 @@ export function validateCandidateWorkflowHelper(errors, helper = CANDIDATE_WORKF
     "source_commit 必须是由小写十六进制字符组成的 40 字符 SHA",
     "必须检出与渠道相同的具名分支",
     "release-notes.json 必须是非符号链接普通文件",
-    "未发现测试",
+    'environment("REGRESSION_PLAN")',
     "测试后源码提交或 clean 状态发生变化",
     'buildMode: "cross-platform-native"',
     'e2eSelection: environment("E2E_SELECTION")',
@@ -247,7 +247,7 @@ export function validateWorkflow(errors, workflow = WORKFLOW) {
     "release_candidate_workflow.mjs check-lock-policy",
     "CARGO_LOCK_FLAG", "lock_args=(--locked)",
     "release_notes.mjs check --file release-notes.json", "release_candidate_workflow.mjs hash-release-notes",
-    "cargo test --workspace --all-targets --all-features",
+    "release_candidate_workflow.mjs run-tests",
     "release_candidate_workflow.mjs verify-post-test", "cargo build --workspace --release",
     "prepare-release-directory.sh", "prepare-release-directory.ps1", ".release-signing/sign-candidate.sh",
     ".release-signing/sign-candidate.ps1", "release_candidate_workflow.mjs resolve-artifact",
@@ -370,7 +370,7 @@ export function validateWorkflow(errors, workflow = WORKFLOW) {
   const verify = stepBlock({ name: "验证候选" }).join("\n");
   requireOrder(errors, verify, [
     "release_candidate_workflow.mjs list-tests",
-    'cargo test --workspace --all-targets --all-features --target "$HARNESS_RUST_HOST" "${lock_args[@]}"',
+    'node .agents/skills/desktop-prepare-cross-platform-release/scripts/release_candidate_workflow.mjs run-tests',
     "release_candidate_workflow.mjs verify-post-test",
     'cargo build --workspace --release --target "$HARNESS_RUST_HOST" "${lock_args[@]}"',
   ], "workflow candidate verification sequence");

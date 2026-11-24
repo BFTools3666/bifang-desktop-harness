@@ -136,7 +136,7 @@ export function validateBuildSkillContract(errors, overrides = {}) {
       "`$desktop-prepare-cross-platform-release`", "明确请求远端矩阵时另复核已推送的渠道分支与 tag",
       "在执行任何单元测试或构建命令前", "release_notes.mjs check --file release-notes.json --expected-version",
       "不得计算、提升版本或重置正式发布周期", "本次请求已明确 `enabled`/`disabled` 时直接复用",
-      "cargo test --workspace --all-targets --all-features", "不得在构建名义下自动追加格式、lint",
+      "regression_scope.mjs", "不得在构建名义下自动追加格式、lint",
       "必须尝试签名并验证生成的签名", "signingStatus: unsigned", "结构化 `signingEvidence`",
       "目录级原子替换", "项目根 `release/`", "milestoneAcceptance: pending", "e2eSelection",
       "releaseNotesVersion", "releaseNotesSha256", "releaseNotesPath: release-notes.json",
@@ -146,8 +146,8 @@ export function validateBuildSkillContract(errors, overrides = {}) {
       "只处理 `$desktop-build-rust-release` 明确选择的三平台矩阵", "fail-fast: false", "release_notes.mjs check --file release-notes.json",
       "远端小写渠道分支（`release` 或 `beta`）和版本 tag",
       "verify_dispatch_readiness.mjs",
-      "cargo test --workspace --all-targets --all-features", "原子隔离旧目录", "必须尝试签名并验证",
-      "固定 `confirm_candidate_build`、`version`、`source_commit`、`release_context_sha256` 和 `e2e_selection` 输入",
+      "regression_scope.mjs", "原子隔离旧目录", "必须尝试签名并验证",
+      "固定 `confirm_candidate_build`、`version`、`source_commit`、`release_context_sha256`、`e2e_selection` 和 `regression_plan` 输入",
       "使用 `fetch-depth: 0`", "verify_release_context.mjs capture", "verify_release_context.mjs verify",
       "完整规范化 `releaseReview`", "上传三个明确的归档/校验和/清单路径",
       "milestoneAcceptance: pending", "矩阵本身不得运行 E2E",
@@ -186,7 +186,7 @@ export function validateBuildSkillContract(errors, overrides = {}) {
     fail(errors, "release contract must not require the advertised remote default branch at source_commit");
   }
   validateOrder(errors, paths.crossPlatformWorkflow, [
-    "verify_release_context.mjs capture", "cargo test --workspace --all-targets --all-features",
+    "verify_release_context.mjs capture", "regression_scope.mjs",
     "cargo build --workspace --release", "verify_release_context.mjs verify",
     "release_candidate_workflow.mjs write-manifest", "release_candidate_workflow.mjs commit-candidate",
   ], "release contract order: workflow must capture before tests, reverify before manifest, then atomically commit");
@@ -203,7 +203,7 @@ export function validateTauriLocalInstallContract(errors, localSkill = TAURI_LOC
   validateFragmentContract(errors, new Map([[localSkill, [
     "[workspace.metadata.agent-first-harness]", "target-platforms", "interfaces", "允许从 dirty 工作树生成本地试包",
     "不得调用 `$desktop-prepare-release`", "不得生成、读取、校验或改写 `release-notes.json`",
-    "不得创建、刷新或写入项目根 `release/`", "cargo test --workspace --all-targets --all-features",
+    "不得刷新或清空项目根 `release/`", "regression_scope.mjs",
     "pnpm tauri build --bundles nsis --target x86_64-pc-windows-msvc --no-sign", "artifactPurpose: local-install-test",
     "releaseCandidate: false", "signingStatus: unsigned", "本 Skill 不询问 E2E 开/关",
   ]]]), { label: "Tauri local install contract" });
@@ -231,7 +231,7 @@ export function validateNshBuildContract(errors, overrides = {}) {
   };
   validateFragmentContract(errors, new Map([
     [paths.buildSkill, ["nsh-targets", "`candidate`", "build_nsh_release.mjs", "release-notes.json", "更新日志", "HARNESS_RELEASE_NOTES_ZH_PATH", "HARNESS_RELEASE_NOTES_EN_PATH", "sidecar", "milestoneAcceptance: pending", "runtimeVerification: Unverified"]],
-    [paths.buildHelper, ["buildNshRelease(", "'nsh-targets'", "['test','--workspace','--all-targets','--all-features'", "['check']", "['test', '.', '--junit'", "['package','--target'", "renderDocument(notes,'zh-CN')", "renderDocument(notes,'en-US')", "HARNESS_RELEASE_NOTES_ZH_PATH", "HARNESS_RELEASE_NOTES_EN_PATH", "validateNshArtifacts(", "publishNshDesktopRelease(", "releaseNotesResourceVerification:'sidecar-byte-identical'", "sourceSnapshot(root) !== before"]],
+    [paths.buildHelper, ["buildNshRelease(", "'nsh-targets'", "loadRegressionPlan(", "runRegressionPlan(", "prepareNshDesktopInstaller(", "['package','--target'", "renderDocument(notes,'zh-CN')", "renderDocument(notes,'en-US')", "HARNESS_RELEASE_NOTES_ZH_PATH", "HARNESS_RELEASE_NOTES_EN_PATH", "validateNshArtifacts(", "publishNshDesktopRelease(", "releaseNotesResourceVerification:'sidecar-byte-identical'", "sourceSnapshot(root) !== before"]],
     [paths.layoutHelper, ["publishNshDesktopRelease(", "locateNshCandidate(", ".nsh-evidence", "deliveryFiles"]],
     [paths.buildTests, ["tracked_resolution_and_unanswered_candidate_selection_fail_before_build", "fake_suffixes_and_incomplete_official_packages_are_rejected", "official_named_web_directory_is_discovered_and_requires_real_wasm_header"]],
     [paths.portableEntryHelper, ["prepareNshPortableEntry", "delete config.capabilities.windows", "delete config.schemes", "delete config.singleInstance"]],
@@ -246,6 +246,11 @@ export function validateNshBuildContract(errors, overrides = {}) {
     [paths.e2eSkill, ["NSH", "更新日志"]],
     [paths.verifySkill, ["NSH", "sidecar"]],
   ]), {label: "NSH release contract", syntaxCheck: [paths.buildHelper, paths.buildTests, paths.layoutHelper, paths.portableEntryHelper, paths.portableEntryTests, paths.iosHelper, paths.iosTests, paths.supportGenerator]});
+  if (!fs.existsSync(paths.buildHelper)) return;
+  const build = fs.readFileSync(paths.buildHelper, "utf8");
+  if (/\['test',\s*'--workspace'/u.test(build) || /\['test',\s*'\.'/u.test(build)) {
+    fail(errors, "NSH release must not run unfiltered workspace or directory tests");
+  }
 }
 
 /** 锁定 Tauri 原生/交叉候选、签名公证、资源和原子提交门禁。 */
@@ -271,7 +276,7 @@ export function validateTauriBuildSkillContract(errors, overrides = {}) {
       "所有会改变字节的布局写入、签名、公证和 stapling 完成后", "写完 manifest 后必须按每份 manifest 枚举并复算",
       "随后才以不跟随链接的目录级原子替换提交到 `release/`",
       "notarized-and-stapled",
-      "cargo test --workspace --all-targets --all-features", "e2eSelection", "releaseNotesVersion",
+      "regression_scope.mjs", "e2eSelection", "releaseNotesVersion",
     ]],
     [paths.macosDmgReference, ["CI=true TAURI_BUNDLER_DMG_IGNORE_CI=1 pnpm tauri build --bundles dmg --no-sign", "--no-sign --config src-tauri/tauri.release.conf.json", "scripts/verify-dmg-layout.sh", "只读挂载最终字节", "tauri-macos-signing.md"]],
     [paths.macosSigningReference, ["pnpm tauri build --bundles dmg --config src-tauri/tauri.release.conf.json", "scripts/probe-macos-notarization.sh", "notarytool submit --wait", "只接受 `Accepted`", "不得以 `--no-sign` 重试或静默降级", "不得输出或记录秘密/profile 名"]],
