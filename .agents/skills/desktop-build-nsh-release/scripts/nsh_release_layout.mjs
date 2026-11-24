@@ -186,7 +186,7 @@ function validateEvidence(directory, manifest) {
     throw new Error('NSH candidate release notes or licenses metadata changed');
   }
   for (const license of licenses) requireFile(directory, license);
-  if (manifest.releaseLayout === 'flat-installer') {
+  if (manifest.releaseLayout === 'flat-installer' || manifest.unitTests?.planSha256 !== undefined) {
     requireFile(directory, 'regression-plan.json');
     requireFile(directory, 'regression-results.json');
   } else requireFile(directory, 'nsh-tests.xml');
@@ -407,7 +407,7 @@ export function verifyNshCandidate(root, target, buildRun) {
       manifest.releaseNotesSha256 !== fileSha256(path.join(root, releaseNotesName))) {
     throw new Error('NSH candidate review or release notes no longer match the released source');
   }
-  if (manifest.releaseLayout === 'flat-installer') {
+  if (manifest.releaseLayout === 'flat-installer' || manifest.unitTests?.planSha256 !== undefined) {
     const plan = JSON.parse(fs.readFileSync(requireFile(result.evidenceDirectory, 'regression-plan.json'), 'utf8'));
     const regression = JSON.parse(fs.readFileSync(requireFile(result.evidenceDirectory, 'regression-results.json'), 'utf8'));
     verifyRegressionEvidence(root, plan, regression);

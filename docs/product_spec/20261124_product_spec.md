@@ -10,7 +10,7 @@
 
 ## 当前范围确认
 
-- `HARNESS-DELTA-REGRESSION-INSTALLER-20261124`（`required_version = pending`）：候选与 CI 按同渠道上一发布差异执行明确计划中的测试；缺少计划、零命中或失败不回退全量。NSH/Tauri 的最终 DMG/EXE 直接位于项目根 `release/`，文件名使用 `{应用名}_{版本号}_{arch}_setup for {系统}`；buildRun 只用于证据，官方更新归档保留。见 [ADR-20261124-001](../adr/20261124_ADR.md)。
+- `HARNESS-DELTA-REGRESSION-INSTALLER-20261124`（`required_version = 202611241125`）：候选与 CI 按同渠道上一发布差异执行明确计划中的测试；缺少计划、零命中或失败不回退全量。NSH/Tauri 的最终 DMG/EXE 直接位于项目根 `release/`，文件名使用 `{应用名}_{版本号}_{arch}_setup for {系统}`；buildRun 只用于证据，官方更新归档保留。见 [ADR-20261124-001](../adr/20261124_ADR.md)。
 
 - `HARNESS-FIX-VERIFICATION-SCOPE-GATE`（`required_version = 202611232148`）：日常开发仅按精确选择器运行直接受影响的测试。扩大范围须由当次人类明确要求。Harness 源与新建 NSH 的受管测试入口执行范围检查。见 [ADR-20261123-002](../adr/20261124_ADR.md)。
 
@@ -513,7 +513,7 @@
 
 ## 当前版本与未来候选
 
-- 当前版本：`202611232148`；上海时区格式 `YYYYMMDDHHMM`，唯一事实来源为根 `Version.md`；时间版本起始值 `202607301002`。该值由本次正式发布按当前上海时间取号；登记分支合并到本地默认主分支、tag 创建并精确复读成功后才是 `Released`。下游发布后按已确认的 `post_release_action` 执行并检测所选路径；Harness 源只执行用户当次授权的后续动作。
+- 当前版本：`202611241125`；上海时区格式 `YYYYMMDDHHMM`，唯一事实来源为根 `Version.md`；时间版本起始值 `202607301002`。该值由本次正式发布按当前上海时间取号；登记分支合并到本地默认主分支、tag 创建并精确复读成功后才是 `Released`。下游发布后按已确认的 `post_release_action` 执行并检测所选路径；Harness 源只执行用户当次授权的后续动作。
 - 变更标识：`HARNESS-CHANGE-RELEASE-TIME-AND-REQUIREMENT-FIRST-VERSIONING`；`required_version = 202609281202`。本次规则变化已在 Harness 正式发布开始时物化时间版本；开发阶段未改动数值。
 - 历史变更标识：`HARNESS-FEAT-OPTIONAL-REMOTE-GIT-RELEASE`；`required_version = 202609141917`，此前已发布。本次唯一 Git 发布决定取代其双模式发布及自动远端副作用；远端推送由发布后的独立用户请求触发。
 - 变更标识：`HARNESS-FEAT-MANAGED-MULTI-REMOTE-PUBLISH`；`required_version = 202609141917`，已由此前 Harness 时间版本发布物化。受管 `publish` 已支持用户显式授权的补充远端，唯一主远端与补充远端边界保持不变；该命令仍不创建 tag 或清理资源。

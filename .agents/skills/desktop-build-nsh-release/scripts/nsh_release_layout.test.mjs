@@ -260,6 +260,23 @@ test('an existing desktop batch remains selectable by its exact legacy directory
   assert.throws(() => locateNshCandidate(root, 'windows', manifest.buildRun), /exactly one committed/u);
 });
 
+/** 新的非桌面候选也消费差异计划证据，不能强制要求旧的固定 JUnit 文件。 */
+test('portable_candidate_uses_regression_evidence_without_legacy_junit', t => {
+  const {root, release} = fixture(t);
+  const {stage, manifest} = stageCandidate(release, 'windows', {legacy: true});
+  fs.unlinkSync(path.join(stage, 'nsh-tests.xml'));
+  manifest.target = 'web';
+  manifest.buildRun = `nsh-web-${uuid}`;
+  manifest.unitTests = {planSha256: 'a'.repeat(64)};
+  manifest.files = inventory(stage);
+  fs.writeFileSync(path.join(stage, 'manifest.json'), JSON.stringify(manifest));
+  const output = path.join(release, manifest.buildRun);
+  fs.renameSync(stage, output);
+  const candidate = locateNshCandidate(root, 'web', manifest.buildRun);
+  assert.equal(candidate.evidenceDirectory, output);
+  assert.equal(candidate.manifest.unitTests.planSha256, 'a'.repeat(64));
+});
+
 test('publication and lookup reject symlinked evidence roots, unsafe names and ambiguous batch input', t => {
   const {root, release} = fixture(t);
   const {stage, manifest} = stageCandidate(release, 'macos');

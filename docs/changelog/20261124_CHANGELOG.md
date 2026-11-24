@@ -4,7 +4,7 @@
 
 ## 2026-11-24 变化
 
-- `HARNESS-DELTA-REGRESSION-INSTALLER-20261124`（`required_version = pending`）：候选构建先核对上一同渠道发布到当前版本的差异计划，仅运行变化及直接受影响功能的精确测试。NSH 与 Tauri 的桌面最终安装包使用固定名称并直放 `release/`；NSH macOS 生成 DMG，Windows 缺少官方安装 EXE 时停止。见 [ADR-20261124-001](../adr/20261124_ADR.md)。
+- `HARNESS-DELTA-REGRESSION-INSTALLER-20261124`（`required_version = 202611241125`）：候选构建先核对上一同渠道发布到当前版本的差异计划，仅运行变化及直接受影响功能的精确测试。NSH 与 Tauri 的桌面最终安装包使用固定名称并直放 `release/`；NSH macOS 生成 DMG，Windows 缺少官方安装 EXE 时停止。见 [ADR-20261124-001](../adr/20261124_ADR.md)。
 
 ## 2026-11-23 变化
 
