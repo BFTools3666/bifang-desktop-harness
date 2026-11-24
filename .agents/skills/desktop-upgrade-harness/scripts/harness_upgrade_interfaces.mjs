@@ -17,8 +17,8 @@ const TAURI_SKILLS = new Set([
   "desktop-build-tauri-local-install", "desktop-build-tauri-release",
 ]);
 
-/** 仅缺省框架沿用 Tauri；接口或框架重复、错位与非法类型均失败关闭。 */
-export function parseInterfaceSelection(source) {
+/** 接口字段始终严格解析；只有只读盘点可暂缓 NSH 运行时校验以报告兼容缺口。 */
+export function parseInterfaceSelection(source, { validateNshRuntime = true } = {}) {
   let section = [];
   let metadataSections = 0;
   const values = new Map();
@@ -72,22 +72,22 @@ export function parseInterfaceSelection(source) {
     const nshTargets = members ? members.split(",").map((member) => stringValue(member.trim(), "nsh-targets")) : [];
     try { validateNshTargets(nshTargets); }
     catch { throw new UpgradeError("Cargo nsh-targets 必须非空且只包含受支持的唯一目标"); }
-    assertNshWorkspacePin(source);
+    if (validateNshRuntime) assertNshWorkspacePin(source);
     return { interfaces, guiFramework: null, nshTargets };
   }
   if (values.has("nsh-targets")) throw new UpgradeError("Cargo nsh-targets 只适用于顶层 NSH 接口");
   return { interfaces, guiFramework: interfaces.includes("gui") ? framework : null };
 }
 
-/** 缺少 Cargo 的既有工程不推断 GUI；现有清单必须是安全的普通文件。 */
-export function readInterfaceSelection(root) {
+/** 缺少 Cargo 不推断 GUI；默认复核严格运行时，仅盘点模式允许只读接口而不校验运行时。 */
+export function readInterfaceSelection(root, { validateNshRuntime = true } = {}) {
   const file = assertSafePath(root, path.join(root, "Cargo.toml"), "目标接口清单", { finalMayBeMissing: true });
   const stat = lstatOrNull(file);
   if (stat === null) return { interfaces: [], guiFramework: null, manifestSnapshot: null };
   if (!stat.isFile()) throw new UpgradeError("目标 Cargo.toml 必须是普通文件");
   const source = new TextDecoder("utf-8", { fatal: true }).decode(fs.readFileSync(file));
-  const selection = parseInterfaceSelection(source);
-  if (selection.interfaces.includes("nsh")) {
+  const selection = parseInterfaceSelection(source, { validateNshRuntime });
+  if (validateNshRuntime && selection.interfaces.includes("nsh")) {
     try { readNshMixedConfig(path.dirname(readNshCargoApp(root).manifest_path)); }
     catch (error) { throw new UpgradeError(error.message); }
   }

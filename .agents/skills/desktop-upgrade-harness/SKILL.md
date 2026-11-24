@@ -7,6 +7,8 @@ description: 在已初始化或首次接入的既有下游项目中安全更新�
 
 通过可审计的预览、冲突解决、应用、验证和基线记录闭环，更新一个终端下游项目。
 
+完整读取 [升级范围与完成判定](references/completeness.md)。普通升级请求覆盖当前源对目标适用的全部工程层；自有 NSH 工程入口也不能自行降为只同步少数规则。先用源提交中的 `inventory` 盘点，再构造候选；兼容缺口须列明，部分同步不得报告为完整升级。
+
 目标尚无 Harness 所有权清单或来源锁时，先完整读取 [既有项目首次接入步骤](references/adopt-existing-project.md)。符合受管合同的目标按该参考安装精确所有权清单并构造适用候选，再进入下面的 `plan`。使用自有 NSH 应用布局、依赖来源或打包入口时，按 [既有 NSH 工程入口](references/adopt-existing-project.md#既有-nsh-使用自有工程入口) 核对适用范围。不得要求目标先已有 Harness 初始化结果，也不得把源项目记忆或 Python 禁令复制过去。
 
 升级入口先执行用户级 `AGENTS.md` 的长期规则；项目 `user_owned_tasks: enabled` 或用户明确单次要求左侧 Task 时，先完成 `$desktop-task-workflow` 的业务前绑定。启动文档合并、工程资产传播与受保护事实按 [所有权策略](references/ownership-policy.md) 执行。
@@ -16,7 +18,7 @@ description: 在已初始化或首次接入的既有下游项目中安全更新�
 1. 读取下游存在的 `AGENTS.md`、`docs/AGENT_POLICY.md`、日期最新的产品规格、产品状态、工作计划和 ADR、`docs/ENGINEERING_RULES.md`、`docs/TECH_DEBT.md`，以及存在时的 `.harness/upstream-lock.json`。首次接入尚缺这些文件时按接入步骤建立真实项目事实，不从 Harness 源复制批准结论。读取源 Harness 的 `Version.md`、日期最新的产品规格、产品状态和 ADR，以及其验证命令。
 2. 无法无歧义发现源 Harness 根目录时，要求用户明确指定。将源根目录和下游根目录解析为互不相同的规范绝对路径。要求每个现有 Git 仓库的顶层目录等于其声明根目录；拒绝符号链接根目录、嵌套歧义、源与目标相同，以及声明根目录以外的路径。
 3. 读取 [所有权策略](references/ownership-policy.md)，并使用 [所有权清单](references/ownership-manifest.json)。将该清单视为最低保护策略，而不是复制每个匹配源文件的许可。旧目标清单仅缺新增的 Skill 专项 `managed` 规则，且旧规则已对整个对应路径赋予相同有效所有权时，升级器允许生成计划，并在 `ownership_repairs` 中列出待补规则；候选清单仍须包含完整显式规则。保护类规则缺失、显式冲突或有效 mode 改变仍阻断。
-4. 检查下游已选接口、身份映射、保留的 Skills、已批准例外和持久 Agent 策略。按 [所有权策略](references/ownership-policy.md) 的候选树、工程资产传播、框架条件、受保护事实和依赖锁策略构造适用候选；排除每个 `protected` 或 `tombstone` 源路径，原始 Harness 源目录树不是有效候选。首次检查同时只读记录版本状态是否缺失、Agent 策略 schema 与发布后动作状态，分别留待第 14、15 步处理；不得在候选构造中写入受保护事实。程序类型文案另按 [名称升级映射](references/program-type-labels.md) 核对，只映射名称，保留 Cargo `interfaces` 与实际选择，不恢复初始化入口或表单。
+4. 检查下游已选接口、身份映射、保留的 Skills、已批准例外和持久 Agent 策略。先按范围参考运行源 `inventory`，逐项覆盖完整清单，再按 [所有权策略](references/ownership-policy.md) 的候选树、工程资产传播、框架条件、受保护事实和依赖锁策略构造适用候选；排除每个 `protected` 或 `tombstone` 源路径，原始 Harness 源目录树不是有效候选。首次检查同时只读记录版本状态是否缺失、Agent 策略 schema 与发布后动作状态，分别留待第 14、15 步处理；不得在候选构造中写入受保护事实。程序类型文案另按 [名称升级映射](references/program-type-labels.md) 核对，只映射名称，保留 Cargo `interfaces` 与实际选择，不恢复初始化入口或表单。
 5. 要求源 Harness Git 工作树干净，并且其现有 `HEAD` 与声明的源提交匹配；要求声明的源版本与源 `Version.md` 匹配。信任候选之前先运行源 Harness 验证器。不得把该模板专用验证器复制到下游。记录源版本、源提交、候选构建输入、下游分支、提交、脏状态摘要，以及未验证平台。
 
    本 Skill 的 helper 要求当前宿主具备 Node.js >= 24.0.0；缺失或版本不足时失败关闭，不得改用其他运行时。所有操作命令均使用 `node` 且保持单行，不依赖 POSIX `\` 续行符、PowerShell 反引号或 shell 变量。
@@ -27,7 +29,7 @@ description: 在已初始化或首次接入的既有下游项目中安全更新�
    macOS、Linux 与 Windows PowerShell 均在替换路径占位符后直接执行：
 
    ```text
-   node .agents/skills/desktop-upgrade-harness/scripts/harness_upgrade.mjs plan --source-root "<clean-harness-source-root>" --source-version "<harness-version>" --source-commit "<harness-source-head>" --candidate-root "<rendered-candidate-root>" --target-root "<downstream-root>" --ownership .agents/skills/desktop-upgrade-harness/references/ownership-manifest.json --lock "<downstream-root>/.harness/upstream-lock.json" --output "<new-plan-path-outside-candidate-and-target.json>"
+   node "<clean-harness-source-root>/.agents/skills/desktop-upgrade-harness/scripts/harness_upgrade.mjs" plan --source-root "<clean-harness-source-root>" --source-version "<harness-version>" --source-commit "<harness-source-head>" --candidate-root "<rendered-candidate-root>" --target-root "<downstream-root>" --ownership "<downstream-root>/.agents/skills/desktop-upgrade-harness/references/ownership-manifest.json" --lock "<downstream-root>/.harness/upstream-lock.json" --output "<new-plan-path-outside-candidate-and-target.json>"
    ```
 
    输出路径必须不存在，并且必须位于两棵目录树之外。省略 `--output` 时只打印 JSON，不写入文件。
@@ -37,7 +39,7 @@ description: 在已初始化或首次接入的既有下游项目中安全更新�
 8. 锁文件不存在时，执行初始基线审计。字节与权限模式一致的受管理重叠项显示 `converged`；存在差异的受管理重叠项与混合所有权文件须人工复核，不得推断共同祖先。使存在差异的受管理项完全收敛，显式解决混合路径，生成新的已复核计划，然后建立第一份基线：
 
    ```text
-   node .agents/skills/desktop-upgrade-harness/scripts/harness_upgrade.mjs record --plan "<reviewed-bootstrap-plan.json>" --source-version "<harness-version>" --source-commit "<harness-source-commit>" --bootstrap --approval bootstrap-verified-baseline
+   node "<clean-harness-source-root>/.agents/skills/desktop-upgrade-harness/scripts/harness_upgrade.mjs" record --plan "<reviewed-bootstrap-plan.json>" --source-version "<harness-version>" --source-commit "<harness-source-commit>" --bootstrap --approval bootstrap-verified-baseline
    ```
 
    初始基线过程绝不豁免符号链接或特殊文件问题、受保护或墓碑路径、存在差异的受管理重叠项，或未经复核的混合路径。
@@ -45,7 +47,7 @@ description: 在已初始化或首次接入的既有下游项目中安全更新�
 10. 用户批准试运行后，只应用安全的受管理操作：
 
     ```text
-    node .agents/skills/desktop-upgrade-harness/scripts/harness_upgrade.mjs apply --plan "<task-plan.json>" --approval apply-managed-changes --path "<one-reviewed-update-path>"
+    node "<clean-harness-source-root>/.agents/skills/desktop-upgrade-harness/scripts/harness_upgrade.mjs" apply --plan "<task-plan.json>" --approval apply-managed-changes --path "<one-reviewed-update-path>"
     ```
 
     该命令根据目标拥有的精确所有权清单和 `.harness/upstream-lock.json` 重新构建计划，绑定源与目标 Git 身份，比较完整的已复核 JSON，预检每项操作，并且只原子替换一个现有文件。每应用一个路径后都要生成并复核新计划。普通 `managed` 更新必须先于 `managed-self` 完成；在自更新路径内部，命令行工具强制执行稳定顺序，并最后替换自身入口。计划篡改或源、候选、目标、控制文件发生任何漂移，都会在写入前中止。使用 `apply_patch` 单独解决 `add`、`manual_add`、`delete`、`merge-sections` 和 `conditional` 项；不得仅为避免合并而替换整个混合所有权文件。
@@ -55,7 +57,7 @@ description: 在已初始化或首次接入的既有下游项目中安全更新�
     `record` 同时在目标 `.harness/upstream-lock.json` 保存本项目的清理范围、选择和确认时间，后续升级从该记忆复用。旧 schema 2 锁继续兼容；发现残留而选择缺失、选择非法、退役候选或尚未删除的 `cleanup_required` 都拒绝完成，即使传入 `--resolved-manual` 也不能豁免。失败期间复用当前聊天内已确认的选择，不伪称偏好已经落盘。
 
     ```text
-    node .agents/skills/desktop-upgrade-harness/scripts/harness_upgrade.mjs record --plan "<newly-reviewed-converged-plan.json>" --source-version "<harness-version>" --source-commit "<harness-source-commit>" --approval record-verified-baseline
+    node "<clean-harness-source-root>/.agents/skills/desktop-upgrade-harness/scripts/harness_upgrade.mjs" record --plan "<newly-reviewed-converged-plan.json>" --source-version "<harness-version>" --source-commit "<harness-source-commit>" --approval record-verified-baseline
     ```
 
     每个剩余且已复核的 `manual_merge` 分类都必须重复传入 `--resolved-manual <path>`。精确集合必须与计划匹配，否则记录失败。`manual_add` 必须先创建目标并生成新的已复核收敛计划。绝不得记录仍有 `add`、`manual_add`、`delete`、`update`、阻断项、已变更计划、源 Harness 必需 managed 路径遗漏或未经复核混合路径的基线。
@@ -76,6 +78,8 @@ description: 在已初始化或首次接入的既有下游项目中安全更新�
 ## 完成要求
 
 报告源与目标身份、基线状态、试运行分类、已批准和已应用路径、保留的本地修改、冲突、本次测试或替代验证、锁文件更新、未验证平台和剩余风险。未显式请求时，构建与完整验收均为 `Not run`；仅有成功的试运行不代表升级完成。必须报告发布后动作的原值、最终值与 schema 4/5 强制检查结果；旧项目缺选时不得把工程层完成误报为完整升级。
+
+按范围参考报告每个适用工程项与实际入口的核对结果；明确区分完整受管升级、部分同步、受阻与仅预览。文件组织、源码测试或复制 Skills 的结果不能替代构建和交付规范的接线证明。
 
 另报告退役清理选择是本次确认还是复用记忆、实际删除/保留项及偏好是否已记录。工程清理不代表已移除下游产品代码中的更新/统计能力；若发现产品实现或旧发布密钥门禁，应列明文件、依赖、配置和验证范围，单独取得目标项目明确授权，再走 `$desktop-implement-change`，不得改写真实发布历史、导出或删除凭据。
 

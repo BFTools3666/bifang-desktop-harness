@@ -8,24 +8,27 @@ import { parseArgs } from "node:util";
 import { buildPlan, stableJson, writeNewPlan } from "./harness_upgrade_core.mjs";
 import { applyPlan } from "./harness_upgrade_mutation.mjs";
 import { recordLock } from "./harness_upgrade_record.mjs";
+import { inspectInventory } from "./harness_upgrade_inventory.mjs";
 import { UpgradeError } from "./harness_upgrade_safety.mjs";
 
 function parseCommand(argv) {
   const command = argv[0];
-  if (!["plan", "apply", "record"].includes(command)) throw new UpgradeError("必须提供 plan、apply 或 record 子命令");
+  if (!["inventory", "plan", "apply", "record"].includes(command)) throw new UpgradeError("必须提供 inventory、plan、apply 或 record 子命令");
   let options;
-  if (command === "plan") options = Object.fromEntries(["source-root", "source-version", "source-commit", "candidate-root", "target-root", "ownership", "lock", "output", "retirement-cleanup"].map((name) => [name, { type: "string" }]));
+  if (command === "inventory") options = Object.fromEntries(["source-root", "source-version", "source-commit", "target-root"].map(name => [name, { type: "string" }]));
+  else if (command === "plan") options = Object.fromEntries(["source-root", "source-version", "source-commit", "candidate-root", "target-root", "ownership", "lock", "output", "retirement-cleanup"].map((name) => [name, { type: "string" }]));
   else if (command === "apply") options = { plan: { type: "string" }, approval: { type: "string" }, path: { type: "string" } };
   else options = { plan: { type: "string" }, "source-version": { type: "string" }, "source-commit": { type: "string" }, approval: { type: "string" }, bootstrap: { type: "boolean", default: false }, "resolved-manual": { type: "string", multiple: true, default: [] } };
   let values;
   try { ({ values } = parseArgs({ args: argv.slice(1), options, strict: true })); } catch (error) { throw new UpgradeError(error.message); }
-  const required = command === "plan" ? ["source-root", "source-version", "source-commit", "candidate-root", "target-root", "ownership", "lock"] : (command === "apply" ? ["plan", "approval", "path"] : ["plan", "source-version", "source-commit", "approval"]);
+  const required = command === "inventory" ? ["source-root", "source-version", "source-commit", "target-root"] : command === "plan" ? ["source-root", "source-version", "source-commit", "candidate-root", "target-root", "ownership", "lock"] : (command === "apply" ? ["plan", "approval", "path"] : ["plan", "source-version", "source-commit", "approval"]);
   if (required.some((name) => !values[name])) throw new UpgradeError("缺少必需命令参数");
   return { command, values };
 }
 
 export function execute(argv) {
   const { command, values } = parseCommand(argv);
+  if (command === "inventory") return { result: inspectInventory(values["source-root"], values["source-version"], values["source-commit"], values["target-root"]), exitCode: 0 };
   if (command === "plan") {
     const result = buildPlan(values["source-root"], values["source-version"], values["source-commit"], values["candidate-root"], values["target-root"], values.ownership, values.lock, values["retirement-cleanup"] ?? null);
     if (values.output) writeNewPlan(values.output, result, [result.candidate_root, result.target_root]);

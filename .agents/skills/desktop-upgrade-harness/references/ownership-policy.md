@@ -59,7 +59,7 @@
 3. 使用下游展示名、snake_case/kebab-case 标识、crate 路径、接口选择和已批准例外完成渲染。
 4. 来自通过自身验证器、Git 工作区干净且 `HEAD`/`Version.md` 与计划声明一致的明确 Harness 版本和提交。
 5. 位于目标仓库之外的任务专用目录，且不含符号链接或特殊文件。
-6. 源 Harness 存在无需身份渲染的必需 `managed` 传播文件时，候选必须包含内容摘要一致的结果。当前包括行数、Rust 中文注释与 core-first 检查器及各自专属测试，以及 `$desktop-manage-git-lifecycle` 的完整 Skill、helper 与测试。遗漏或内容过期都会阻断计划与基线记录。
+6. 源提交中按所有权和目标接口适用的全部工程文件都必须进入候选，含 `managed`、`managed-self`、`merge-sections` 与适用的 `conditional`；完整清单及其快照写入计划的 `source_inventory`。不能因旧来源锁未记录、下游未安装或必需路径白名单未列出而遗漏。无需身份渲染的必需 `managed` 文件与升级器自身可执行模块仍须匹配源摘要。缺文件或必需内容过期都会阻断计划与基线记录。
 7. 候选排除退役接口工程资产。升级计划跳过这些路径，下一次记录时将其退出来源锁，目标工程文件由原项目持有。
 8. 候选排除上游的 Skills 总索引、`$desktop-curate-harness-memory` 目录，以及上游专用 `check_no_python.mjs` 与其测试。旧目标残留的上游专用 `check_no_python.mjs` 和测试须经审查后移除，才能继续升级。
 9. 合并目标 `AGENTS.md` 的 Skills 地图时，逐项核对本次升级结束后实际保留的 `.agents/skills/<名称>/SKILL.md`。链接已安装的工程和项目自有入口，并移除已裁剪或退役入口的链接。NSH 的官方 Skills 从目标项目的安装路径引用，版本须匹配受保护的 Cargo 运行时。

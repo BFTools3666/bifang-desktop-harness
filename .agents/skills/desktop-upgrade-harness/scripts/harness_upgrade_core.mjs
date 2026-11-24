@@ -5,9 +5,10 @@ import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { explicitOwnershipModeForNode, loadLock, loadOwnership, ownershipMode, scanTree } from "./harness_upgrade_ownership.mjs";
 import { inapplicableGuiCandidate, isRetiredInterfaceAsset, readInterfaceSelection } from "./harness_upgrade_interfaces.mjs";
+import { sourceInventory } from "./harness_upgrade_inventory.mjs";
 import { RETIRED_ENGINEERING_PATHS, isRetiredEngineeringPath, retirementSelection } from "./harness_upgrade_retirement.mjs";
 import { AUTO_MODES, BLOCKING_CLASSES, MANUAL_CLASSES, OWNERSHIP_RELATIVE, REQUIRED_MANAGED_SOURCE_PATHS, REQUIRED_NSH_SOURCE_PATHS, SCHEMA_VERSION, SOURCE_ONLY_PATHS } from "./harness_upgrade_policy.mjs";
-import { UpgradeError, assertSafePath, canonicalDirectory, isWithin, loadJson, lstatOrNull, requireControlPaths, requireGitRoot, requireSourceIdentity, safeRelativePath, snapshotFile } from "./harness_upgrade_safety.mjs";
+import { UpgradeError, canonicalDirectory, isWithin, loadJson, lstatOrNull, requireControlPaths, requireGitRoot, requireSourceIdentity, safeRelativePath, snapshotFile } from "./harness_upgrade_safety.mjs";
 
 export function stableJson(value, indent = 0) {
   const sort = (item) => {
@@ -88,16 +89,14 @@ export function buildPlan(sourceRoot, sourceVersion, sourceCommit, candidateRoot
     if (Object.hasOwn(candidateTree.nodes, relative)) problems.push(`候选不得传播上游专用 Skill 资产：${relative}`);
   }
 
-  const requiredPaths = interfaceSelection.interfaces.includes("nsh")
-    ? [...REQUIRED_MANAGED_SOURCE_PATHS, ...REQUIRED_NSH_SOURCE_PATHS] : REQUIRED_MANAGED_SOURCE_PATHS;
-  for (const rawPath of requiredPaths) {
-    const relative = safeRelativePath(rawPath);
-    const sourcePath = assertSafePath(source, path.join(source, ...relative.split("/")), `源 Harness 必需传播路径 ${relative}`, { finalMayBeMissing: true });
-    const stat = lstatOrNull(sourcePath);
-    if (stat === null) continue;
-    if (!stat.isFile() || stat.isSymbolicLink()) problems.push(`源 Harness 必需传播路径不是普通文件：${relative}`);
-    else if (!candidateTree.files[relative]) problems.push(`候选缺少源 Harness 必需传播路径：${relative}`);
-    else if (candidateTree.files[relative].sha256 !== snapshotFile(sourcePath).sha256) problems.push(`候选的源 Harness 必需传播路径内容不匹配：${relative}`);
+  const sourceFiles = sourceInventory(source, interfaceSelection);
+  const exactPaths = new Set(interfaceSelection.interfaces.includes("nsh")
+    ? [...REQUIRED_MANAGED_SOURCE_PATHS, ...REQUIRED_NSH_SOURCE_PATHS] : REQUIRED_MANAGED_SOURCE_PATHS);
+  for (const item of sourceFiles) {
+    const relative = item.path;
+    if (!candidateTree.files[relative]) problems.push(`候选缺少源 Harness 必需传播路径：${relative}`);
+    else if ((exactPaths.has(relative) || item.source_path || (item.mode === "managed-self" && relative.endsWith(".mjs")))
+      && candidateTree.files[relative].sha256 !== item.source.sha256) problems.push(`候选的源 Harness 必需传播路径内容不匹配：${relative}`);
   }
   for (const [relative, isDirectory] of Object.entries(candidateTree.nodes)) {
     if (isRetiredEngineeringPath(relative) || isRetiredInterfaceAsset(relative)) problems.push(`候选不得恢复退役工程资产：${relative}`);
@@ -137,7 +136,7 @@ export function buildPlan(sourceRoot, sourceVersion, sourceCommit, candidateRoot
     candidate_root: candidate, target_root: target, ownership_path: ownership, ownership_snapshot: snapshotFile(ownership),
     lock_path: lockFile, lock_snapshot: lock === null ? null : snapshotFile(lockFile), target_git: gitIdentity,
     target_interfaces: interfaceSelection.interfaces, gui_framework: interfaceSelection.guiFramework,
-    interface_manifest_snapshot: interfaceSelection.manifestSnapshot,
+    interface_manifest_snapshot: interfaceSelection.manifestSnapshot, source_inventory: sourceFiles,
     baseline: lock === null ? "missing" : "loaded", ownership_repairs: missingManagedRules,
     retirement_request: retirementRequest, retirement_cleanup: cleanup, retirement_targets: retirementTargets,
     blocked: problems.length > 0 || actions.some((item) => item.blocked),

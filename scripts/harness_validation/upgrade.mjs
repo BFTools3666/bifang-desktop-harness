@@ -118,6 +118,8 @@ export const UPGRADE_MODULES = [
   "harness_upgrade_core.mjs",
   "harness_upgrade_interfaces.mjs",
   "harness_upgrade_interfaces.test.mjs",
+  "harness_upgrade_inventory.mjs",
+  "harness_upgrade_inventory.test.mjs",
   "harness_upgrade_mutation.mjs",
   "harness_upgrade_mutation.test.mjs",
   "harness_upgrade_ownership.mjs",

@@ -37,7 +37,10 @@ export class HarnessUpgradeFixture {
     for (const repository of [this.source, this.target]) runGit(repository, "init", "--initial-branch=main");
     this.sourceVersion = "202607310001";
     this.write(this.source, "Version.md", `# Harness 版本\n\n- 当前版本：\`${this.sourceVersion}\`\n`);
-    runGit(this.source, "add", "Version.md");
+    const sourceOwnership = path.join(this.source, ".agents", "skills", "desktop-upgrade-harness", "references", "ownership-manifest.json");
+    fs.mkdirSync(path.dirname(sourceOwnership), { recursive: true });
+    fs.copyFileSync(PRODUCTION_OWNERSHIP, sourceOwnership);
+    runGit(this.source, "add", ".");
     for (const repository of [this.source, this.target]) runGit(repository, "-c", "user.name=Harness Fixture", "-c", "user.email=harness-fixture@example.invalid", "commit", "--allow-empty", "-m", "fixture baseline");
     this.sourceCommit = runGit(this.source, "rev-parse", "HEAD").stdout.trim();
     this.ownership = path.join(this.target, ".agents", "skills", "desktop-upgrade-harness", "references", "ownership-manifest.json");
