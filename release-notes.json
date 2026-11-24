@@ -2,6 +2,26 @@
   "schemaVersion": 2,
   "releases": [
     {
+      "releaseDate": "2026-11-24",
+      "version": "v202611241125",
+      "featureOptimizations": [
+        {
+          "zh-CN": "NSH 或 Tauri 桌面打包完成后，可直接在项目根 release/ 获取按“应用名_版本号_arch_setup for 系统”命名的安装包；NSH macOS 使用 DMG，Windows 使用官方 EXE。",
+          "en-US": "After packaging an NSH or Tauri desktop app, find the installer directly in the project's release/ directory, named “App_Version_arch_setup for OS”; NSH uses DMG on macOS and the official EXE on Windows."
+        }
+      ],
+      "bugFixes": [
+        {
+          "zh-CN": "修复候选构建和 CI 绕过测试范围、运行整套回归的问题。现在按上一同渠道版本的变化提供明确测试计划；缺少范围、零命中或测试失败时立即停止。",
+          "en-US": "Fixed candidate builds and CI bypassing test scope and running the full regression suite. Builds now require an explicit test plan for changes since the previous release in the same channel, and stop on missing scope, zero matches, or failed tests."
+        },
+        {
+          "zh-CN": "修复 NSH 非桌面候选读取新版差异测试证据时仍要求旧 JUnit 文件的问题，避免因证据格式不匹配而无法验收。",
+          "en-US": "Fixed non-desktop NSH candidates requiring a legacy JUnit file when reading the new scoped regression evidence, preventing acceptance from being blocked by the evidence format."
+        }
+      ]
+    },
+    {
       "releaseDate": "2026-11-23",
       "version": "v202611232148",
       "featureOptimizations": [],
@@ -175,30 +195,6 @@
         {
           "zh-CN": "NSH 接线失败后可安全重试，回滚仅清理本次生成的内容并保留并发写入。",
           "en-US": "NSH adapter setup can be retried after a failure. Rollback removes files created by that attempt and preserves concurrent writes."
-        }
-      ]
-    },
-    {
-      "releaseDate": "2026-11-12",
-      "version": "v202611121721",
-      "featureOptimizations": [
-        {
-          "zh-CN": "Desktop 统一使用 Tauri。选择 Desktop 后直接进入桌面配置，GPUI 工具链、脚手架、Skills、构建和验收入口已移除。",
-          "en-US": "Desktop now uses Tauri. Selecting Desktop opens its configuration directly. The GPUI toolchain, scaffolding, Skills, build and verification entry points have been removed."
-        },
-        {
-          "zh-CN": "创建指南集中说明环境检查、中性初始化、接口裁剪与独立 Git 基线的顺序，并给出 NSH 的对应步骤。",
-          "en-US": "The project creation guide documents the sequence for environment checks, neutral initialization, interface pruning and the independent Git baseline, with the corresponding NSH steps."
-        }
-      ],
-      "bugFixes": [
-        {
-          "zh-CN": "修复切换到 CLI 或 MCP 后旧桌面答案误触发 NSH 问询的问题。项目准备现在使用表单确认的规范路径，并拒绝目标在确认后被重定向。",
-          "en-US": "Fixed stale Desktop answers triggering NSH questions after switching to CLI or MCP. Project preparation now uses the confirmed canonical path and rejects redirection after confirmation."
-        },
-        {
-          "zh-CN": "升级候选会拒绝上游专用入口与退役资产。显式使用 GPUI 的旧项目须先单独处理，再升级到本版。",
-          "en-US": "Upgrade candidates reject upstream-only entry points and retired assets. Existing projects that explicitly use GPUI require separate handling before upgrading to this version."
         }
       ]
     }

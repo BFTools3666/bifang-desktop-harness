@@ -1,20 +1,26 @@
 {
   "schemaVersion": 3,
-  "sourceHead": "819077077937a27c7bc66ffbc6ed96b9675b03bf",
-  "version": "202611232148",
-  "releaseDate": "2026-11-23",
-  "expectedTag": "v202611232148-20261123",
+  "sourceHead": "11618bb12e210eb47b826e442d5da9887c0338c3",
+  "version": "202611241125",
+  "releaseDate": "2026-11-24",
+  "expectedTag": "v202611241125-20261124",
   "defaultBranch": "master",
   "releaseReview": {
-    "selection": "disabled",
-    "status": "Not run",
-    "scopeBase": "25be68a4f6e661af54880413562a1c37a1fd59af",
-    "sourceHead": "819077077937a27c7bc66ffbc6ed96b9675b03bf",
-    "scopeDiffSha256": "aea63ff5e6431040faaad9ea10be837a7327ea858be46e0adae458bf18869b90",
-    "reviewedSourceCommit": null,
-    "checks": [],
-    "evidenceSummary": null,
-    "reason": "沿用负责人要求的当前验收范围，仅执行门禁、生成和传播专项及发布硬校验。",
-    "remainingRisk": "未运行系统级全量回归及其他平台产品验收。"
+    "selection": "enabled",
+    "status": "passed",
+    "scopeBase": "57b15a87b427ca1e94815a77838bc8a8f82bbf5f",
+    "sourceHead": "11618bb12e210eb47b826e442d5da9887c0338c3",
+    "scopeDiffSha256": "70a01f84cdfb1e66dc0d938f7b89f792f3ff0d5f5a14fc094022805c48ddca98",
+    "reviewedSourceCommit": "11618bb12e210eb47b826e442d5da9887c0338c3",
+    "checks": [
+      "behavior-correctness",
+      "core-adapter-boundary",
+      "external-contracts",
+      "responsibility-and-size",
+      "temporary-markers"
+    ],
+    "evidenceSummary": "强制审查：构建参数与安装包对外契约变更。复核上一发布到源码提交的累计差异，沿用本聊天范围、制品、CI、初始化与升级的定向测试，本轮 NSH 证据兼容回归 15 项通过。Rust、TSX、Cargo 源码无变化；共享 Node 模块负责范围和命名，宿主封包为薄驱动。硬契约及发布审查通过，37 项提示已复核：文件职责内聚且低于硬限，TODO 标记仅属计划解析测试夹具。Windows 产品安装和 E2E 未执行。",
+    "reason": null,
+    "remainingRisk": null
   }
 }
