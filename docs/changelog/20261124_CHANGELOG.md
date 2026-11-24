@@ -4,7 +4,7 @@
 
 ## 2026-11-24 变化
 
-- `HARNESS-CHANGE-UPGRADE-COVERAGE`（`required_version = pending`，正式发布时取号）：升级下游工程前可用 `inventory` 盘点当前上游对目标适用的全部工程资产，自有 NSH 入口也能查看未同步项和兼容缺口。候选遗漏适用文件时阻断应用与基线记录；升级报告区分完整受管升级、部分同步、受阻与仅预览，保留产品运行器和依赖来源不再被解释为可以省略通用交付规范。
+- `HARNESS-CHANGE-UPGRADE-COVERAGE`（`required_version = 202611241600`，正式发布时取号）：升级下游工程前可用 `inventory` 盘点当前上游对目标适用的全部工程资产，自有 NSH 入口也能查看未同步项和兼容缺口。候选遗漏适用文件时阻断应用与基线记录；升级报告区分完整受管升级、部分同步、受阻与仅预览，保留产品运行器和依赖来源不再被解释为可以省略通用交付规范。
 
 - `HARNESS-DELTA-REGRESSION-INSTALLER-20261124`（`required_version = 202611241125`）：候选构建先核对上一同渠道发布到当前版本的差异计划，仅运行变化及直接受影响功能的精确测试。NSH 与 Tauri 的桌面最终安装包使用固定名称并直放 `release/`；NSH macOS 生成 DMG，Windows 缺少官方安装 EXE 时停止。见 [ADR-20261124-001](../adr/20261124_ADR.md)。
 
