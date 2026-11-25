@@ -1,17 +1,17 @@
 {
   "schemaVersion": 3,
-  "sourceHead": "76a14de92cb5e327129639c994a1a995fd992f3f",
-  "version": "202611241600",
-  "releaseDate": "2026-11-24",
-  "expectedTag": "v202611241600-20261124",
+  "sourceHead": "f9e0539885c0b02fb7d949bb365985abdeb1de90",
+  "version": "202611251946",
+  "releaseDate": "2026-11-25",
+  "expectedTag": "v202611251946-20261125",
   "defaultBranch": "master",
   "releaseReview": {
     "selection": "enabled",
     "status": "passed",
-    "scopeBase": "031564b6f31c931a906c90e2158cf8e22a108b5b",
-    "sourceHead": "76a14de92cb5e327129639c994a1a995fd992f3f",
-    "scopeDiffSha256": "5298a3099a402b8af8e1431bf4d3cb6ec817c90859c5932351cb8b719dceee48",
-    "reviewedSourceCommit": "76a14de92cb5e327129639c994a1a995fd992f3f",
+    "scopeBase": "f2d946b5217a2d5045bc2b79526546bed0391bdf",
+    "sourceHead": "f9e0539885c0b02fb7d949bb365985abdeb1de90",
+    "scopeDiffSha256": "564bc979b75910cd372998835f55dfceb309d320a5212ebfb9138b0a0bfff916",
+    "reviewedSourceCommit": "f9e0539885c0b02fb7d949bb365985abdeb1de90",
     "checks": [
       "behavior-correctness",
       "core-adapter-boundary",
@@ -19,7 +19,7 @@
       "responsibility-and-size",
       "temporary-markers"
     ],
-    "evidenceSummary": "强制审查：升级计划和来源锁对外契约变更。核对上一发布到当前 sourceHead 的累计差异；CLI 仅解析参数，工程清单独立处理适用性与快照，apply/record 保留原保护与严格运行时门禁。升级器95项、CLI/NSH裁剪2项回归通过，DDRank只读盘点已执行。硬合同和release-review通过；37项既有提示未新增，唯一相关变动为规格版本镜像，TODO是测试输入。旧plan须重新生成；无Rust/产品构建或E2E。",
+    "evidenceSummary": "审查覆盖 f2d946b5..f9e05398（下游治理知识回流、NSH 0.7.0 生态与 Tauri 2.12.7/tauri-plugin-opener 升级及清理）。核心边界：中性 CLI 经 check_core_first 与 rustc 1.100.0 fmt/clippy/test(7/7) 通过；NSH 0.7 保留共享 core；Tauri opener 限 Rust-only 禁 JS/ACL 与 /usr/bin/open。隔离沙箱(Rust 5/5、前端 43/43 + tsc + Vite)及 22 个 Harness 测试文件 326/326 通过；validate_harness --release-review 通过（36 项既有软行数提示无硬超限，TODO 为测试夹具）。候选版本仍标 Unverified；无产品构建或 E2E。",
     "reason": null,
     "remainingRisk": null
   }

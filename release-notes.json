@@ -2,6 +2,30 @@
   "schemaVersion": 2,
   "releases": [
     {
+      "releaseDate": "2026-11-25",
+      "version": "v202611251946",
+      "featureOptimizations": [
+        {
+          "zh-CN": "创建或升级 NSH 工程时可直接使用官方 0.7.0 运行时、匹配 CLI 与两套原样官方 Skills，界面翻译、异步核心状态、多窗口关闭及托盘恢复均改用官方能力，并补充 nshm 与 nsh-extra 准入说明。旧版 NSH 工程须先完成原仓迁移再接入。",
+          "en-US": "When creating or upgrading NSH projects, use the official 0.7.0 runtime, matching CLI, and unmodified official skills. Interface localization, asynchronous core state, multi-window close behavior, and tray restoration now use official APIs, with guidance for adopting nshm and nsh-extra. Older NSH projects must migrate in place before adopting this template."
+        },
+        {
+          "zh-CN": "升级 Tauri 知识库宿主与前端候选下界（Tauri 2.12.7、Mantine 9.8.2、TanStack Query 5.108.4、i18next 27 / react-i18next 18、Vite 8.3.8 等），同时保留连续 Node >=24.0.0 与 peer 兼容线；macOS 系统通知设置跳转改用官方 Rust-only tauri-plugin-opener，替代手写 /usr/bin/open 子进程调用并保持零 WebView 越权权限。",
+          "en-US": "Upgraded Tauri host and frontend dependency candidates (Tauri 2.12.7, Mantine 9.8.2, TanStack Query 5.108.4, i18next 27 / react-i18next 18, Vite 8.3.8, and related tooling) while preserving continuous Node >=24.0.0 and peer compatibility lines. macOS notification settings recovery now uses the official Rust-only tauri-plugin-opener instead of spawning /usr/bin/open directly, with no WebView ACL exposure."
+        },
+        {
+          "zh-CN": "为代码重构、边界审查和升级完整性核对补充下游实战参考，明确状态所有权、依赖方向、运行时版本配对及下游差异回流边界，帮助维护者在不偏离既定边界的情况下安全整理工程结构。",
+          "en-US": "Added downstream engineering references to refactoring, boundary review, and upgrade completeness checks, clarifying state ownership, dependency direction, runtime version pairing, and feedback boundaries when cleaning up project structure."
+        }
+      ],
+      "bugFixes": [
+        {
+          "zh-CN": "清理依赖登记快照中 9 个已无活动引用的历史孤儿 Rust crate、删除过时的 Tauri 平台重定向占位文档并收窄多处脚本冗余导出；同步补充 Node 25/26 运行 Vitest 4 + jsdom 29 时的 --no-experimental-webstorage 兼容说明，避免内置实验性存储遮蔽测试环境。",
+          "en-US": "Removed 9 unused legacy Rust crates from the dependency catalog, deleted the obsolete Tauri platform redirect stub, and removed redundant internal script exports. Added compatibility guidance for running Vitest 4 and jsdom 29 on Node 25/26 with --no-experimental-webstorage to prevent built-in experimental storage from shadowing test globals."
+        }
+      ]
+    },
+    {
       "releaseDate": "2026-11-24",
       "version": "v202611241600",
       "featureOptimizations": [
@@ -159,26 +183,6 @@
         {
           "zh-CN": "NSH 验收指南明确按选定的构建批次核对审查记录。已选或必需场景缺少运行证据，或缺少渠道要求的签名时，该批次判为拒绝。",
           "en-US": "The NSH acceptance guide now specifies how to check the review record for the selected build batch. The batch is rejected if it lacks runtime evidence for a selected or required scenario or lacks required channel signing."
-        }
-      ]
-    },
-    {
-      "releaseDate": "2026-11-14",
-      "version": "v202611142116",
-      "featureOptimizations": [
-        {
-          "zh-CN": "新建 NSH 工程固定官方 0.5.1 和匹配 CLI，并同步依赖及平台资料。已有 0.5.0 工程可按原固定版本构建和升级 Harness。",
-          "en-US": "New NSH projects pin official 0.5.1 and its matching CLI. Dependency and platform documentation is updated. Existing 0.5.0 projects can build and upgrade Harness with their original pins."
-        },
-        {
-          "zh-CN": "下游可按次选择 Release 或 Beta。推送与打包共用冻结的渠道，Beta 使用独立的应用名称、ID 和发布分支。",
-          "en-US": "Downstream projects can choose Release or Beta per publication. Push and packaging share the recorded channel. Beta uses a separate app name, ID, and release branch."
-        }
-      ],
-      "bugFixes": [
-        {
-          "zh-CN": "将渠道问询和上下文限制在下游发布。Harness 继续使用固定 release 分支，既有发布上下文仍可读取。",
-          "en-US": "Require channel selection and channel metadata only for downstream publications. Harness continues to use the release branch, and existing release contexts remain readable."
         }
       ]
     }
