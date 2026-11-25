@@ -47,6 +47,7 @@ export const REQUIRED_UPGRADE_RULES = new Map([
   [".agents/skills/rust-port/**", "protected"],
   [".agents/skills/rust-anything/**", "protected"],
   [".harness/external-skills-lock.json", "protected"],
+  [".harness/upgrade-exemptions.json", "protected"],
   ["docs/AGENT_POLICY.md", "protected"],
   ["docs/GUI_SUPPORT_SURFACES.md", "protected"],
   ["docs/GUI_APP_PROFILE.md", "protected"],
@@ -85,6 +86,8 @@ export const REQUIRED_UPGRADE_RULES = new Map([
   [".agents/skills/desktop-implement-change/scripts/project_lock_policy.test.mjs", "managed"],
   [".agents/skills/desktop-implement-change/scripts/check_rust_chinese_comments.mjs", "managed"],
   [".agents/skills/desktop-implement-change/scripts/check_rust_chinese_comments.test.mjs", "managed"],
+  [".agents/skills/desktop-implement-change/scripts/sync_gitignore.mjs", "managed"],
+  [".agents/skills/desktop-implement-change/scripts/sync_gitignore.test.mjs", "managed"],
   [".agents/skills/desktop-implement-change/scripts/check_no_python.mjs", "managed"],
   [".agents/skills/desktop-implement-change/scripts/check_no_python.test.mjs", "managed"],
   [".agents/skills/desktop-manage-git-lifecycle/**", "managed"],
@@ -121,6 +124,8 @@ export const VALID_UPGRADE_MODES = new Set([
 
 export const UPGRADE_MODULES = [
   "harness_upgrade.mjs",
+  "harness_upgrade_audit.mjs",
+  "harness_upgrade_audit.test.mjs",
   "harness_upgrade_core.mjs",
   "harness_upgrade_interfaces.mjs",
   "harness_upgrade_interfaces.test.mjs",
@@ -134,6 +139,7 @@ export const UPGRADE_MODULES = [
   "harness_upgrade_preflight.mjs",
   "harness_upgrade_record.mjs",
   "harness_upgrade_safety.mjs",
+  "harness_upgrade_structure.mjs",
   "harness_upgrade_test_support.mjs",
 ].map((name) => path.join(UPGRADE_ROOT, "scripts", name));
 
@@ -276,6 +282,16 @@ function validateDocumentation(errors) {
       "旧 schema 3 的 `selection_required` 必须询问用户",
       "post_release_action.mjs check --project-root",
       "`status: configured`",
+      "references/post-upgrade-audit.md",
+      "harness_upgrade_audit.mjs",
+      ".harness/upgrade-exemptions.json",
+    ]],
+    [path.join(UPGRADE_ROOT, "references", "post-upgrade-audit.md"), [
+      "harness_upgrade_audit.mjs",
+      "依赖升级询问与遗留清理收窄",
+      "项目结构检测与最佳实践重构",
+      "下次升级自动失效",
+      ".harness/upgrade-exemptions.json",
     ]],
     [path.join(UPGRADE_ROOT, "references", "ownership-policy.md"), [
       ".harness/version-state.json",

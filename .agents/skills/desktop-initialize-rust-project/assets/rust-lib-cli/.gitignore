@@ -1,6 +1,57 @@
+# Rust 构建、覆盖率与调试输出
 /target/
+**/target/
+*.profraw
+*.profdata
+*.lcov
+**/*.rs.bk
+**/cargo-timings/
+
+# 本地解析生成的依赖锁文件（选择 dependency-lock-policy = "tracked" 时移除对应锁文件规则）
 Cargo.lock
 pnpm-lock.yaml
 pnpm-package.lock
+
+# Node.js、前端与跨平台运行生成物
+/node_modules/
+**/node_modules/
+/dist/
+**/dist/
+/coverage/
+**/coverage/
+**/.nsh/
+/.vite/
+**/.vite/
+/.vitest/
+**/.vitest/
+*.tsbuildinfo
+.eslintcache
+
+# 当前发布候选目录与中断清理残留
 /release/
 /.release-clean.*
+
+# 本地环境变量；允许提交公开示例
+.env
+.env.*
+!.env.example
+
+# 编辑器、系统、日志与临时文件
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.log
+npm-debug.log*
+pnpm-debug.log*
+*.swp
+*.swo
+*.tmp
+*~
+
+# 按需提取的知识快照、静态分析索引与项目本地临时目录
+/knowledge/
+/.harness/skills/archify/
+/.harness/tmp/
+/.harness/cache/
+*.scip
+**/.scip/

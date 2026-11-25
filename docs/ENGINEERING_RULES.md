@@ -153,6 +153,7 @@ DESKTOP 固定使用 Tauri，既有 GUI 缺失 `gui-framework` 也按 Tauri 读�
 | `.harness/version-state.json` | 仅下游保存当前正式发布周期、首功能提升锁、待发布变化及已消费 `bug-fix` 稳定 ID；受保护且不是当前版本的第二事实源，Minor/Patch 固定 `0..99`，出现历史 `100` 一律失败关闭而非规范化读取 |
 | Git common dir `agent-first-harness/git-lifecycle.json` | Harness 源与下游在本地保存登记分支/Worktree、待完成发布、已发布的默认主分支/HEAD/tag/上下文摘要，以及独立的推送进度；发布只合并本地主分支并创建复读 tag，结束前不访问远端或删除登记资源；旧双模式状态只有在无进行中的发布/推送时才可安全迁移；状态不进入源码提交，下游升级不得覆盖或扩大资源范围 |
 | `.harness/release-context.json` | Harness 源与下游在源码/治理提交锁定 `sourceHead` 后写入，并与根 `release-notes.json` 同次提交；仅保存版本、日期、预期 tag、本地默认主分支、源码提交和审查结果，不保存推送位置或候选打包选择；它不是分支策略、清理清单或候选签名事实源 |
+| `.harness/upgrade-exemptions.json` | 仅下游保存经用户逐项确认的 Harness 升级约束/风格豁免，严格绑定当前 `harness_version` 与 `harness_commit`，下一次 Harness 升级时自动失效；受保护且不覆盖硬规则门禁 |
 | `release-notes.json` | Harness 源与下游在首次正式发布准备时创建；以 schema v2 保存含当前版的最近 10 个实际发布版本的中英文更新日志，下游还供制品与关于页复用；每版两类各最多 10 个翻译对，升级时受保护 |
 | `docs/product_spec/README.md` | 产品规格日期规则和索引 |
 | `docs/product_spec/YYYYMMDD_product_spec.md` | 当日完整产品目标、范围、约束和成功标准；最新日期文件是当前规格 |
@@ -257,6 +258,8 @@ DESKTOP 固定使用 Tauri，既有 GUI 缺失 `gui-framework` 也按 Tauri 读�
 - 启动一次性测试套件前，优先分配任务独占的临时目录或记录精确生成路径。测试进程及其使用者结束后，成功和失败都回收这些套件、夹具与其生成的中间数据。需要保留的日志或复现输入先保存至约定的证据位置。Harness 自身的 Node 回归入口为每次运行分配独立的系统临时目录，并在进程正常结束后回收。中断、目录身份变化或清理失败时报告对应路径。
 - Rust 产物按第 5.3 节从实际 Cargo 工作区解析共享 target 目录，再依据本次构建记录、目标与 profile 定位产物。仅按精确路径清理可确认由本次任务独占且已无使用者的测试二进制与编译中间产物。保留共享依赖、可复用的缓存和无法确认归属的文件。不得自动清空或迁移共享 target 目录，也不得在共享目录运行无范围的 `cargo clean`。发现遗留的仓库内 `target/` 时只报告路径和大小。
 - 删除后复核已清理的路径。无法确认归属、仍在使用或清理失败的项目予以保留，并在交付时说明相关路径和原因。
+- 开发过程中生成的未跟踪产物（构建输出、覆盖率、日志、缓存、SCIP 索引、本地临时目录等）可通过受管脚本 `node .agents/skills/desktop-implement-change/scripts/sync_gitignore.mjs sync --project-root .` 自动识别并增量追加至 `.gitignore` 的受管区块；该脚本严格保留既有用户规则、拒绝与已跟踪文件冲突、并遵守 Cargo `dependency-lock-policy = "tracked"`（绝不忽略受跟踪锁文件）。
+- 下游执行 `$desktop-upgrade-harness` 完成工程层升级与外部增强 Skills 同步后，必须依次执行三项后置审计闭环：（1）盘点项目依赖与遗留信号并询问用户是否一并升级，用户确认升级时同步清理和收窄遗留旧代码、旧依赖、已退役/关闭能力及过时文档；（2）检测当前项目结构（workspace 依赖集中化、core-first、Rust `<module>/mod.rs`、前端 `export *` 桶文件、兜底命名、文件行数与 Cargo target 卫生）并经确认按最佳实践交 `$desktop-refactor-code` 重构；（3）综合验证升级结果，对不一致的约束和风格逐项询问用户选择“一并调整”或“记录当前版本豁免”至受保护 `.harness/upgrade-exemptions.json`（下次 Harness 升级自动失效；硬行数上限、core-first 与安全门禁不可豁免）。
 
 ## 6. 规则例外
 

@@ -32,7 +32,7 @@ description: 直接实施范围清楚的请求，只运行本次开发需要的�
 9. 已初始化下游的相关测试或最小替代检查通过、变化确实完成后，使用与第 2 步相同的参数调用 `$desktop-manage-version apply`；提升分类、周期与进位规则见 `docs/RELEASE.md` 与该 Skill，显式 Major 仍需用户批准。不得在测试失败、修正未完成或诊断阶段提前提交版本。
 10. 只更新被独立事件触发的记忆：产品目标/边界/约束/成功标准变化更新 Product Spec；长期重要决定/硬规则例外交 `$desktop-record-adr` 写 ADR；合格的可感知变化写 Changelog；Product Status 只有状态索引规定的独立事件触发时交 `$desktop-handoff-project`；Work Plan 与 Verification 各按自身准入，不把候选完整验收或构建当 tracked 记忆触发。已初始化下游的 Product Spec、ADR、Changelog 或 Work Plan 一旦独立触发，必须记录稳定 `change_id` 与版本门禁返回的 `required_version`；版本变化本身不触发任何记忆。构建请求、执行和结果本身不触发 Product Spec、ADR、Changelog、Product Status、Work Plan 或 Verification；未触发时不写占位。
 11. 若用户提供了活动计划，只更新其中与本次实现直接对应的 Todo；计划不得改变本 Skill 的最小开发闭环或静默增加检查。
-12. 按[任务收尾清理](../../../docs/ENGINEERING_RULES.md#54-任务收尾清理)回收本次不再使用的临时测试与构建产物。对 Git 项目每完成一个逻辑闭环，都紧邻真实提交调用 `$desktop-configure-git-commits`，以中文摘要和正文表达结果，执行消息机械检查、复核差异并只提交本次精确路径；正常运行 hooks，不使用 `--no-verify`，提交后复读实际消息。最终交付前确认测试、权威文档、适用提交与干净工作树。用户明确要求发布时路由 `$desktop-prepare-release`，由其消费已确认的 `post_release_action` 并完成 Git 发布和适用后续路径；普通完成不自动推送、发布或删除登记资源。
+12. 按[任务收尾清理](../../../docs/ENGINEERING_RULES.md#54-任务收尾清理)回收本次不再使用的临时测试与构建产物；在 Git 仓库中运行 `node .agents/skills/desktop-implement-change/scripts/sync_gitignore.mjs sync --project-root .`，将开发过程中新生成的未跟踪构建/缓存/日志/索引文件自动增量追加到 `.gitignore`（保留既有用户规则、拒绝与已跟踪文件冲突并遵守 `dependency-lock-policy`）。对 Git 项目每完成一个逻辑闭环，都紧邻真实提交调用 `$desktop-configure-git-commits`，以中文摘要和正文表达结果，执行消息机械检查、复核差异并只提交本次精确路径；正常运行 hooks，不使用 `--no-verify`，提交后复读实际消息。最终交付前确认测试、权威文档、适用提交与干净工作树。用户明确要求发布时路由 `$desktop-prepare-release`，由其消费已确认的 `post_release_action` 并完成 Git 发布和适用后续路径；普通完成不自动推送、发布或删除登记资源。
 13. 第 12 步要求的交付闭环完成后，仅存在左侧 Task 时调用 `$desktop-task-workflow` 同步真实完成状态；失败如实报告最后确认状态，不创建替代 Task。
 
 ## 边界与输出

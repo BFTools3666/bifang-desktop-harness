@@ -289,7 +289,10 @@ export const REQUIRED_ROOT_FILES = [
 
   ".agents/skills/desktop-upgrade-harness/references/ownership-manifest.json",
   ".agents/skills/desktop-upgrade-harness/references/ownership-policy.md",
+  ".agents/skills/desktop-upgrade-harness/references/post-upgrade-audit.md",
   ".agents/skills/desktop-upgrade-harness/scripts/harness_upgrade.mjs",
+  ".agents/skills/desktop-upgrade-harness/scripts/harness_upgrade_audit.mjs",
+  ".agents/skills/desktop-upgrade-harness/scripts/harness_upgrade_audit.test.mjs",
   ".agents/skills/desktop-upgrade-harness/scripts/harness_upgrade_core.mjs",
   ".agents/skills/desktop-upgrade-harness/scripts/harness_upgrade_mutation.mjs",
   ".agents/skills/desktop-upgrade-harness/scripts/harness_upgrade_mutation.test.mjs",
@@ -298,6 +301,7 @@ export const REQUIRED_ROOT_FILES = [
   ".agents/skills/desktop-upgrade-harness/scripts/harness_upgrade_preflight.mjs",
   ".agents/skills/desktop-upgrade-harness/scripts/harness_upgrade_record.mjs",
   ".agents/skills/desktop-upgrade-harness/scripts/harness_upgrade_policy.mjs",
+  ".agents/skills/desktop-upgrade-harness/scripts/harness_upgrade_structure.mjs",
   ".agents/skills/desktop-upgrade-harness/scripts/harness_upgrade_test_support.mjs",
   ".agents/skills/desktop-upgrade-harness/scripts/harness_upgrade_plan.test.mjs",
 
@@ -313,6 +317,8 @@ export const REQUIRED_ROOT_FILES = [
   ".agents/skills/desktop-implement-change/scripts/check_file_line_limits.test.mjs",
   ".agents/skills/desktop-implement-change/scripts/check_rust_chinese_comments.mjs",
   ".agents/skills/desktop-implement-change/scripts/check_rust_chinese_comments.test.mjs",
+  ".agents/skills/desktop-implement-change/scripts/sync_gitignore.mjs",
+  ".agents/skills/desktop-implement-change/scripts/sync_gitignore.test.mjs",
   ".agents/skills/desktop-implement-change/scripts/check_no_python.mjs",
   ".agents/skills/desktop-implement-change/scripts/check_no_python.test.mjs",
   ".agents/skills/desktop-manage-version/scripts/version_gate.mjs",

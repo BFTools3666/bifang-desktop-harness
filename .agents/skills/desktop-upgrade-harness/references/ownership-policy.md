@@ -22,7 +22,7 @@
 
 既有下游的策略正文若还描述自动创建 Worktree 或自动回退到跨平台候选，在目标项目合并现行规则时逐字保留 frontmatter 和自定义规则。升级器只更新受管入口与文档。新版 Worktree 创建 helper 和发布后路由按当前明确授权执行。
 
-外部增强 Skills 同步落盘的目录（`.agents/skills/design-taste-frontend/**`、`rust-best-practices/**`、`rust-review/**`、`rust-port/**`、`rust-anything/**`）及 `.harness/external-skills-lock.json` 在静态 Harness 三方比较中始终保持 `protected`，候选树和 `.harness/upstream-lock.json` 排除这些目录，避免静态升级器与最新上游字节发生冲突。旧目标清单缺少这些保护规则时，先按显式清单合并补齐保护，再重新生成计划，不能把通用 managed 规则当成安装或删除授权。这些 protected 条目必须排在所有可能匹配 `.agents/skills/**` 的不同 mode 规则之前，包括自定义通配规则；无法证明不重叠的前置规则也会阻断，移到保护条目之后再重新规划。上游最新更新由受管传播的 `$desktop-manage-external-skills` 在每次工程升级记录基线后统一执行 `sync` 完成。
+外部增强 Skills 同步落盘的目录（`.agents/skills/design-taste-frontend/**`、`rust-best-practices/**`、`rust-review/**`、`rust-port/**`、`rust-anything/**`）及 `.harness/external-skills-lock.json`、`.harness/upgrade-exemptions.json` 在静态 Harness 三方比较中始终保持 `protected`，候选树和 `.harness/upstream-lock.json` 排除这些路径，避免静态升级器与最新上游字节或本版豁免发生冲突。`.harness/upgrade-exemptions.json` 仅由 `$desktop-upgrade-harness` 的 `harness_upgrade_audit.mjs record-exemptions` 在用户逐项确认后原子写入，严格绑定当前 `harness_version` 与 `harness_commit`，并在下一次 Harness 升级时自动失效。旧目标清单缺少这些保护规则时，先按显式清单合并补齐保护，再重新生成计划，不能把通用 managed 规则当成安装或删除授权。这些 protected 条目必须排在所有可能匹配 `.agents/skills/**` 的不同 mode 规则之前，包括自定义通配规则；无法证明不重叠的前置规则也会阻断，移到保护条目之后再重新规划。上游最新更新由受管传播的 `$desktop-manage-external-skills` 在每次工程升级记录基线后统一执行 `sync` 完成。
 
 ## 升级前事实检查
 
@@ -84,7 +84,7 @@
 
 四项跨接口知识入口 `$desktop-add-file-operations`、`$desktop-add-external-process`、`$desktop-manage-user-tasks`、`$desktop-configure-agent-policy` 及其 references、helper/测试必须完整传播且与源摘要一致；策略实例仍 protected，升级不得启用能力或改写用户选择。
 
-跨接口完整传播 `$desktop-manage-dependencies`、`$desktop-manage-external-skills`（含分类清单、约束说明与标准库同步脚本/测试）、`$desktop-check-development-environment/scripts/ensure_deslop_please.mjs` 及测试、`$desktop-review-core-boundaries`、`$desktop-record-adr`、`$desktop-handoff-project`、`$desktop-inspect-release-notes`，只传播工程知识/只读入口，不代写记忆或清单。产品 profile、支持实例、外部 Skill 锁和根清单继续 protected。
+跨接口完整传播 `$desktop-manage-dependencies`、`$desktop-manage-external-skills`（含分类清单、约束说明与标准库同步脚本/测试）、`$desktop-check-development-environment/scripts/ensure_deslop_please.mjs` 及测试、`$desktop-implement-change/scripts/sync_gitignore.mjs` 及测试、`$desktop-review-core-boundaries`、`$desktop-record-adr`、`$desktop-handoff-project`、`$desktop-inspect-release-notes`，只传播工程知识/只读或受控入口，不代写记忆、清单或产品 `.gitignore`。升级器自身同步传播 `references/post-upgrade-audit.md`、`scripts/harness_upgrade_audit.mjs`、`scripts/harness_upgrade_structure.mjs` 与测试。产品 profile、支持实例、外部 Skill 锁、当前版本豁免记录和根清单继续 protected。
 
 中文提交的完整 `$desktop-configure-git-commits` Skill、metadata、规范、模板、helper/测试，以及 `$desktop-prepare-release` 的 `release_git.mjs`/测试必须作为同一 managed 依赖闭包传播。按章节合并启动文档的项目 Task 默认关闭、非 pinned、显式阶段隔离和自主恢复入口；目标 `docs/AGENT_POLICY.md` 的既有 frontmatter（原 schema 的全部偏好与确认元数据）逐字节保留，并保留自定义正文。受保护正文迁移在目标授权范围单独处理；不得改变已有项目选择或把旧全局 Task Tree 规则当作项目启用事实。用户级 `AGENTS.md` 位于项目候选和来源锁范围之外，不复制或覆盖；项目 AGENTS/README 继续按 merge-sections 处理。
 

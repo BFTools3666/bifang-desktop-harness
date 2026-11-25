@@ -37,7 +37,7 @@ description: 仅在用户明确要求配置 Git，或下一步将实际创建提
 4. 若任一受管模板键已有不同值，脚本必须在写入前失败并报告冲突。只有用户明确批准替换当前仓库模板配置时才重跑 `install --replace`；不得把 `--replace` 当作默认恢复手段。任何模式都不得运行 `git config --global`、`git config --system`，不得修改签名、凭据、远端或 hooks；身份 bootstrap 的唯一写入是缺失 `user.name`/`user.email` 的当前仓库 local 值。
 5. 编写或复核提交信息时读取 [提交消息规范](references/commit-convention.md)。先检查暂存差异是否只包含一个逻辑结果；无关变化保持未暂存或拆成后续提交，不得擅自重写已有历史。
 6. 简单且意图明确的维护变化可以只使用一行 Conventional Commit 主题。非简单变化必须填写 `Why`、`Changes`、`Impact`、`Test`；`Why` 解释动机或根因，`Changes` 描述行为变化，`Impact` 说明兼容/数据/性能/API 影响，`Test` 只记录实际执行的验证。未运行时写 `Not run: <原因>`，不得伪造通过。
-7. 主题摘要和正文说明必须使用中文；type、scope、技术标识符及必要 Git 语义可保留。先将实际消息保存为普通 UTF-8 文件，运行 `node .agents/skills/desktop-configure-git-commits/scripts/configure_git_commit.mjs message-check --message-file <file>`；该命令只校验消息，不安装模板、不读写 Git 配置。机械检查拒绝空消息、非法 UTF-8/控制字符与纯英文摘要，不以“包含一个汉字”证明表达质量。创建提交前复核主题和正文与实际 diff 一致，不包含秘密、令牌、个人数据、临时调试内容或未跟踪生成物。用户没有要求创建提交时，若当前工作流也不强制产生提交，只返回建议消息，不运行身份 bootstrap、`install`/`check`，也不执行 `git commit`。
+7. 主题摘要和正文说明必须使用中文；type、scope、技术标识符及必要 Git 语义可保留。先将实际消息保存为普通 UTF-8 文件，运行 `node .agents/skills/desktop-configure-git-commits/scripts/configure_git_commit.mjs message-check --message-file <file>`；该命令只校验消息，不安装模板、不读写 Git 配置。机械检查拒绝空消息、非法 UTF-8/控制字符与纯英文摘要，不以“包含一个汉字”证明表达质量。创建提交前复核主题和正文与实际 diff 一致，不包含秘密、令牌、个人数据、临时调试内容或未跟踪生成物；若工作树中出现未忽略的开发生成物，先运行 `node .agents/skills/desktop-implement-change/scripts/sync_gitignore.mjs sync --project-root .` 自动追加到 `.gitignore`。用户没有要求创建提交时，若当前工作流也不强制产生提交，只返回建议消息，不运行身份 bootstrap、`install`/`check`，也不执行 `git commit`。
 
 提交后用 `git log -1 --format=%B` 复读实际消息，再做消息机械检查和差异语义复核；hook 改写消息时明确报告，不能把提交前文本冒充最终结果。初始化、日常开发、发布源码和元数据提交均使用本合同；普通 merge 显式提供中文消息，保留父提交关系和 Git 必要语义。
 

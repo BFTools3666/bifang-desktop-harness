@@ -43,7 +43,7 @@ DESKTOP（Cargo `gui`）固定使用 Tauri 2、React 和 Mantine。新项目直�
 | 长期决定、硬规则例外或 Harness 记忆治理 | `docs/adr/README.md` 与最新 ADR；只追溯其明确引用的旧事实 | `$desktop-record-adr`；Harness 历史整理使用 `$desktop-curate-harness-memory` |
 | 只需理解 Harness 方法论 | `docs/HARNESS_ENGINEERING.md`，再按索引选择一个主题卷 | 不因阅读方法论自动进入计划、构建或验收 |
 | 用户要求回顾开发沿革、决策变化或未来方向 | 当前项目对应记忆索引与最新文件；有 Git 时按范围查旧历史 | `$desktop-summarize-development-history`（只读） |
-| 升级已初始化下游的 Harness 工程层 | 下游当前事实、源 Harness 版本与 `$desktop-upgrade-harness` 指定资料 | `$desktop-upgrade-harness`，默认先预览 |
+| 升级已初始化下游的 Harness 工程层 | 下游当前事实、源 Harness 版本与 `$desktop-upgrade-harness` 指定资料 | `$desktop-upgrade-harness`（默认先预览；完成后按后置审计询问依赖升级与清理收窄、结构检测重构及逐项验证/当版豁免） |
 
 ## 始终生效的边界
 
@@ -97,7 +97,7 @@ DESKTOP（Cargo `gui`）固定使用 Tauri 2、React 和 Mantine。新项目直�
 1. 判定仓库边界和任务类型，只读取路由命中的最少事实与 Skills。
 2. 在授权范围内实施，保护既有修改，只运行本次变化需要的测试或最小替代检查。
 3. 只更新被独立事件触发的权威记录；失败在当前范围内修复并重跑，新增副作用或范围变化先请求批准。
-4. 按[任务收尾清理](docs/ENGINEERING_RULES.md#54-任务收尾清理)清理本次不再使用的临时测试与构建产物。
+4. 按[任务收尾清理](docs/ENGINEERING_RULES.md#54-任务收尾清理)清理本次不再使用的临时测试与构建产物，并在 Git 仓库用 `sync_gitignore.mjs` 自动增量忽略开发生成物。
 5. 完成时报告实际变化、实际验证、未执行项和剩余风险，不把日常实现描述成发布就绪。
 
 Harness 自身维护只运行受影响的硬契约检查和精确回归，例如 `node scripts/run_harness_tests.mjs --test scripts/harness_validation/run_harness_tests.test.mjs`。运行全量须有本次人类明确授权，并显式传入 `--scope full --human-authorization <来源>`。`node scripts/validate_harness.mjs` 是全仓硬契约检查入口。明确发布且当次 `reviewSelection: enabled` 时另运行 `node scripts/validate_harness.mjs --release-review` 收集非阻断语义/重构提示。

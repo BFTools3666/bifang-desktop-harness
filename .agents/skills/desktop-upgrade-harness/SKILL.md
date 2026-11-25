@@ -71,11 +71,14 @@ description: 在已初始化或首次接入的既有下游项目中安全更新�
     ```
 
     网络不可达或上游同步失败时保留既有外部 Skill 目录，明确报告未完成同步的仓库与原因，不得宣称外部 Skill 已更新到最新。
+17. **依赖升级询问与同步清理收窄**：完整读取 [升级后置审计、结构重构与当前版本豁免](references/post-upgrade-audit.md)，运行 `node "<downstream-root>/.agents/skills/desktop-upgrade-harness/scripts/harness_upgrade_audit.mjs" deps --project-root "<downstream-root>" --source-root "<clean-harness-source-root>"` 只读盘点当前项目依赖、工具链下界与遗留信号，向用户明确询问是否一并升级项目依赖。若用户选择一并升级，按 `$desktop-manage-dependencies` 与 `$desktop-implement-change` 执行升级并验证，同时**同步清理与收窄**遗留的旧代码、旧依赖与多余特性、已关闭/退役能力残留及过时文档；不得在未获确认前私自修改产品依赖或业务代码。
+18. **项目结构检测与最佳实践重构**：运行 `node "<downstream-root>/.agents/skills/desktop-upgrade-harness/scripts/harness_upgrade_audit.mjs" structure --project-root "<downstream-root>"`，对下游项目的 workspace 依赖集中化、core-first 依赖方向、Rust `<module>/mod.rs` 目录规范、前端模块高内聚与 `export *` 桶文件、兜底/泛化命名、文件行数阈值、Cargo target 卫生及 `.gitignore` 开发生成物忽略情况进行检测。列出发现的结构问题与最佳实践重构方案，经用户确认后委托 `$desktop-refactor-code` 执行行为保持重构并运行受影响测试；如检测到未忽略的开发生成物，可通过 `sync_gitignore.mjs` 增量追加至 `.gitignore`。
+19. **升级结果综合验证与当前版本豁免**：运行 `node "<downstream-root>/.agents/skills/desktop-upgrade-harness/scripts/harness_upgrade_audit.mjs" verify --project-root "<downstream-root>" --source-root "<clean-harness-source-root>"` 验证最终升级结果。若目标存在旧 Harness 版本写入的 `.harness/upgrade-exemptions.json`，该脚本自动将历史豁免标为失效（`expired`）并重新纳入核对。对每项约束或风格不一致，**逐项询问用户**选择“一并调整”还是“记录当前版本豁免（下次升级时自动失效）”；硬行数超限、core-first 等硬规则不可豁免。用户选择调整的项立即修正并重验；用户选择豁免的项通过 `harness_upgrade_audit.mjs record-exemptions --project-root "<downstream-root>" --input "<confirmed-exemptions.json>"` 原子写入受保护的 `.harness/upgrade-exemptions.json`，再重跑 `verify` 复核。
 
 ## 安全边界
 
 - 默认执行 `plan`；绝不得仅因调用本 Skill 就写入。
-- 绝不得覆盖产品源代码、测试、Cargo 产品版本或依赖锁策略、`.gitignore`、项目 `Cargo.lock`/`pnpm-lock.yaml`、`.harness/version-state.json`、`.harness/release-context.json`、项目记忆、项目身份、已选接口、GUI 身份、GUI 支持界面产品实例、持久 Agent 策略、许可证、Git 配置与历史、远端、分支、标签、Worktree、common-dir 生命周期清单、敏感信息或未登记本地文件；精确退役清单中用户已选清理的工程资产仅按清理参考逐路径处理，不扩展到产品文件。传播 Git 生命周期或发布后动作 Skill 不授权执行它。第 15 步的用户确认只授权目标项目专用 Skill 写入该受保护偏好与真实 ADR，不授权升级器改写任何 protected 文件。第 14 步只是在工程层升级完成后转交版本 Skill 的显式人工迁移，不能由升级器调用、合并到 `apply|record` 或解释为对 protected 状态的例外。
+- 绝不得覆盖产品源代码、测试、Cargo 产品版本或依赖锁策略、`.gitignore`、项目 `Cargo.lock`/`pnpm-lock.yaml`、`.harness/version-state.json`、`.harness/release-context.json`、`.harness/upgrade-exemptions.json`、项目记忆、项目身份、已选接口、GUI 身份、GUI 支持界面产品实例、持久 Agent 策略、许可证、Git 配置与历史、远端、分支、标签、Worktree、common-dir 生命周期清单、敏感信息或未登记本地文件；精确退役清单中用户已选清理的工程资产仅按清理参考逐路径处理，不扩展到产品文件。传播 Git 生命周期或发布后动作 Skill 不授权执行它。第 15 步的用户确认只授权目标项目专用 Skill 写入该受保护偏好与真实 ADR，不授权升级器改写任何 protected 文件。第 14 步只是在工程层升级完成后转交版本 Skill 的显式人工迁移，不能由升级器调用、合并到 `apply|record` 或解释为对 protected 状态的例外。第 17–19 步的依赖升级、结构重构、`.gitignore` 增量同步及当前版本豁免记录均须在工程基线记录后经用户明确确认执行。
 - 绝不得把 `Version.md`、`$desktop-instantiate-project`、`$desktop-initialize-rust-project`、模板验证器文件、`docs/HARNESS_ENGINEERING.md` 或其他活动派生入口恢复到终端下游。
 - 绝不得自动应用 `merge-sections`、`conditional`、`protected`、未知或冲突路径。
 - 更新器绝不自动添加或删除项目文件。已复核的 `add`、`manual_add` 或 `delete` 必须按已批准的升级范围和精确路径清单人工执行，然后由新计划显示收敛，才能记录基线；已有活动 Todo 时同步相关项，不为这些文件操作另建持久计划。
@@ -84,7 +87,7 @@ description: 在已初始化或首次接入的既有下游项目中安全更新�
 
 ## 完成要求
 
-报告源与目标身份、基线状态、试运行分类、已批准和已应用路径、保留的本地修改、冲突、本次测试或替代验证、锁文件更新、外部增强 Skills 同步结果（含各仓库最新提交、跳过项及受阻项）、未验证平台和剩余风险。未显式请求时，构建与完整验收均为 `Not run`；仅有成功的试运行不代表升级完成。必须报告发布后动作的原值、最终值与 schema 4/5 强制检查结果；旧项目缺选时不得把工程层完成误报为完整升级。
+报告源与目标身份、基线状态、试运行分类、已批准和已应用路径、保留的本地修改、冲突、本次测试或替代验证、锁文件更新、外部增强 Skills 同步结果（含各仓库最新提交、跳过项及受阻项）、依赖升级询问结果及同步清理收窄清单（遗留旧代码、依赖、能力与文档）、项目结构最佳实践检测与重构结论、升级后综合验证结论（区分本次已调整项、记录到 `.harness/upgrade-exemptions.json` 且下次升级自动失效的当前版本豁免项、已失效的旧版豁免复核结果及剩余未决项）、未验证平台和剩余风险。未显式请求时，构建与完整验收均为 `Not run`；仅有成功的试运行不代表升级完成。必须报告发布后动作的原值、最终值与 schema 4/5 强制检查结果；旧项目缺选时不得把工程层完成误报为完整升级。
 
 按范围参考报告每个适用工程项与实际入口的核对结果；明确区分完整受管升级、部分同步、受阻与仅预览。文件组织、源码测试或复制 Skills 的结果不能替代构建和交付规范的接线证明。
 
