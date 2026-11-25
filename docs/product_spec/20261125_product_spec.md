@@ -6,9 +6,13 @@
 >
 > 初次批准日期：2026-07-21
 >
-> 最近范围确认：2026-11-25（Tauri 生态升级、官方 opener 替换与无用依赖清理）
+> 最近范围确认：2026-11-25（外部增强 Skills 分类同步、开发生成物自动 `.gitignore`、升级后置审计重构与单版本豁免）
 
 ## 当前范围确认
+
+- `HARNESS-AUTO-GITIGNORE-AND-UPGRADE-AUDIT-20261125`（`required_version = 202611252042`）：新增受管 `sync_gitignore.mjs` 自动识别开发期未跟踪生成物并安全增量写入 `.gitignore` 受管区块（保护用户规则、已跟踪文件与 `dependency-lock-policy = "tracked"`），同步完善模板与根 `.gitignore`；扩展 `$desktop-upgrade-harness` 后置审计闭环：升级完成后询问依赖升级（选择升级时同步清理收窄遗留旧代码、依赖、能力与文档）、检测项目结构并经确认交 `$desktop-refactor-code` 按最佳实践重构、最后综合验证并逐项询问调整或记录至受保护 `.harness/upgrade-exemptions.json`（下次升级自动失效，硬门禁不可豁免）。见 [ADR-20261125-004](../adr/20261125_ADR.md)。
+
+- `HARNESS-EXTERNAL-SKILLS-CATALOG-SYNC-20261125`（`required_version = 202611252042`）：新增受管 `$desktop-manage-external-skills` 分类同步四项外部增强能力（Rust 开发与质量：`BeautifulRust`、`deslop-please`；UI/前端设计：`taste-skill`；跨语言向 Rust 迁移：`rust-anything`），新建与升级自动同步最新上游，硬约束 `rust-anything` 仅产出纯 Rust 实现并禁止保留包装层，并将 `deslop-please` 与 `rust-analyzer` 环境安装延迟到下游项目创建阶段。见 [ADR-20261125-003](../adr/20261125_ADR.md)。
 
 - `HARNESS-TAURI-ECOSYSTEM-UPGRADE-20261125`（`required_version = 202611251946`）：将 Tauri 知识库宿主候选升级到 `tauri 2.12.7`、`tauri-build 2.7.6`、`tauri-plugin-notification 2.8.1` 及对应前端候选基线（`@tauri-apps/api ^2.12.5`、`@tauri-apps/cli ^2.12.6`、Mantine `9.8.2`、TanStack Query `5.108.4`、`i18next 27.2.9`、`react-i18next 18.0.3`、Vite `8.3.8`、ESLint `10.15.0`、`typescript-eslint 8.74.0` 等），保留 TypeScript `>=6.0.3 <6.1.0`、Vitest `4.1.12`、`@testing-library/jest-dom 7.0.1`、jsdom `29.1.1` 与 `@types/node ^24.19.3` 兼容线；macOS 系统通知设置跳转改用官方 Rust-only `tauri-plugin-opener = "2.7.3"`（`OpenerExt`，替代手写 `/usr/bin/open` 子进程调用）；核对后继续保留 macOS `mac-usernotifications` 与原子宿主设置文件；清理登记快照中 9 个历史孤儿 crate、无用重定向文档 `tauri-macos-windows.md` 及 5 处脚本内部冗余导出。见 [ADR-20261125-002](../adr/20261125_ADR.md)。
 
@@ -517,7 +521,7 @@
 
 ## 当前版本与未来候选
 
-- 当前版本：`202611251946`；上海时区格式 `YYYYMMDDHHMM`，唯一事实来源为根 `Version.md`；时间版本起始值 `202607301002`。该值由本次正式发布按当前上海时间取号；登记分支合并到本地默认主分支、tag 创建并精确复读成功后才是 `Released`。下游发布后按已确认的 `post_release_action` 执行并检测所选路径；Harness 源只执行用户当次授权的后续动作。
+- 当前版本：`202611252042`；上海时区格式 `YYYYMMDDHHMM`，唯一事实来源为根 `Version.md`；时间版本起始值 `202607301002`。该值由本次正式发布按当前上海时间取号；登记分支合并到本地默认主分支、tag 创建并精确复读成功后才是 `Released`。下游发布后按已确认的 `post_release_action` 执行并检测所选路径；Harness 源只执行用户当次授权的后续动作。
 - 变更标识：`HARNESS-CHANGE-RELEASE-TIME-AND-REQUIREMENT-FIRST-VERSIONING`；`required_version = 202609281202`。本次规则变化已在 Harness 正式发布开始时物化时间版本；开发阶段未改动数值。
 - 历史变更标识：`HARNESS-FEAT-OPTIONAL-REMOTE-GIT-RELEASE`；`required_version = 202609141917`，此前已发布。本次唯一 Git 发布决定取代其双模式发布及自动远端副作用；远端推送由发布后的独立用户请求触发。
 - 变更标识：`HARNESS-FEAT-MANAGED-MULTI-REMOTE-PUBLISH`；`required_version = 202609141917`，已由此前 Harness 时间版本发布物化。受管 `publish` 已支持用户显式授权的补充远端，唯一主远端与补充远端边界保持不变；该命令仍不创建 tag 或清理资源。
