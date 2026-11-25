@@ -19,7 +19,7 @@ node .agents/skills/desktop-build-nsh-release/scripts/build_nsh_release.mjs --ro
 
 helper 必须接收 `--regression-plan <外置计划.json>`，其余接受 `--root <根> --mode local|candidate [--target macos|windows|linux|android|ios|ios-simulator|web] [--e2e enabled|disabled]`。省略目标时，仅构建当前宿主已选的桌面平台及本机架构，缺少适用目标就停止。Android、iOS、Web 和非本机 macOS 架构必须由用户明确提出，分别通过 `--target` 或 `--arch` 选择。目标必须属于持久平台及对应 desktop/mobile/web 分类，iOS 模拟器属于 ios。桌面构建只在对应宿主，iOS 构建只在 macOS。移动 SDK、Rust wasm target、LLVM、JDK/Android SDK/NDK 均由实际失败后按环境流程恢复。
 
-用 Cargo 元数据核对本次工作区与系统配置解析到同一全局目标目录。Rust workspace 测试直接沿用该配置，并通过 `--target host-tuple` 选择本机。NSH 0.6.1 的 Mixed 运行器通过 `CARGO_TARGET_DIR` 获取目录，缺省时会写到应用内。如果只有 Cargo 全局文件设置了 `build.target-dir`，受管入口把 Cargo 已解析的同一目录转交给 NSH 子进程。NSH 内部 Cargo 调用要求 `build.target` 和 `CARGO_BUILD_TARGET` 保持宿主默认。桌面试包最终文件存放于 `release/`，其他试包存放于 `.nsh/packages/`，Rust 编译缓存沿用全局目标目录。
+用 Cargo 元数据核对本次工作区与系统配置解析到同一全局目标目录。Rust workspace 测试直接沿用该配置，并通过 `--target host-tuple` 选择本机。NSH 0.7.0 的 Mixed 运行器通过 `CARGO_TARGET_DIR` 获取目录，缺省时会写到应用内。如果只有 Cargo 全局文件设置了 `build.target-dir`，受管入口把 Cargo 已解析的同一目录转交给 NSH 子进程。NSH 内部 Cargo 调用要求 `build.target` 和 `CARGO_BUILD_TARGET` 保持宿主默认。桌面试包最终文件存放于 `release/`，其他试包存放于 `.nsh/packages/`，Rust 编译缓存沿用全局目标目录。
 
 新 NSH 的 desktop、mobile、Web 均走官方 `nsh package`。组合工程保留工作区相对布局、Mixed 入口与资源，按目标裁剪桌面专属配置。macOS 官方 `.app` 通过系统 `ditto` 保留签名，使用 `hdiutil` 形成包含 Applications 拖拽目标的真实 DMG并校验；Windows 必须发现唯一官方 Inno Setup EXE，缺失时停止并报告先决条件，不得把 ZIP 改名为 EXE或充当最终安装器。官方 updater 归档保存在证据目录 `updates/`。Linux、移动和 Web 使用其官方格式，渠道签名和上传仍各走独立授权。
 
@@ -33,7 +33,7 @@ helper 必须接收 `--regression-plan <外置计划.json>`，其余接受 `--ro
 
 通用 Git 发布由 [$desktop-prepare-release](../desktop-prepare-release/SKILL.md) 完成本地 merge/tag。因冻结的 `local_package` 调用时，先通过 [$desktop-switch-post-release-action 的已发布快照路由](../desktop-switch-post-release-action/SKILL.md#按已发布快照路由)，以返回的 `target` 调用 `candidate`。远程构建须另行复核已推送的渠道分支和 tag。
 
-NSH 正式 0.6.1 生成的 runtime workspace 尚未验证可传递 `--locked`；当前 helper 对 dependency-lock-policy=tracked 在任何编译前失败关闭。默认 ignored 保持正常解析；不得私自修改项目锁策略。
+NSH 正式 0.7.0 生成的 runtime workspace 尚未验证可传递 `--locked`；当前 helper 对 dependency-lock-policy=tracked 在任何编译前失败关闭。默认 ignored 保持正常解析；不得私自修改项目锁策略。
 
 打包返回 `target`、`buildRun`、`bundleFormat` 和 manifest 路径，平铺候选还返回 `deliveryFiles`。验收按同一目标与批次取件。macOS 支持 `--arch arm64|x86_64|universal`。Windows 最终主包为官方 Inno Setup EXE，macOS 为 DMG；名称统一使用安装包名称生成器。Linux 主包为官方 tar.gz。Android 支持重复 `--abi` 与 `--format apk|aab`，未提供签名材料时使用调试密钥。经本次签名授权后，可传 `--keystore` 与 `--key-alias`，密码从 `NSH_KEYSTORE_PASSWORD` 注入。iOS 经本次签名授权后传 `--sign` 和 `--profile` 生成 IPA，模拟器独立使用 `--target ios-simulator`。Web 支持 `--asset-url` 指定静态资源地址。manifest 记录实际签名类型、Android ABI 和应用 build 编号。
 

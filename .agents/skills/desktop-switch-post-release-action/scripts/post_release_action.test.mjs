@@ -168,7 +168,7 @@ test("local_package_route_is_single_target_and_requires_explicit_reselection", (
 /** 顶层 NSH 的 Mixed 入口可选择本地打包，旧 Rust UI 入口不得冒充新工程。 */
 test("nsh_mixed_local_package_requires_current_runtime_and_tsx", (t) => {
   const f = fixture(t);
-  fs.writeFileSync(path.join(f.root, "Cargo.toml"), '[workspace]\nmembers = ["sample_tool_nsh"]\n[workspace.dependencies]\nnsh-core = { version = "0.6.1", git = "https://github.com/longbridge/nsh.git", rev = "2f51d8611677c8a6bbad937b39756e8d0cc45350" }\n[workspace.metadata.agent-first-harness]\nproject-id = "sample_tool"\ntarget-platforms = ["macos", "web"]\ninterfaces = ["nsh"]\nnsh-targets = ["desktop", "web"]\n');
+  fs.writeFileSync(path.join(f.root, "Cargo.toml"), '[workspace]\nmembers = ["sample_tool_nsh"]\n[workspace.dependencies]\nnsh-core = { version = "0.7.0", git = "https://github.com/longbridge/nsh.git", rev = "3f8ecd8b3c55ad6274c6babbf7ee55c4cd4ae359" }\n[workspace.metadata.agent-first-harness]\nproject-id = "sample_tool"\ntarget-platforms = ["macos", "web"]\ninterfaces = ["nsh"]\nnsh-targets = ["desktop", "web"]\n');
   fs.mkdirSync(path.join(f.root, "sample_tool_nsh", "src"), { recursive: true });
   fs.writeFileSync(path.join(f.root, "sample_tool_nsh", "Cargo.toml"), '[package]\nname = "sample_tool_nsh"\nversion = "0.1.0"\nedition = "2024"\n[dependencies]\nnsh-core.workspace = true\n');
   fs.writeFileSync(path.join(f.root, "sample_tool_nsh", "src", "lib.rs"), 'pub fn scaffold() {}\n');
@@ -213,9 +213,9 @@ test("nsh_mixed_local_package_requires_current_runtime_and_tsx", (t) => {
   assert.equal(f.run("route", ["--interface", "nsh", "--target", "web"]).target, "web");
   assert.equal(fs.readFileSync(f.policy, "utf8"), policyBeforeTui);
 
-  fs.writeFileSync(cargo, unlocked.replace("0.6.1", "0.6.0").replace("2f51d8611677c8a6bbad937b39756e8d0cc45350", "554163758e30d2f62f814096a6327937dcb4fe49"));
-  assert.match(f.run("route", [], 2).error, /仅支持官方 v0\.6\.1/u);
-  assert.match(f.run("check", [], 2).error, /仅支持官方 v0\.6\.1/u);
+  fs.writeFileSync(cargo, unlocked.replace("0.7.0", "0.6.0").replace("3f8ecd8b3c55ad6274c6babbf7ee55c4cd4ae359", "554163758e30d2f62f814096a6327937dcb4fe49"));
+  assert.match(f.run("route", [], 2).error, /仅支持官方 v0\.7\.0/u);
+  assert.match(f.run("check", [], 2).error, /仅支持官方 v0\.7\.0/u);
   assert.equal(fs.readFileSync(f.policy, "utf8"), policyBeforeTui);
 
   fs.writeFileSync(cargo, '[workspace.metadata.agent-first-harness]\ninterfaces = ["gui"]\ngui-framework = "nsh"\ntarget-platforms = ["macos"]\n');

@@ -1,7 +1,5 @@
 /** Render conditional local sponsor media and copy as a Mixed-mode TSX page. */
-export function renderNshSponsor(translations, profile) {
-  const zh = translations['zh-CN'].sponsor;
-  const en = translations['en-US'].sponsor;
+export function renderNshSponsor(profile) {
   const images = [
     ...profile.sponsor.tiers.map((tier, index) => ({ path: tier.image, variable: `tierImage${index}` })),
     ...profile.sponsor.payments.map((payment, index) => ({ path: payment.image, variable: `paymentImage${index}` })),
@@ -9,39 +7,33 @@ export function renderNshSponsor(translations, profile) {
   ];
   const imports = images.map(({ path, variable }) => `import ${variable} from ${JSON.stringify(`./assets/${path}`)};`).join('\n');
   const tiers = profile.sponsor.tiers.map((tier, index) => {
-    const benefits = tier.benefits.map((item) => ({
-      zh: [zh[item.mainKey.split('.').at(-1)], item.noteKey ? zh[item.noteKey.split('.').at(-1)] : null].filter(Boolean).join('\n'),
-      en: [en[item.mainKey.split('.').at(-1)], item.noteKey ? en[item.noteKey.split('.').at(-1)] : null].filter(Boolean).join('\n'),
-    }));
-    return `{ image: tierImage${index}, name: { zh: ${JSON.stringify(zh[tier.nameKey.split('.').at(-1)])}, en: ${JSON.stringify(en[tier.nameKey.split('.').at(-1)])} }, alt: { zh: ${JSON.stringify(zh[tier.imageAltKey.split('.').at(-1)])}, en: ${JSON.stringify(en[tier.imageAltKey.split('.').at(-1)])} }, price: ${JSON.stringify(`${tier.currencyCode} ${tier.price}`)}, benefits: ${JSON.stringify(benefits)} }`;
+    const benefits = tier.benefits.map(item => [item.mainKey, item.noteKey].filter(Boolean));
+    return `{ image: tierImage${index}, name: ${JSON.stringify(tier.nameKey)}, alt: ${JSON.stringify(tier.imageAltKey)}, price: ${JSON.stringify(`${tier.currencyCode} ${tier.price}`)}, benefits: ${JSON.stringify(benefits)} }`;
   }).join(',\n  ');
-  const payments = profile.sponsor.payments.map((payment, index) => `{ image: paymentImage${index}, alt: { zh: ${JSON.stringify(zh[payment.altKey.split('.').at(-1)])}, en: ${JSON.stringify(en[payment.altKey.split('.').at(-1)])} } }`).join(',\n  ');
+  const payments = profile.sponsor.payments.map((payment, index) => `{ image: paymentImage${index}, alt: ${JSON.stringify(payment.altKey)} }`).join(',\n  ');
   return `import { colorScheme, Image, Text, View } from "nsh";
-import { type Language } from ${JSON.stringify('./translations')};
+import { tr, type Language } from ${JSON.stringify('./translations')};
 import { palette, tokens } from ${JSON.stringify('./tokens')};
 ${imports}
 
-const copy = {
-  zh: { title: ${JSON.stringify(zh.title)}, subtitle: ${JSON.stringify(zh.subtitle_no_service)}, message: ${JSON.stringify(zh.sponsor_message)}, payment: ${JSON.stringify(zh.payment_instructions)} },
-  en: { title: ${JSON.stringify(en.title)}, subtitle: ${JSON.stringify(en.subtitle_no_service)}, message: ${JSON.stringify(en.sponsor_message)}, payment: ${JSON.stringify(en.payment_instructions)} },
-};
 const tiers = [
   ${tiers}
-];
+] as const;
 const payments = [
   ${payments}
-];
+] as const;
 
 function Benefit(props: { text: string }) {
   const colors = () => palette(colorScheme());
-  const [heading, ...details] = props.text.split("\\n");
+  const heading = () => props.text.split("\\n")[0];
+  const details = () => props.text.split("\\n").slice(1);
   return (
     <View style={{ gap: tokens.optionGap / 2 }}>
       <View style={{ flexDirection: "row", alignItems: "flex-start", gap: tokens.optionGap }}>
         <View style={{ width: tokens.optionGap, height: tokens.optionGap, borderRadius: tokens.optionGap / 2, marginTop: tokens.optionGap / 2, backgroundColor: colors().accent }} />
-        <Text style={{ flex: 1, color: colors().foreground, fontSize: tokens.body, fontWeight: "600" }}>{heading}</Text>
+        <Text style={{ flex: 1, color: colors().foreground, fontSize: tokens.body, fontWeight: "600" }}>{heading()}</Text>
       </View>
-      {details.length > 0 && <Text style={{ marginLeft: tokens.optionGap * 2, color: colors().muted, fontSize: tokens.body }}>{details.join("\\n")}</Text>}
+      {details().length > 0 && <Text style={{ marginLeft: tokens.optionGap * 2, color: colors().muted, fontSize: tokens.body }}>{details().join("\\n")}</Text>}
     </View>
   );
 }
@@ -52,14 +44,14 @@ function TierCard(props: { tier: typeof tiers[number]; language: Language; width
   return (
     <View style={{ width: props.width, padding: tokens.sponsorCardPadding, gap: tokens.contentGap, borderWidth: tokens.borderWidth, borderColor: colors().sidebarBorder, borderRadius: tokens.cardRadius, backgroundColor: colors().surface }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: tokens.contentGap }}>
-        <Image src={tier.image} accessibilityLabel={tier.alt[props.language]} style={{ width: tokens.sponsorIllustration, height: tokens.sponsorIllustration, borderRadius: tokens.radius, objectFit: "contain" }} />
+        <Image src={tier.image} accessibilityLabel={tr(props.language, tier.alt)} style={{ width: tokens.sponsorIllustration, height: tokens.sponsorIllustration, borderRadius: tokens.radius, objectFit: "contain" }} />
         <View style={{ flex: 1, minWidth: 0, gap: tokens.optionGap / 2 }}>
-          <Text style={{ color: colors().accent, fontSize: tokens.body, fontWeight: "600" }}>{tier.name[props.language]}</Text>
+          <Text style={{ color: colors().accent, fontSize: tokens.body, fontWeight: "600" }}>{tr(props.language, tier.name)}</Text>
           <Text style={{ color: colors().foreground, fontSize: tokens.sponsorPrice, fontWeight: "600" }}>{tier.price}</Text>
         </View>
       </View>
       <View style={{ gap: tokens.settingsGap }}>
-        {tier.benefits.map((benefit) => <Benefit text={benefit[props.language]} />)}
+        {tier.benefits.map((benefit) => <Benefit text={benefit.map(key => tr(props.language, key)).join("\\n")} />)}
       </View>
     </View>
   );
@@ -68,7 +60,10 @@ function TierCard(props: { tier: typeof tiers[number]; language: Language; width
 /** Bundled illustrations and payment codes remain informational; no tier starts a payment. */
 export function SponsorPage(props: { language: Language; availableWidth: number }) {
   const colors = () => palette(colorScheme());
-  const labels = () => copy[props.language];
+  const labels = () => ({
+    title: tr(props.language, "sponsor.title"), subtitle: tr(props.language, "sponsor.subtitle_no_service"),
+    message: tr(props.language, "sponsor.sponsor_message"), payment: tr(props.language, "sponsor.payment_instructions"),
+  });
   const width = () => Math.min(tokens.sponsorMaxWidth, props.availableWidth);
   const columns = () => width() >= tokens.sponsorCardMinWidth * 3 + tokens.contentGap * 2
     ? 3
@@ -94,8 +89,8 @@ export function SponsorPage(props: { language: Language; availableWidth: number 
         <Text style={{ flex: widePayment() ? 1 : undefined, color: colors().foreground, fontSize: tokens.body, fontWeight: "600" }}>{labels().payment}</Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: tokens.contentGap }}>
           {payments.map((payment) => <View style={{ width: paymentImageSize(), gap: tokens.optionGap }}>
-            <Text style={{ color: colors().muted, fontSize: tokens.body, textAlign: "center" }}>{payment.alt[props.language]}</Text>
-            <Image src={payment.image} accessibilityLabel={payment.alt[props.language]} style={{ width: paymentImageSize(), height: paymentImageSize(), objectFit: "contain" }} />
+            <Text style={{ color: colors().muted, fontSize: tokens.body, textAlign: "center" }}>{tr(props.language, payment.alt)}</Text>
+            <Image src={payment.image} accessibilityLabel={tr(props.language, payment.alt)} style={{ width: paymentImageSize(), height: paymentImageSize(), objectFit: "contain" }} />
           </View>)}
         </View>
       </View>

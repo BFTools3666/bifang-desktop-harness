@@ -10,7 +10,7 @@ import { HarnessUpgradeFixture, MANAGED } from "./harness_upgrade_test_support.m
 import { REQUIRED_NSH_SOURCE_PATHS } from "./harness_upgrade_policy.mjs";
 
 const METADATA = "[workspace.metadata.agent-first-harness]\n";
-const CURRENT_PIN = '[workspace.dependencies]\nnsh-core = { version = "0.6.1", git = "https://github.com/longbridge/nsh.git", rev = "2f51d8611677c8a6bbad937b39756e8d0cc45350" }\n';
+const CURRENT_PIN = '[workspace.dependencies]\nnsh-core = { version = "0.7.0", git = "https://github.com/longbridge/nsh.git", rev = "3f8ecd8b3c55ad6274c6babbf7ee55c4cd4ae359" }\n';
 const TAURI = ".agents/skills/desktop-add-gui-adapter/SKILL.md";
 
 test("desktop_upgrade_rejects_retired_framework_without_mutation", (t) => {
@@ -43,7 +43,7 @@ test("top_level_nsh_targets_are_parsed_without_gui_framework", () => {
 /** 旧版、无 pin、提交错配和别名混装均不能进入升级。 */
 test("nsh_upgrade_rejects_retired_and_missing_runtime_pins", () => {
   const metadata = METADATA + 'interfaces = ["nsh"]\nnsh-targets = ["desktop"]\n';
-  const current = "2f51d8611677c8a6bbad937b39756e8d0cc45350";
+  const current = "3f8ecd8b3c55ad6274c6babbf7ee55c4cd4ae359";
   const old = "224d9a795c7ac9d10d75750de9351adac5549675";
   const earlier = "f4d68f7f9f31eb7b3ecc8a4cbc31096d5c6238a1";
   const expanded = CURRENT_PIN.replace(
@@ -53,12 +53,12 @@ test("nsh_upgrade_rejects_retired_and_missing_runtime_pins", () => {
   assert.deepEqual(parseInterfaceSelection(metadata + expanded).nshTargets, ["desktop"]);
   for (const declarations of [
     "",
-    CURRENT_PIN.replace("0.6.1", "0.5.0").replace(current, earlier),
-    expanded.replace("0.6.1", "0.5.1").replace(current, old),
-    CURRENT_PIN.replace("0.6.1", "0.6.0").replace(current, "554163758e30d2f62f814096a6327937dcb4fe49"),
+    CURRENT_PIN.replace("0.7.0", "0.5.0").replace(current, earlier),
+    expanded.replace("0.7.0", "0.5.1").replace(current, old),
+    CURRENT_PIN.replace("0.7.0", "0.6.0").replace(current, "554163758e30d2f62f814096a6327937dcb4fe49"),
     CURRENT_PIN.replace(current, old),
     CURRENT_PIN + 'old_base = { package = "nsh-base", version = "0.5.1", git = "https://github.com/longbridge/nsh.git", rev = "' + old + '" }\n',
-  ]) assert.throws(() => parseInterfaceSelection(metadata + declarations), /仅支持官方 v0\.6\.1/u);
+  ]) assert.throws(() => parseInterfaceSelection(metadata + declarations), /仅支持官方 v0\.7\.0/u);
 });
 
 /** 未知值、错类型、重复键和非法接口不能降级到默认值。 */
@@ -126,7 +126,7 @@ test("upgrade_plans_route_installed_official_skills_only_to_nsh_targets", (t) =>
   assert.match(f.plan(2).error, /Mixed\/Rust 入口/u);
   f.write(f.target, "sample_tool_nsh/nsh.json", '{"rust":"."}\n');
   f.write(f.target, "sample_tool_nsh/Cargo.toml", '[package]\nname = "sample_tool_nsh"\nversion = "0.1.0"\nedition = "2024"\n[dependencies]\nnsh-core = { version = "0.5.1", git = "https://github.com/longbridge/nsh.git", rev = "224d9a795c7ac9d10d75750de9351adac5549675" }\n');
-  assert.match(f.plan(2).error, /仅支持官方 v0\.6\.1/u);
+  assert.match(f.plan(2).error, /仅支持官方 v0\.7\.0/u);
 });
 
 /** 实际接口决定文档与发布 Skill 的保留范围；NSH 批次证据不走扁平收集器。 */

@@ -1,62 +1,8 @@
+import { t } from "nsh/i18n";
+
 export type Language = "zh" | "en";
 
-const labels = {
-  zh: {
-    home: "首页",
-    settings: "设置",
-    settings_description: "调整界面语言与外观偏好。",
-    language: "界面语言",
-    language_description: "选择应用界面的显示语言。",
-    appearance: "外观主题",
-    appearance_description: "选择浅色、深色，或跟随系统外观。",
-    system: "跟随系统",
-    light: "浅色",
-    dark: "深色",
-    about: "关于",
-    sponsor: "赞助",
-    collapse: "收起侧栏",
-    expand: "展开侧栏",
-    neutral: "中性工程已初始化，请在下游定义产品。",
-    status_loading: "正在读取共享核心状态…",
-    status_uninitialized: "共享核心报告工程尚未初始化。",
-    status_error: "无法读取共享核心状态。",
-    storage_error: "无法保存或读取设置，请重试。",
-    windows: "窗口",
-    new_window: "新建窗口",
-    show_all: "显示所有窗口",
-    close_window: "关闭当前窗口",
-    quit: "退出应用",
-    deep_link_received: "收到桌面深链接",
-  },
-  en: {
-    home: "Home",
-    settings: "Settings",
-    settings_description: "Choose your interface language and appearance.",
-    language: "Interface language",
-    language_description: "Choose the language shown throughout the app.",
-    appearance: "Appearance",
-    appearance_description: "Use a light or dark theme, or follow the system.",
-    system: "System",
-    light: "Light",
-    dark: "Dark",
-    about: "About",
-    sponsor: "Sponsor",
-    collapse: "Collapse sidebar",
-    expand: "Expand sidebar",
-    neutral: "Neutral workspace initialized. Define the product in this downstream project.",
-    status_loading: "Reading shared core status…",
-    status_uninitialized: "The shared core reports that this workspace is not initialized.",
-    status_error: "Unable to read shared core status.",
-    storage_error: "Unable to save or read settings. Please retry.",
-    windows: "Windows",
-    new_window: "New window",
-    show_all: "Show all windows",
-    close_window: "Close this window",
-    quit: "Quit application",
-    deep_link_received: "Received desktop deep link",
-  },
-} as const;
-
-export function tr(language: Language, key: keyof typeof labels.zh): string {
-  return labels[language][key];
+/** Keep explicit window language while NSH owns translation lookup and fallback. */
+export function tr(language: Language, key: __MESSAGE_KEYS__): string {
+  return t(key, { locale: language });
 }

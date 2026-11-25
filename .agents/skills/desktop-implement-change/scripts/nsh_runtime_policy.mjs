@@ -4,8 +4,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-export const NSH_STABLE_VERSION = '0.6.1';
-export const NSH_STABLE_REVISION = '2f51d8611677c8a6bbad937b39756e8d0cc45350';
+export const NSH_STABLE_VERSION = '0.7.0';
+export const NSH_STABLE_REVISION = '3f8ecd8b3c55ad6274c6babbf7ee55c4cd4ae359';
 export const NSH_OFFICIAL_GIT = 'https://github.com/longbridge/nsh.git';
 export const NSH_CLI_VERSION = `nsh ${NSH_STABLE_VERSION} (${NSH_STABLE_REVISION.slice(0, 7)})`;
 export const NSH_RUNTIME_ERROR = `Harness NSH 仅支持官方 v${NSH_STABLE_VERSION} 固定提交 ${NSH_STABLE_REVISION}。请先迁移旧工程。`;

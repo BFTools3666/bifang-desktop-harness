@@ -18,6 +18,7 @@ import {
   NSH_RELEASE_HELPER,
   NSH_SUPPORT_GENERATOR,
   NSH_BUILD_ASSET,
+  NSH_PORTABLE_ENTRY_HELPER,
   RELEASE_CONTEXT_HELPER,
   RELEASE_DOC,
   TAURI_LOCAL_INSTALL_SKILL,
@@ -62,6 +63,8 @@ test("NSH release rejects missing candidate log rendering", () => {
   expectErrors(validateMutation(validateNshBuildContract, "buildHelper", NSH_RELEASE_HELPER, "renderDocument(notes,'zh-CN')"), "NSH release contract missing");
   expectErrors(validateMutation(validateNshBuildContract, "buildAsset", NSH_BUILD_ASSET, "HARNESS_RELEASE_NOTES_ZH_PATH"), "NSH release contract missing");
   expectErrors(validateMutation(validateNshBuildContract, "supportGenerator", NSH_SUPPORT_GENERATOR, "releaseNotes: translations[locale].about.release_notes"), "NSH release contract missing");
+  expectErrors(validateMutation(validateNshBuildContract, "supportGenerator", NSH_SUPPORT_GENERATOR, "files.set(member + '/locales/'"), "NSH release contract missing");
+  expectErrors(validateMutation(validateNshBuildContract, "portableEntryHelper", NSH_PORTABLE_ENTRY_HELPER, "delete config.application"), "NSH release contract missing");
 });
 
 /** 候选构建不得通过恢复旧命令绕过差异计划门禁。 */

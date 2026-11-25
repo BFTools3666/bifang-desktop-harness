@@ -4,14 +4,11 @@ import { Scaffold } from "__PROJECT_ID__/native";
 import { tr, type Language } from "./translations";
 import { palette, tokens } from "./tokens";
 
-const CONTENT_ZH = __CONTENT_ZH__;
-const CONTENT_EN = __CONTENT_EN__;
-
 /** Bundled support copy is selected by language; release notes come from the paired Rust build. */
 export function AboutPage(props: { language: Language }) {
   const notesOpen = signal(false);
   const colors = () => palette(colorScheme());
-  const labels = () => props.language === "zh" ? CONTENT_ZH : CONTENT_EN;
+  const labels = () => (__ABOUT_COPY__);
   const cardStyle = () => ({
     width: "100%" as const,
     padding: tokens.cardPadding,

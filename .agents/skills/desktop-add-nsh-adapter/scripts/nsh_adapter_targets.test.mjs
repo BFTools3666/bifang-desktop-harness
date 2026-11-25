@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { NSH_REVISION, normalizeNshOptions, nshDependencies, nshPackageScripts, nshRevisionForTargets, renderNshAdapterFiles } from './nsh_adapter_files.mjs';
-import { assertNshDefaultCargoBuildTarget, assertNshNativeDevelopmentTarget, nshCargoEnvironment } from '../../desktop-implement-change/scripts/nsh_runtime_policy.mjs';
+import { assertNshCliVersion, assertNshDefaultCargoBuildTarget, assertNshNativeDevelopmentTarget, nshCargoEnvironment } from '../../desktop-implement-change/scripts/nsh_runtime_policy.mjs';
 
 const checkNsh = "node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs";
 const preflight = checkNsh + ' -- ';
@@ -17,11 +17,48 @@ const profile = Object.freeze({
 });
 const base = { projectId: 'sample_tool', nameZh: '示例工具', nameEn: 'Sample Tool', owner: 'test-owner' };
 
+/** 版本相同而提交不同的 CLI 也不能启动运行器。 */
+test('official_07_cli_requires_the_exact_release_revision', () => {
+  assert.doesNotThrow(() => assertNshCliVersion('nsh 0.7.0 (3f8ecd8)\n'));
+  for (const version of ['nsh 0.6.1 (2f51d86)', 'nsh 0.7.0 (abcdef0)', 'nsh 0.7.1 (3f8ecd8)']) {
+    assert.throws(() => assertNshCliVersion(version), /do not match/u);
+  }
+});
+
+/** 官方退出模式覆盖 macOS 默认留在 Dock 的变化，托盘保留显式退出。 */
+test('desktop_quit_mode_and_reopen_use_official_lifecycle', () => {
+  for (const tray of [false, true]) {
+    const files = renderNshAdapterFiles({ ...base, targetPlatforms: ['macos'], nshTargets: ['desktop'],
+      profile: { ...profile, system_tray: tray ? 'enabled' : 'disabled' } });
+    const config = JSON.parse(files.get('sample_tool_nsh/nsh.json'));
+    assert.deepEqual(config.application, { quitMode: tray ? 'explicit' : 'lastWindowClosed' });
+    assert.match(files.get('sample_tool_nsh/desktop.tsx'), /Application\.on\("reopen", \(\) => win\.focus\(\)\)/u);
+  }
+  const mobile = renderNshAdapterFiles({ ...base, targetPlatforms: ['ios'], nshTargets: ['mobile'] });
+  assert.equal(JSON.parse(mobile.get('sample_tool_nsh/nsh.json')).application, undefined);
+});
+
+/** 翻译交给官方加载器；禁用能力不留文案，异步状态由 resource 的 owner 管理。 */
+test('official_i18n_locales_and_resource_replace_manual_state_machines', () => {
+  const files = renderNshAdapterFiles({ ...base, targetPlatforms: ['macos'], nshTargets: ['desktop'], profile });
+  const en = JSON.parse(files.get('sample_tool_nsh/locales/en.json'));
+  const zh = JSON.parse(files.get('sample_tool_nsh/locales/zh.json'));
+  assert.deepEqual(Object.keys(en).sort(), Object.keys(zh).sort());
+  assert.equal(en.home, 'Home');
+  assert.equal(zh.home, '首页');
+  for (const key of ['about', 'sponsor', 'deep_link_received']) assert.equal(en[key], undefined);
+  assert.match(files.get('sample_tool_nsh/translations.ts'), /return t\(key, \{ locale: language \}\)/u);
+  assert.match(files.get('sample_tool_nsh/App.tsx'), /effect\(\(\) => setLocale\(language\(\)\)\)/u);
+  const shared = files.get('sample_tool_nsh/App.shared.tsx');
+  assert.match(shared, /resource\(\(\) => Scaffold\.status\(\)\)/u);
+  assert.doesNotMatch(shared, /let live|coreStatus\.set/u);
+});
+
 /** 未选择 TUI 的工程不暴露终端入口。 */
-test('supported NSH targets use only the released v0.6.1 runtime and scripts', () => {
+test('supported NSH targets use only the released v0.7.0 runtime and scripts', () => {
   const desktop = { ...base, targetPlatforms: ['macos'], nshTargets: ['desktop'], profile };
   const mobileWeb = { ...base, targetPlatforms: ['android', 'web'], nshTargets: ['mobile', 'web'] };
-  assert.equal(NSH_REVISION, '2f51d8611677c8a6bbad937b39756e8d0cc45350');
+  assert.equal(NSH_REVISION, '3f8ecd8b3c55ad6274c6babbf7ee55c4cd4ae359');
   for (const options of [desktop, mobileWeb]) {
     assert.equal(nshRevisionForTargets(options.nshTargets), NSH_REVISION);
     const dependencies = nshDependencies(options);

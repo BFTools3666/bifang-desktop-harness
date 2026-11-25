@@ -12,3 +12,12 @@ test("mixed UI reads the shared Rust core and saves language and theme", async (
   await app.press("首页");
   expect(app.texts()).toContain("中性工程已初始化，请在下游定义产品。");
 });
+
+test("official i18n falls back to English and restores a saved language", async () => {
+  const fallback = await open(".", { locale: "fr-FR" });
+  await fallback.waitFor("Home");
+  const saved = await open(".", { locale: "en-US", storage: { "interface-language": "zh" } });
+  await saved.waitFor("首页");
+  await saved.press("设置");
+  await saved.waitFor("外观主题");
+});

@@ -61,6 +61,9 @@ export function renderNshAdapterFiles(input, version = '0.1.0') {
   const deepLink = desktop && profile.deep_link === 'enabled';
   const member = id + '_nsh';
   const files = new Map();
+  const shared = path.resolve(here, '../../desktop-prepare-gui-support-surfaces/assets/brand-support');
+  const translations = about || sponsor ? Object.fromEntries(['zh-CN','en-US'].map(locale => [locale, JSON.parse(fs.readFileSync(path.join(shared,'i18n',locale + '.json'),'utf8'))])) : {};
+  const brand = about || sponsor ? JSON.parse(fs.readFileSync(path.join(shared,'brand-support-profile.json'),'utf8')) : null;
   // Vendored upstream bytes are installed as project skills with the same release as the runtime.
   for (const name of ['nsh', 'nsh-design-guides']) {
     const source = path.resolve(here, '../assets/vendor', name);
@@ -83,10 +86,12 @@ export function renderNshAdapterFiles(input, version = '0.1.0') {
     ...(!sponsor ? ['sponsor'] : []),
     ...(!deepLink ? ['deep_link_received'] : []),
   ]);
-  files.set(member + '/translations.ts', readAsset('translations.ts').split('\n').filter(line => {
-    const key = /^\s+([a-z_]+):/u.exec(line)?.[1];
-    return !key || !omittedLabels.has(key);
-  }).join('\n'));
+  const locales = {};
+  for (const language of ['zh', 'en']) {
+    const messages = JSON.parse(readAsset('locales/' + language + '.json'));
+    for (const key of omittedLabels) delete messages[key];
+    locales[language] = messages;
+  }
   files.set(member + '/tokens.ts', readAsset('tokens.ts'));
   files.set(member + '/App.shared.tsx', fill(readAsset('App.shared.tsx'), { '__PROJECT_ID__': id }));
   files.set(member + '/tsconfig.json', readAsset('tsconfig.json'));
@@ -127,7 +132,7 @@ export function renderNshAdapterFiles(input, version = '0.1.0') {
       ].join('\n') : '',
       '__DEEP_LINK_SETUP__': deepLink ? [
         'const deepLinkCount = signal(0);',
-        'if (win.main) UrlScheme.on("open", ({ url }) => { if (url === ' + JSON.stringify(scheme + '://restore') + ') deepLinkCount.update(count => count + 1); });',
+        'if (win.main) UrlScheme.on("open", ({ url }) => { if (url === ' + JSON.stringify(scheme + '://restore') + ') { win.focus(); deepLinkCount.update(count => count + 1); } });',
       ].join('\n') : '',
       '__DEEP_LINK_NODE__': deepLink ? '{deepLinkCount() > 0 && <Text style={{ color: palette(colorScheme()).muted }}>{tr(props.language, "deep_link_received")}: {deepLinkCount()}</Text>}' : '',
     }));
@@ -142,6 +147,27 @@ export function renderNshAdapterFiles(input, version = '0.1.0') {
       '  expect(secondary.state()?.visible).toBe(true);',
       '  await secondary.pressClose();',
       '  expect(secondary.state()).toBe(null);',
+      '});',
+      '',
+      'test("official lifecycle keeps secondary windows independent and applies quit mode", async () => {',
+      '  const app = await open(".", { locale: "en-US", platform: "macos" });',
+      '  await app.press("New window");',
+      '  const secondary = app.window("window-1");',
+      '  await app.window("main").pressClose();',
+      '  expect(secondary.state()?.visible).toBe(true);',
+      '  expect(app.quit()).toBe(false);',
+      ...(tray ? [
+        '  expect(app.window("main").state()?.visible).toBe(false);',
+        '  await app.reopen();',
+        '  expect(app.window("main").state()?.visible).toBe(true);',
+        '  await secondary.pressClose();',
+        '  await app.press("Quit application");',
+        '  expect(app.quit()).toBe(true);',
+      ] : [
+        '  expect(app.window("main").state()).toBe(null);',
+        '  await secondary.pressClose();',
+        '  expect(app.quit()).toBe(true);',
+      ]),
       '});',
     ].join('\n');
     if (deepLink) desktopTest += '\n\n' + [
@@ -167,6 +193,11 @@ export function renderNshAdapterFiles(input, version = '0.1.0') {
       '  await app.waitFor("No published release notes");',
       '  await app.press(releaseNotes);',
       '  expect(app.texts()).not.toContain("No published release notes");',
+      '  await app.press("Settings");',
+      '  await app.press("中文");',
+      '  await app.press("关于");',
+      '  await app.press(' + JSON.stringify('role:button[' + translations['zh-CN'].about.release_notes + ']') + ');',
+      '  await app.waitFor("暂无已发布的更新日志");',
       '});',
     ].join('\n')] : []),
     ...(sponsor ? [[
@@ -174,6 +205,10 @@ export function renderNshAdapterFiles(input, version = '0.1.0') {
       '  const app = await open(".", { locale: "en-US", platform: ' + JSON.stringify(fixturePlatform) + ' });',
       '  await app.press("Sponsor");',
       '  expect(app.texts().some((value) => value.startsWith("CNY "))).toBe(true);',
+      '  await app.press("Settings");',
+      '  await app.press("中文");',
+      '  await app.press("赞助");',
+      '  await app.waitFor(' + JSON.stringify(translations['zh-CN'].sponsor.title) + ');',
       '});',
     ].join('\n')] : []),
   ].join('\n\n');
@@ -195,9 +230,6 @@ export function renderNshAdapterFiles(input, version = '0.1.0') {
   if (platformTests.length) files.set(member + '/App.platform.test.tsx',
     'import { expect, open, test } from "nsh/test";\n\n' + platformTests.join('\n\n') + '\n');
 
-  const shared = path.resolve(here, '../../desktop-prepare-gui-support-surfaces/assets/brand-support');
-  const translations = about || sponsor ? Object.fromEntries(['zh-CN','en-US'].map(locale => [locale, JSON.parse(fs.readFileSync(path.join(shared,'i18n',locale + '.json'),'utf8'))])) : {};
-  const brand = about || sponsor ? JSON.parse(fs.readFileSync(path.join(shared,'brand-support-profile.json'),'utf8')) : null;
   if (about) {
     const content = locale => ({
       contact: translations[locale].about.contact_author_title,
@@ -208,14 +240,27 @@ export function renderNshAdapterFiles(input, version = '0.1.0') {
       disclaimerItems: [1, 2, 3].map(index => translations[locale].about['disclaimer_' + index]),
       releaseNotes: translations[locale].about.release_notes,
     });
+    for (const [language, locale] of [['zh', 'zh-CN'], ['en', 'en-US']]) {
+      for (const [key, value] of Object.entries(content(locale))) {
+        if (Array.isArray(value)) value.forEach((text, index) => { locales[language]['about.' + key + '.' + index] = text; });
+        else locales[language]['about.' + key] = value;
+      }
+    }
+    const aboutCopy = Object.entries(content('en-US')).map(([key, value]) => {
+      const keys = Array.isArray(value) ? value.map((_, index) => 'about.' + key + '.' + index) : ['about.' + key];
+      const values = keys.map(key => `tr(props.language, ${JSON.stringify(key)})`);
+      return `${key}: ${Array.isArray(value) ? '[' + values.join(', ') + ']' : values[0]}`;
+    }).join(', ');
     files.set(member + '/about.tsx', fill(readAsset('about.tsx'), {
-      '__PROJECT_ID__': id, '__CONTENT_ZH__': JSON.stringify(content('zh-CN')),
-      '__CONTENT_EN__': JSON.stringify(content('en-US')),
+      '__PROJECT_ID__': id, '__ABOUT_COPY__': '{ ' + aboutCopy + ' }',
     }));
     files.set(member + '/build.rs', readAsset('build.rs'));
   }
   if (sponsor) {
-    files.set(member + '/sponsor.tsx', renderNshSponsor(translations, brand));
+    for (const [language, locale] of [['zh', 'zh-CN'], ['en', 'en-US']]) {
+      for (const [key, value] of Object.entries(translations[locale].sponsor)) locales[language]['sponsor.' + key] = value;
+    }
+    files.set(member + '/sponsor.tsx', renderNshSponsor(brand));
     for (const name of fs.readdirSync(path.join(shared,'media/sponsor'))) {
       const file = path.join(shared,'media/sponsor',name);
       if (fs.statSync(file).isFile()) files.set(member + '/assets/sponsor/' + name, fs.readFileSync(file));
@@ -223,6 +268,12 @@ export function renderNshAdapterFiles(input, version = '0.1.0') {
     files.set(member + '/assets/sponsor-media-manifest.json', fs.readFileSync(path.join(shared,'media-manifest.json')));
   }
   if (options.logo) files.set(member + '/assets/logo.png', fs.readFileSync(options.logo));
+  for (const [language, messages] of Object.entries(locales)) {
+    files.set(member + '/locales/' + language + '.json', JSON.stringify(messages, null, 2) + '\n');
+  }
+  files.set(member + '/translations.ts', fill(readAsset('translations.ts'), {
+    '__MESSAGE_KEYS__': Object.keys(locales.en).map(key => JSON.stringify(key)).join(' | '),
+  }));
 
   const manifest = [
     '[package]', 'name = "' + member + '"', 'version.workspace = true', 'edition.workspace = true', 'publish = false',
@@ -237,6 +288,7 @@ export function renderNshAdapterFiles(input, version = '0.1.0') {
     ...(mobile ? { statusBar: { foreground: 'auto' } } : {}),
     ...(options.logo ? { icon: 'assets/logo.png' } : {}),
     ...(desktop ? { window: { title: nameZh, defaultSize: { width: 1024, height: 700 }, ...(tray ? { closeOnPress: false } : {}) } } : {}),
+    ...(desktop ? { application: { quitMode: tray ? 'explicit' : 'lastWindowClosed' } } : {}),
     ...(desktop && profile.single_instance === 'enabled' ? { singleInstance: true } : {}),
     ...(deepLink ? { schemes: ['app-' + id.replaceAll('_', '-')] } : {}),
     capabilities: {

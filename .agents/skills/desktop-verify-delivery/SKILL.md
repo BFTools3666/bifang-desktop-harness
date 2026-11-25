@@ -68,6 +68,6 @@ node .agents/skills/desktop-build-nsh-release/scripts/nsh_release_layout.mjs --r
 
 NSH 的包格式、工具链和构建日志由 `$desktop-build-nsh-release` 定义。验收只消费 [候选范围](#候选范围) 中明确选定的已发布批次，运行场景交 [$desktop-test-final-artifact-e2e](../desktop-test-final-artifact-e2e/SKILL.md#nsh-场景)。
 
-NSH 按每个目标独立复算 `manifest.json` 对应的 `artifact`、`checksum`、`files`、`releaseNotesSha256` 和 `licenses`。构建时保存 `sourceSnapshot` 用于记录漂移检查。验收从最终 Git 提交和发布上下文确认源码，允许本地忽略文件变化或将制品复制到同一已发布版本的其他 checkout。当前候选核对 `interface: nsh`、`nshTargets`、匹配 0.6.1 的 CLI、真实格式与签名状态。`releaseNotesResourceVerification: sidecar-byte-identical` 只证明外层日志字节；已选或必需的 NSH 桌面运行场景覆盖已启用的关于页时，须从真实窗口核对更新日志。关闭 E2E 时仅报告实际证明的范围。已选或必需的运行场景缺少目标宿主、无法证明，或缺少必要渠道签名时，按失败回流判定 `rejected`。可选且未运行的场景单独标记 `Unverified`，候选结论仍以当前全部必需证据为准。
+NSH 按每个目标独立复算 `manifest.json` 对应的 `artifact`、`checksum`、`files`、`releaseNotesSha256` 和 `licenses`。构建时保存 `sourceSnapshot` 用于记录漂移检查。验收从最终 Git 提交和发布上下文确认源码，允许本地忽略文件变化或将制品复制到同一已发布版本的其他 checkout。当前候选核对 `interface: nsh`、`nshTargets`、匹配 0.7.0 的 CLI、真实格式与签名状态。`releaseNotesResourceVerification: sidecar-byte-identical` 只证明外层日志字节；已选或必需的 NSH 桌面运行场景覆盖已启用的关于页时，须从真实窗口核对更新日志。关闭 E2E 时仅报告实际证明的范围。已选或必需的运行场景缺少目标宿主、无法证明，或缺少必要渠道签名时，按失败回流判定 `rejected`。可选且未运行的场景单独标记 `Unverified`，候选结论仍以当前全部必需证据为准。
 
 第 7 步重新运行上方定位命令，复核同一批次的最终字节、上下文及证据，并对照准入时的 `manifestSha256`。第 8 步在同一文件系统为 `evidenceDirectory` 建立唯一受限 staging，复制精确证据集合并写入本批次的 `milestoneAcceptance` 和结构化证据。新增证据文件须进入清单 `files` 并复算。验证 staging 后以目录级替换提交证据，失败时恢复原证据目录。平铺候选的最终包及相邻摘要在此过程中保持原字节，历史及其他目标批次仍以原批次目录为替换范围。就绪复核对同一目标和 buildRun 再次运行只读定位命令及验收范围校验。

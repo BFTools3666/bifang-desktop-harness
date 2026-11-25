@@ -36,29 +36,28 @@ test('enabled support pages use structured copy, available content width', () =>
   const desktop = files.get(member + 'desktop.tsx');
   assert.match(app, /\{page\(\) === "settings" &&/u);
   assert.match(app, /SponsorPage language=\{language\(\)\} availableWidth=\{Math\.max\(0, windowSize\(\)\.width - \(narrow\(\) \? 0 : Number\(sidebarWidth\(\)\)\)/u);
-  const content = JSON.parse(about.match(/const CONTENT_EN = (\{[^\n]+\});/u)?.[1] ?? 'null');
-  assert.equal(content.owner, 'Fixture Owner');
-  assert.equal(typeof content.contact, 'string');
-  assert.equal(typeof content.contactDetail, 'string');
-  assert.equal(content.disclaimerItems.length, 3);
-  assert.equal(typeof content.releaseNotes, 'string');
+  const content = JSON.parse(files.get(member + 'locales/en.json'));
+  assert.equal(content['about.owner'], 'Fixture Owner');
+  for (const key of ['contact', 'contactDetail', 'releaseNotes']) assert.equal(typeof content['about.' + key], 'string');
+  assert.equal(Object.keys(content).filter(key => key.startsWith('about.disclaimerItems.')).length, 3);
+  assert.match(about, /tr\(props\.language, "about\.releaseNotes"\)/u);
+  assert.doesNotMatch(about, /CONTENT_ZH|CONTENT_EN/u);
+  assert.doesNotMatch(sponsor, /const copy|\[props\.language\]/u);
   assert.match(about, /labels\(\)\.disclaimerItems\.map/u);
   assert.match(sponsor, /props\.availableWidth|tokens\.sponsorCardMinWidth \* 3|backgroundImage|paymentImageSize/u);
   assert.doesNotMatch(desktop, /__AUTOSTART_IMPORT__|__[A-Z][A-Z_]+__/u);
 });
 
-test('sponsor generator uses supplied profile media, currency, and bilingual copy', () => {
-  const translations = {
-    'zh-CN': { sponsor: { title: '标题', subtitle_no_service: '说明', sponsor_message: '支持', payment_instructions: '付款提示', tier_name: '档位', tier_alt: '档位图', benefit: '权益', payment_alt: '付款图' } },
-    'en-US': { sponsor: { title: 'Title', subtitle_no_service: 'Summary', sponsor_message: 'Support', payment_instructions: 'Payment guidance', tier_name: 'Tier', tier_alt: 'Tier image', benefit: 'Benefit', payment_alt: 'Payment image' } },
-  };
+test('sponsor generator uses supplied media, currency, and official translation keys', () => {
   const brand = { sponsor: {
     background: 'sponsor/banner.png',
     tiers: [{ image: 'sponsor/tier.png', nameKey: 'sponsor.tier_name', imageAltKey: 'sponsor.tier_alt', currencyCode: 'USD', price: 7, benefits: [{ mainKey: 'sponsor.benefit' }] }],
     payments: [{ image: 'sponsor/payment.png', altKey: 'sponsor.payment_alt' }],
   } };
-  const source = renderNshSponsor(translations, brand);
+  const source = renderNshSponsor(brand);
   for (const filename of ['banner.png', 'tier.png', 'payment.png']) assert.match(source, new RegExp(filename.replace('.', '\\.'), 'u'));
-  assert.match(source, /USD 7|Payment guidance|付款提示|tokens\.sponsorMaxWidth/u);
+  assert.match(source, /USD 7/u);
+  assert.match(source, /tr\(props\.language, "sponsor\.payment_instructions"\)/u);
+  assert.match(source, /"sponsor\.tier_name"|tokens\.sponsorMaxWidth/u);
   assert.match(source, /const columns = \(\) => width\(\) >= tokens\.sponsorCardMinWidth \* 3/u);
 });

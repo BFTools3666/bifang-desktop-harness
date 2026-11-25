@@ -12,7 +12,7 @@ test('portable_entry_keeps_mixed_core_without_registering_desktop_schemes', t =>
   const stage = path.join(root, 'target', 'batch');
   fs.mkdirSync(path.join(gui, 'assets'), {recursive:true});
   fs.mkdirSync(stage, {recursive:true});
-  const original = { name: 'Example', rust: '.', window: { closeOnPress: false },
+  const original = { name: 'Example', rust: '.', window: { closeOnPress: false }, application: { quitMode: 'explicit' },
     schemes: ['app-example','mobile-example'], singleInstance: true, icon: { default: 'assets/tray.svg' },
     capabilities: { application: true, windows: { kinds: ['normal'] }, statusBar: true } };
   const app = 'import icon from ' + '"./assets/tray.svg";\n';

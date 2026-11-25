@@ -143,7 +143,7 @@ test("MCP-only downstream rejects local packaging but accepts remote release", (
   const manifestPath = path.join(directory, "Cargo.toml");
   try {
     const check = (interfaces, action, platforms = ["macos"], framework = null, nshTargets = null) => {
-      const pin = nshTargets === null ? "" : '[workspace.dependencies]\nnsh-core = { version = "0.6.1", git = "https://github.com/longbridge/nsh.git", rev = "2f51d8611677c8a6bbad937b39756e8d0cc45350" }\n';
+      const pin = nshTargets === null ? "" : '[workspace.dependencies]\nnsh-core = { version = "0.7.0", git = "https://github.com/longbridge/nsh.git", rev = "3f8ecd8b3c55ad6274c6babbf7ee55c4cd4ae359" }\n';
       fs.writeFileSync(manifestPath, `${pin}[workspace.metadata.agent-first-harness]\ninterfaces = ${JSON.stringify(interfaces)}\ntarget-platforms = ${JSON.stringify(platforms)}\n${framework === null ? "" : `gui-framework = ${JSON.stringify(framework)}\n`}${nshTargets === null ? "" : `nsh-targets = ${JSON.stringify(nshTargets)}\n`}`);
       fs.writeFileSync(policyPath, source
         .replace(/^confirmed_by:.*$/mu, "confirmed_by: user form confirmation")

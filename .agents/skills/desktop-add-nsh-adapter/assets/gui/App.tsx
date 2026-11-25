@@ -1,5 +1,6 @@
 import { appInfo, colorScheme, effect, locale, mount, platform, safeArea, Scroll, setColorScheme, signal, Storage, Text, View, windowSize, type JSX } from "nsh";
 import { Button as BaseButton, Radio, RadioGroup } from "nsh/base";
+import { setLocale } from "nsh/i18n";
 import { Action, HomeContent, nativeDesktop } from "./App.shared";
 import { tr, type Language } from "./translations";
 import { palette, tokens } from "./tokens";
@@ -211,6 +212,8 @@ function App(props: { secondary?: boolean } = {}) {
       return () => { live = false; };
     });
   }
+  // Each surface owns its locale; shared preferences update NSH formatting too.
+  effect(() => setLocale(language()));
 
   async function saveLanguage(next: Language) {
     try {

@@ -53,6 +53,7 @@ export function prepareNshPortableEntry(root, member, stage, { portable = true, 
   if (portable) {
     delete config.singleInstance;
     delete config.window;
+    delete config.application;
   }
   // 便携目标只移除脚手架生成的桌面协议。
   if (portable && Array.isArray(config.schemes)) {

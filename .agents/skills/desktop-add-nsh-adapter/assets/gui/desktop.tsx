@@ -29,6 +29,7 @@ export function DesktopPanel(props: {
   effect(() => win.set({ title: win.main ? props.title : `${props.title} · ${win.id.slice("window-".length)}` }));
 
   if (win.main) {
+    Application.on("reopen", () => win.focus());
     effect(() => Menu.setApplicationMenu([
       { label: props.title, submenu: [
         { label: tr(props.language, "new_window"), onSelect: openWindow },
