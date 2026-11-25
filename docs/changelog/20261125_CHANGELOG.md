@@ -4,6 +4,8 @@
 
 ## 2026-11-25 变化
 
+- `HARNESS-EXTERNAL-SKILLS-CATALOG-SYNC-20261125`（`required_version = pending`）：新增受管 `$desktop-manage-external-skills` 统一归类并同步四项外部增强能力（Rust 开发与质量：`BeautifulRust`、`deslop-please`；UI/前端设计：`taste-skill`；跨语言向 Rust 迁移：`rust-anything`）；新建项目与每次 Harness 工程升级自动拉取最新上游 Skill 并写入 `.harness/external-skills-lock.json` 与旁注约束 `HARNESS-CONSTRAINTS.md`，硬性约束 `rust-anything` 仅产出符合当前框架与 core-first 架构的纯 Rust 实现且严禁保留包装兼容层；新增 `ensure_deslop_please.mjs` 将 `deslop-please` 与 `rust-analyzer` 环境安装延迟到下游项目创建阶段执行。见 [ADR-20261125-003](../adr/20261125_ADR.md)。
+
 - `HARNESS-TAURI-ECOSYSTEM-UPGRADE-20261125`（`required_version = 202611251946`）：升级 Tauri 宿主与前端候选基线（`tauri 2.12.7`、`tauri-build 2.7.6`、`tauri-plugin-notification 2.8.1`、`@tauri-apps/api ^2.12.5`、`@tauri-apps/cli ^2.12.6`、Mantine `^9.8.2`、TanStack Query `^5.108.4`、`i18next ^27.2.9`、`react-i18next ^18.0.3`、Vite `^8.3.8`、ESLint `^10.15.0`、`typescript-eslint ^8.74.0` 等），保留连续 Node/peer 兼容线并新增 `@testing-library/jest-dom 7.0.1` 保留说明与 Node 25/26 WebStorage 兼容提示；macOS 系统通知设置跳转改用官方 Rust-only `tauri-plugin-opener = "2.7.3"` 替换原 `/usr/bin/open` 子进程调用并同步契约门禁；清理登记快照中 9 个无活动引用的历史孤儿 crate、无用重定向文档 `tauri-macos-windows.md` 与 5 处脚本内部冗余导出。见 [ADR-20261125-002](../adr/20261125_ADR.md)。
 
 - `HARNESS-NSH-07-ECOSYSTEM-20261125`（`required_version = 202611251946`）：创建 NSH 工程时获得匹配官方 0.7.0 的工具链检查和两套完整 Skills。翻译与条件关于/赞助内容由官方离线 i18n 提供，界面语言继续保存；核心状态使用官方 resource。多窗口独立关闭，无托盘时最后一窗关闭退出，托盘模式支持隐藏与再次启动恢复。知识库补充 nshm、nsh-extra 与 0.7 迁移边界。

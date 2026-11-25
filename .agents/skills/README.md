@@ -34,10 +34,10 @@
 
 ### 开发与架构
 
-日常实现、结构整理、具体 I/O 能力与有证据的依赖、性能和 core 边界工作。
+日常实现、结构整理、外部增强 Skills 分类同步与约束、具体 I/O 能力与有证据的依赖、性能和 core 边界工作。
 
 - [`$desktop-add-external-process`](desktop-add-external-process/SKILL.md)、[`$desktop-add-file-operations`](desktop-add-file-operations/SKILL.md)、[`$desktop-implement-change`](desktop-implement-change/SKILL.md)、[`$desktop-refactor-code`](desktop-refactor-code/SKILL.md)。
-- [`$desktop-manage-dependencies`](desktop-manage-dependencies/SKILL.md)、[`$desktop-review-core-boundaries`](desktop-review-core-boundaries/SKILL.md)。
+- [`$desktop-manage-dependencies`](desktop-manage-dependencies/SKILL.md)、[`$desktop-manage-external-skills`](desktop-manage-external-skills/SKILL.md)、[`$desktop-review-core-boundaries`](desktop-review-core-boundaries/SKILL.md)。
 
 ### Task 与并行
 

@@ -33,6 +33,7 @@ DESKTOP 默认使用 Tauri 参数。仅接受 Tauri 框架值。NSH 通过独立
 | NSIS | macOS Tauri→Windows x64 | `makensis` | 使用既有 Homebrew 安装 `nsis`，然后复探；macOS 不支持生成 WiX/MSI。 |
 | Windows Rust target | macOS Tauri→Windows x64 | `rustup target list --installed` | 运行 `rustup target add x86_64-pc-windows-msvc` 并复探。 |
 | cargo-xwin | macOS Tauri→Windows x64 | `cargo-xwin --version` | 要求稳定版 `>=0.23.1, <0.24.0`；缺失或可解析稳定版低于 0.23.1 时运行 `cargo install --locked --version '>=0.23.1, <0.24.0' cargo-xwin` 安装或升级并复探；`>=0.24.0`、预发布、无法解析或损坏时阻断。 |
+| deslop-please（含 rust-analyzer） | 延迟到下游项目创建时（全部 Rust 项目） | `rust-analyzer --version`、`deslop-please --help` | 不在 Harness 源维护期安装；下游项目创建阶段在通用 Rust 门禁通过后运行 `scripts/ensure_deslop_please.mjs --install-missing`，缺失时依次执行 `rustup component add rust-analyzer` 与 `cargo install --locked deslop-please` 安装到标准用户 Cargo/rustup 根并复探；只读检查用 `--check-only`（缺失退出码 `20`）。 |
 
 现有 Git 稳定版低于 2.36.0、Rust 稳定版低于 1.95.0、Node.js 稳定版低于 24.0.0、pnpm 稳定版低于 12.4.1，或现有 Rust 达到通用门槛却低于传入项目 MSRV，以及 `cargo-xwin` 稳定版低于 0.23.1，都是可恢复的 `upgrade-required`：写入模式必须走当前宿主受支持路线升级并复探，不得把它们降级成警告。现有范围内稳定版本原样复用，尤其不得把 Node.js 25.x、26.x 或未来更高正式稳定版本降级到 LTS。`cargo-xwin >=0.24.0`、任何预发布、无法解析或损坏的工具不属于“低于最低下界”的自动升级路径，必须失败关闭。仅检测到工具存在不证明门禁已满足，更不证明单元测试或构建已经通过。
 

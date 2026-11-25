@@ -28,7 +28,7 @@ DESKTOP（Cargo `gui`）固定使用 Tauri 2、React 和 Mantine。新项目直�
 | 范围清楚的日常实现、问题修复或用户可感知优化 | `docs/ENGINEERING_RULES.md`、所选接口事实；已初始化下游再读取版本门禁 | `$desktop-implement-change`、`$desktop-manage-version` |
 | 新功能、Bug 修复、推送或发布的 Git 生命周期 | `docs/AGENT_POLICY.md` 的“开发分支与主分支发布生命周期”；发布时再读 `docs/RELEASE.md` | `$desktop-manage-git-lifecycle`；日常实现仍走 `$desktop-implement-change` |
 | 切换未来发布后动作 | `docs/AGENT_POLICY.md` 的“初始化与持久化”和发布后动作字段；已有发布事实只读 | `$desktop-switch-post-release-action` |
-| 依赖变更、core 边界专项审查或更新日志预览 | 精确命中的 Rust/工程/发布事实 | `$desktop-manage-dependencies`、`$desktop-review-core-boundaries` 或只读 `$desktop-inspect-release-notes` |
+| 依赖变更、外部增强 Skills、core 边界审查或更新日志预览 | 精确命中的 Rust/外部 Skill 清单/工程事实 | `$desktop-manage-dependencies`、`$desktop-manage-external-skills`（新建与升级同步最新；`rust-anything` 限纯 Rust 实现；`deslop-please` 延迟至项目创建安装）、`$desktop-review-core-boundaries` 或只读 `$desktop-inspect-release-notes` |
 | 文件读写或外部程序能力 | 已批准范围、相关 Rust/接口事实 | `$desktop-add-file-operations` 或 `$desktop-add-external-process`，返回同一实施流程 |
 | 永久 Agent 能力偏好变更 | Agent Policy 字段语义与初始化后变更规则 | `$desktop-configure-agent-policy`；发布后动作仍用专用 Skill |
 | CLI 或 Rust core/adapter | `docs/CLI_CONTRACT.md`（仅 CLI）、`docs/RUST_CLI_TEMPLATE.md` | 对应 adapter Skill；实现仍走 `$desktop-implement-change` |
@@ -87,7 +87,7 @@ DESKTOP（Cargo `gui`）固定使用 Tauri 2、React 和 Mantine。新项目直�
 | Git 安装、local 身份、模板与提交消息 | `$desktop-check-development-environment`、`$desktop-configure-git-commits` 及其引用 | 环境失败恢复、初始化门禁或实际提交 |
 | 开发分支、主分支推送、版本 tag、发布后渠道分支与已登记资源保留 | `docs/AGENT_POLICY.md`、Git common-dir 生命周期清单、`$desktop-manage-git-lifecycle` | 新功能/Bug 修复、用户明确推送或发布 |
 | 已知限制与技术债 | `docs/TECH_DEBT.md` | 发现范围外问题或复核既有限制 |
-| 下游 Harness 来源与升级 | `.harness/upstream-lock.json`、`$desktop-upgrade-harness` | 仅升级下游工程层 |
+| 下游 Harness 来源与升级 | `.harness/upstream-lock.json`、`$desktop-upgrade-harness`；外部 Skills 锁 `.harness/external-skills-lock.json` 与 `$desktop-manage-external-skills` | 仅升级下游工程层或同步最新外部 Skills |
 | 商业许可 | `LICENSE.zh-CN.md`、`LICENSE.en.md` | 实例化、身份改名、分发或许可任务 |
 
 事实源冲突时先调查并修正，不自行选择更方便的说法。完成初始化的下游必须删除实例化/初始化专用入口并不得继续派生项目，同时保留仍适用的 Skills 地图、约束地图、`$desktop-upgrade-harness`、版本门禁和受保护状态入口。

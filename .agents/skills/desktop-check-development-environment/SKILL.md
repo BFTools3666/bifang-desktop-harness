@@ -46,3 +46,7 @@ DESKTOP 固定使用 Tauri，既有 GUI 缺省兼容 Tauri。顶层 NSH 传 `--i
 顶层 NSH 与其他接口共用 Node/npm 工程工具门禁，使用 `--interfaces NSH`，不要求 pnpm 或 `--gui-framework`。只有真实 NSH 构建已因 E0463 缺少 wasm32-unknown-unknown（Web）或 armv7-linux-androideabi（默认 Android 32 位 ABI）标准库失败时，调用 scripts/recover_nsh_target.mjs（只读），用 --target 指定上述精确目标，需要安装时传 --install-missing。该入口只给当前 Rust 工具链添加官方标准库目标，不升级工具链、不改 PATH、不安装其他工具；安装后复读 Rust 版本与实际 libdir，再重试原构建。该精确目标是本 Skill 受管 Rust 集合的 NSH 扩展；其他移动 SDK/签名不由本入口安装。
 
 NSH CLI 是顶层 NSH 的显式工具扩展。真实命令缺失或版本不匹配时，先读 `$desktop-add-nsh-adapter` 的运行时引用，核对项目 Cargo 是否符合唯一正式运行时固定提交，核对主机/架构对应的官方发行资产及 SHA-256，再按用户标准全局安装位置安装；复读 `nsh --version` 和实际可执行路径，与 runtime revision 一致才重试。不得默认下载 latest、降级其他工具、把 CLI 安装进项目，或在没有真实缺失/不匹配时例行重装。
+
+## deslop-please 延迟架构检查环境
+
+`deslop-please`（依赖 `rust-analyzer` 组件执行 `rust-analyzer scip`）用于下游 Rust 项目的结构腐化检查，属于**延迟到项目创建时安装**的环境扩展：不在 Harness 模板源仓库维护期安装，而是在新下游项目创建阶段（通用 Git/Rust/Node 门禁通过后）运行 `node .agents/skills/desktop-check-development-environment/scripts/ensure_deslop_please.mjs --install-missing` 检查并按需安装缺失的 `rust-analyzer`（`rustup component add rust-analyzer`）与 `deslop-please`（`cargo install --locked deslop-please`）到当前用户标准 Cargo/rustup 位置，并复探通过。初始化完成后，仅在真实运行 `deslop-please` 因工具或 `rust-analyzer` 缺失失败时触发恢复；只读检查使用 `--check-only`（零写入，缺失返回退出码 `20`）。

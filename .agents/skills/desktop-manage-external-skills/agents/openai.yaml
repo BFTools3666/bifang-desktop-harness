@@ -1,0 +1,4 @@
+interface:
+  display_name: "管理外部增强 Skills"
+  short_description: "分类同步最新外部 Rust、设计与迁移 Skills 并施加纯 Rust 约束"
+  default_prompt: "使用 $desktop-manage-external-skills 检查或同步当前项目适用的外部增强 Skills 至最新上游，并核对纯 Rust 迁移与设计基座约束。"

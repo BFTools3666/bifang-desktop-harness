@@ -13,7 +13,7 @@ description: 只收集 Harness 创建终端下游所需的固定初始化信息�
 
 下文的图标/DMG、三项固定插件、六项宿主能力、Mantine/React 与初始化 E2E 适用于 DESKTOP（Tauri）。DESKTOP 使用 Node.js/pnpm；顶层 NSH 只使用 Node.js 工程工具。
 
-发布后动作不在初始化表单中选择。首次发布前按持久接口、NSH 子目标、锁策略和实际宿主校验：含 CLI、受支持的 NSH 或目标含 macOS/Windows 的 DESKTOP 可选择 `local_package`；没有 CLI 的 Linux Tauri 项目须选择 `push_release_branch`。不自动安装第三方风格 Skill。
+发布后动作不在初始化表单中选择。首次发布前按持久接口、NSH 子目标、锁策略和实际宿主校验：含 CLI、受支持的 NSH 或目标含 macOS/Windows 的 DESKTOP 可选择 `local_package`；没有 CLI 的 Linux Tauri 项目须选择 `push_release_branch`。外部增强 Skills 通过 `$desktop-manage-external-skills` 按接口分类在项目创建阶段同步至最新上游（`BeautifulRust`、`rust-anything` 适用于全部 Rust 项目，其中 `rust-anything` 强制约束为纯 Rust 实现；`taste-skill` 仅图形界面项目同步并服从 `docs/design_standards/ui_foundation.md`；`deslop-please` 环境延迟至项目创建阶段安装）。
 
 六项 Agent 策略直接使用固定默认值，不单独询问。`task_worktrees` 与 `user_owned_tasks` 均默认关闭，不能从 Task Tree 或内部并行推断。最终汇总逐项列出默认值、来源与有效行为。新下游即使关闭也完整保留 `$desktop-task-workflow` 的 SKILL、references、metadata 和地图；初始化不创建 Task Worktree。项目选择以 Agent Policy 为事实源，执行合同统一使用 `$desktop-task-workflow`。
 

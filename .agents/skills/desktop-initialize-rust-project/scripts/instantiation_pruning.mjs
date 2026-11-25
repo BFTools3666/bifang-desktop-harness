@@ -7,6 +7,7 @@ import { removeUpstreamOnly, renderProjectAgents, sha256 } from '../../desktop-i
 import { validateNeutralWorkspace } from './initialization_workspace.mjs';
 
 const INITIALIZATION_SKILLS = new Set(['desktop-instantiate-project', 'desktop-initialize-rust-project', 'desktop-test-gui-initialization-e2e', 'desktop-test-nsh-initialization-e2e', 'desktop-curate-harness-memory']);
+const EXTERNAL_SYNCED_SKILL_PATTERN = /^\.agents\/skills\/(?:design-taste-frontend|rust-best-practices|rust-review|rust-port|rust-anything)\//u;
 const SKILL_MENTION = /\$([a-z0-9-]+)/gu;
 const MEMORY_DIRECTORIES = ['docs/adr/', 'docs/changelog/', 'docs/product_spec/', 'docs/work_plan/', 'docs/project_status/', 'docs/verification/'];
 
@@ -115,7 +116,7 @@ export function renderPrunedFiles(preparation, current) {
   const removedSkills = new Set([...current.keys()].filter(file => /^\.agents\/skills\/[^/]+\/SKILL\.md$/u.test(file) && removedPaths.has(file)).map(file => file.split('/')[2]));
   const finalPaths = new Set(result.keys());
   for (const [relative, file] of result) {
-    if (!managedPaths.has(relative) || !/\.(?:md|yaml)$/u.test(relative) || relative.includes('/assets/vendor/') || /^\.agents\/skills\/(?:design-taste-frontend)\//u.test(relative)) continue;
+    if (!managedPaths.has(relative) || !/\.(?:md|yaml)$/u.test(relative) || relative.includes('/assets/vendor/') || EXTERNAL_SYNCED_SKILL_PATTERN.test(relative)) continue;
     let text = file.bytes.toString('utf8');
     // 一次性源命令整段删除，避免把已裁掉脚本留成看似可执行的代码块。
     text = text.replace(/```[^\n]*\n[\s\S]*?```/gu, block => [...removedPaths].some(file => block.includes(file)) ? '' : block);
@@ -137,7 +138,7 @@ export function renderPrunedFiles(preparation, current) {
 export function validateFinalReferences(files, removedSkills) {
   const paths = new Set(files.keys());
   for (const [relative, file] of files) {
-    if (relative.includes('/assets/vendor/') || /^\.agents\/skills\/(?:design-taste-frontend)\//u.test(relative)) continue;
+    if (relative.includes('/assets/vendor/') || EXTERNAL_SYNCED_SKILL_PATTERN.test(relative)) continue;
     const text = file.bytes.toString('utf8');
     if (/\.(?:md|yaml)$/u.test(relative)) {
       const removedMention = [...text.matchAll(SKILL_MENTION)].some(([, name]) => removedSkills.has(name));

@@ -82,16 +82,23 @@ export function loadOwnership(file, { allowRecoverableManagedOmissions = false }
   }
   const selfIndex = rules.findIndex(([pattern, mode]) => pattern === ".agents/skills/desktop-upgrade-harness/**" && mode === "managed-self");
   const genericIndex = rules.findIndex(([pattern, mode]) => pattern === ".agents/skills/**" && mode === "managed");
-  const designIndex = rules.findIndex(([pattern, mode]) => pattern === ".agents/skills/design-taste-frontend/**" && mode === "protected");
-  if (designIndex < 0 || designIndex >= genericIndex) throw new UpgradeError("第三方设计 Skill 的 protected 规则必须位于通用 managed 规则之前");
-  const designScope = ".agents/skills/design-taste-frontend";
-  for (const [pattern, mode] of rules.slice(0, designIndex)) {
-    if (mode === "protected") continue;
-    const wildcard = [...pattern].findIndex((character) => "*?[".includes(character));
-    const prefix = (wildcard < 0 ? pattern : pattern.slice(0, wildcard)).replace(/\/$/u, "");
-    if (!prefix || designScope === prefix || designScope.startsWith(`${prefix}/`)
-        || prefix.startsWith(`${designScope}/`) || (wildcard >= 0 && designScope.startsWith(prefix))) {
-      throw new UpgradeError(`第三方设计 Skill 的 protected 规则被更早的所有权规则遮蔽：${pattern}`);
+  for (const externalScope of [
+    ".agents/skills/design-taste-frontend",
+    ".agents/skills/rust-best-practices",
+    ".agents/skills/rust-review",
+    ".agents/skills/rust-port",
+    ".agents/skills/rust-anything",
+  ]) {
+    const extIndex = rules.findIndex(([pattern, mode]) => pattern === `${externalScope}/**` && mode === "protected");
+    if (extIndex < 0 || extIndex >= genericIndex) throw new UpgradeError(`第三方外部 Skill 的 protected 规则必须位于通用 managed 规则之前：${externalScope}/**`);
+    for (const [pattern, mode] of rules.slice(0, extIndex)) {
+      if (mode === "protected") continue;
+      const wildcard = [...pattern].findIndex((character) => "*?[".includes(character));
+      const prefix = (wildcard < 0 ? pattern : pattern.slice(0, wildcard)).replace(/\/$/u, "");
+      if (!prefix || externalScope === prefix || externalScope.startsWith(`${prefix}/`)
+          || prefix.startsWith(`${externalScope}/`) || (wildcard >= 0 && externalScope.startsWith(prefix))) {
+        throw new UpgradeError(`第三方外部 Skill 的 protected 规则被更早的所有权规则遮蔽：${pattern}`);
+      }
     }
   }
   if (selfIndex < 0 || genericIndex < 0 || selfIndex >= genericIndex) throw new UpgradeError("managed-self 所有权规则必须位于通用 managed 规则之前");

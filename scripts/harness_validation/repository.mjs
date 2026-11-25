@@ -22,6 +22,7 @@ export const EXPECTED_SKILLS = new Set([
   "desktop-build-nsh-release",
   "desktop-test-nsh-initialization-e2e",
   "desktop-manage-dependencies",
+  "desktop-manage-external-skills",
   "desktop-review-core-boundaries",
   "desktop-record-adr",
   "desktop-handoff-project",

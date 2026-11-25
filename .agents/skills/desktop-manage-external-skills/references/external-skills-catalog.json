@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "categories": [
+    {
+      "id": "rust-engineering",
+      "title": "Rust 开发与质量增强",
+      "description": "提升 Rust 惯用写法、代码审查、常规语言移植与模块深度的外部能力。"
+    },
+    {
+      "id": "ui-design",
+      "title": "UI 与前端设计增强",
+      "description": "增强图形界面视觉品味与页面打磨的外部设计 Skill，服从 Harness 共用 UI 基座。"
+    },
+    {
+      "id": "rust-migration",
+      "title": "跨语言向 Rust 迁移",
+      "description": "面向已有跨语言代码/应用向纯 Rust 项目重写的行为取证与迁移工作流。"
+    }
+  ],
+  "entries": [
+    {
+      "id": "beautiful-rust",
+      "name": "BeautifulRust",
+      "category": "rust-engineering",
+      "kind": "skill-repo",
+      "repository": "https://github.com/morganlinton/BeautifulRust.git",
+      "homepage": "https://github.com/morganlinton/BeautifulRust",
+      "applicability": "all",
+      "syncOn": ["init", "upgrade"],
+      "skills": [
+        {
+          "installName": "rust-best-practices",
+          "sourceSubpath": "skills/rust-best-practices",
+          "purpose": "编写与重构惯用、健壮、可维护的 Rust 代码"
+        },
+        {
+          "installName": "rust-review",
+          "sourceSubpath": "skills/rust-review",
+          "purpose": "审查 Rust 文件、crate 或差异并输出按优先级排序的规则整改报告"
+        },
+        {
+          "installName": "rust-port",
+          "sourceSubpath": "skills/rust-port",
+          "purpose": "把 C/C++/Python/Go/JS 模块按等价测试移植为惯用纯 Rust 代码"
+        }
+      ],
+      "environment": {
+        "deferredToProjectCreation": false,
+        "notes": "纯 Agent Skills，复用标准 Rust 与 Clippy 工具链。"
+      },
+      "constraints": [
+        "遵守当前项目 core-first 架构边界、根 workspace 依赖与中文业务注释规则。"
+      ]
+    },
+    {
+      "id": "deslop-please",
+      "name": "deslop-please",
+      "category": "rust-engineering",
+      "kind": "cli-tool",
+      "repository": "https://github.com/deterministic-machines/deslop-please.git",
+      "homepage": "https://github.com/deterministic-machines/deslop-please",
+      "applicability": "all",
+      "syncOn": [],
+      "skills": [],
+      "environment": {
+        "deferredToProjectCreation": true,
+        "installerHelper": ".agents/skills/desktop-check-development-environment/scripts/ensure_deslop_please.mjs",
+        "requiredTools": ["rust-analyzer", "deslop-please"],
+        "notes": "上游无 SKILL.md，为基于 rust-analyzer scip 的 Rust 架构质量 CLI；延迟到项目创建时安装环境，不在 Harness 源维护期安装。"
+      },
+      "constraints": [
+        "对 module-cycle、tangle、field-leak、shallow-module、wide-directory、long-file 告警必须从第一性原理修复（深模块、窄接口），禁止机械搬运或掩盖问题。",
+        "架构调整前先绘制修改前后的模块结构图供确认，再实施重构。"
+      ]
+    },
+    {
+      "id": "taste-skill",
+      "name": "taste-skill",
+      "category": "ui-design",
+      "kind": "skill-repo",
+      "repository": "https://github.com/Leonxlnx/taste-skill.git",
+      "homepage": "https://github.com/Leonxlnx/taste-skill",
+      "applicability": "graphical-ui",
+      "syncOn": ["init", "upgrade"],
+      "skills": [
+        {
+          "installName": "design-taste-frontend",
+          "sourceSubpath": "skills/taste-skill",
+          "purpose": "视觉审美、版式层次、交互打磨与浏览器视觉检查（上游 frontmatter name 为 design-taste-frontend）"
+        }
+      ],
+      "environment": {
+        "deferredToProjectCreation": false,
+        "notes": "同步 Skill 时不执行上游 install.sh；其可选浏览器检查脚本需 Node 22+ 与 Chrome/Edge/Chromium。"
+      },
+      "constraints": [
+        "图形界面视觉统一以 docs/design_standards/ui_foundation.md 为唯一共享基座；与上游规则冲突时以基座及已批准产品设计为准。",
+        "仅适用于含图形界面的下游项目（gui 或 nsh 含 desktop/mobile/web）；纯 CLI、MCP 与纯 TUI 项目不安装。"
+      ]
+    },
+    {
+      "id": "rust-anything",
+      "name": "rust-anything",
+      "category": "rust-migration",
+      "kind": "skill-repo",
+      "repository": "https://github.com/erkamyaman/rust-anything.git",
+      "homepage": "https://github.com/erkamyaman/rust-anything",
+      "applicability": "all",
+      "syncOn": ["init", "upgrade"],
+      "skills": [
+        {
+          "installName": "rust-anything",
+          "sourceSubpath": "skills/rust-anything",
+          "purpose": "通过行为录制与等价校验指导跨语言代码/应用重写为纯 Rust 实现"
+        }
+      ],
+      "environment": {
+        "deferredToProjectCreation": false,
+        "notes": "同步 Skill 资产时不预装 rust-anything CLI/MCP；仅在实际执行迁移任务时按需检查或安装。"
+      },
+      "constraints": [
+        "必须约束为符合当前 Rust 框架与项目架构（shared core-first、根 workspace 依赖、所选 CLI/MCP/Tauri/NSH 适配器）的纯 Rust 实现。",
+        "严禁在最终代码或依赖中产出或保留任何包装兼容层、FFI 桥接层或原语言运行时回退壳（如 napi-rs、PyO3、cgo、JNI、magnus、C ABI 包装器、子进程代理或未完成 lift 的 front-door）。",
+        "上游录制、回放与 diff 工具仅限迁移期行为等价取证，交付物必须完全脱离原语言运行时。"
+      ]
+    }
+  ]
+}

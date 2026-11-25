@@ -89,9 +89,12 @@ test('project_skill_map_groups_retained_skills_without_stale_or_duplicate_routes
     [...section.matchAll(/\[\x60\$([a-z0-9-]+)\x60\]\(/gu)].map(([, name]) => name).sort(),
   ]);
   assert.deepEqual(catalogGroups, SKILL_GROUPS.map(([name, skills]) => [name, skills.toSorted()]));
-  const map = renderProjectSkillMap(['desktop-add-nsh-adapter', 'desktop-implement-change', 'desktop-add-nsh-adapter', 'project-local-skill']);
+  const map = renderProjectSkillMap(['desktop-add-nsh-adapter', 'desktop-implement-change', 'desktop-add-nsh-adapter', 'rust-best-practices', 'design-taste-frontend', 'rust-anything', 'project-local-skill']);
   assert.match(map, /### 接口适配/u);
   assert.match(map, /### 开发与架构/u);
+  assert.match(map, /### 外部增强 Skills（Rust）/u);
+  assert.match(map, /### 外部增强 Skills（设计）/u);
+  assert.match(map, /### 外部增强 Skills（Rust 迁移）/u);
   assert.match(map, /### 项目扩展/u);
   assert.doesNotMatch(map, /### 创建与身份/u);
   assert.equal([...map.matchAll(/\[\$desktop-add-nsh-adapter\]/gu)].length, 1);

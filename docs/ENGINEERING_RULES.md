@@ -52,6 +52,7 @@ DESKTOP 固定使用 Tauri，既有 GUI 缺失 `gui-framework` 也按 Tauri 读�
 - Harness 源和新建下游的 `Cargo.lock`、`pnpm-lock.yaml` 与非标准 `pnpm-package.lock` 默认由 Git 忽略。已初始化下游仅可通过根 `Cargo.toml` 的 `[workspace.metadata.agent-first-harness]` 下设置 `dependency-lock-policy = "tracked"`，显式选择跟踪真实锁文件；缺省或 `"ignored"` 继续忽略且不以锁文件作门禁，未知值、错误类型或重复键失败关闭。选择 `tracked` 时，根工作区及 `rust-test-manifests` 指出的每个独立 Rust 工作区都须跟踪各自的 `Cargo.lock`，已选 Tauri 前端根须跟踪其 `pnpm-lock.yaml`；目标项目应移除相应 Git 忽略规则并由依赖管理工具更新锁文件。`pnpm-package.lock` 不充当标准锁文件。兼容下界由清单和真实检查证明：新增或提高 Rust 直接下界时复用已安装且满足根 Cargo `rust-version` 下限的 stable，进行正常依赖解析与相关非空测试；不得为依赖准入、初始化、格式化或构建下载 nightly 或历史 Rust 工具链，也不运行不稳定的最低直接版本解析。`rust-version` 保留为兼容下限，当前 stable 成功不构成最低版本实测证据；前端仍在声明的最低 Node.js/pnpm 环境完成最低直接版本解析和非空测试；最新候选不兼容时按版本从新到旧选择第一个通过者并记录原因。
 - 应用发布版本、协议/模式版本、Rust edition、平台目标三元组、资产摘要和按安全要求钉住的 CI action commit 不属于依赖兼容范围，不得为了形式统一改写成依赖版本范围。
 - 自动生成代码、内嵌的第三方代码和人工维护代码必须明确隔离。不得直接修改生成物或内嵌的第三方内容。
+- 外部增强 Skills（`BeautifulRust`、`taste-skill`、`rust-anything`）与架构检查工具（`deslop-please`）统一由 `$desktop-manage-external-skills` 归类并在新建项目及每次 Harness 工程升级时同步最新上游；同步落盘目录与 `.harness/external-skills-lock.json` 在升级所有权中保持 `protected`。使用 `$rust-anything` 向 Rust 迁移时，必须约束为符合当前 Rust 框架与 core-first 架构的纯 Rust 实现，严禁在项目产出或依赖中保留 FFI/bridge/wrapper 兼容层或原语言运行时壳；`taste-skill`（`design-taste-frontend`）仅适用于图形界面项目且视觉冲突以 `docs/design_standards/ui_foundation.md` 为准；`deslop-please`（含 `rust-analyzer`）环境安装延迟到项目创建阶段执行，告警须从第一性原理修复并附前后结构图。
 
 ### 2.2 默认规则
 

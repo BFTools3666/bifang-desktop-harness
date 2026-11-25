@@ -64,6 +64,13 @@ description: 在已初始化或首次接入的既有下游项目中安全更新�
 13. 完成任何 `managed-self` 更新后，重新运行升级后更新器的相关测试和只读计划。只更新被独立事件触发的下游记忆：重要阻断或交接交 `$desktop-handoff-project` 更新 Status，符合范围的新增、行为/契约变化、移除或安全事项更新 Changelog，真实渠道分发后的记录或独立回顾性人工复核/长期审计才更新 Verification；候选完整验收只写忽略的 release/ 证据。普通缺陷修复、纯重构和内部清理本身不触发这些记忆。不得导入源 Harness 的任何项目记忆或批准历史。
 14. 若第 4 步确认目标是已存在的独立 Git 项目但缺少 `.harness/version-state.json`，必须先完成并记录上述工程层升级，随后停止自动流程，向用户明确说明：旧 `pending_changes`、`applied_bug_ids` 与 `last_release` 历史无法恢复；迁移只会以当前合法 Cargo 版本建立空周期基线；升级器本身没有写入受保护状态。只有用户对这次迁移明确批准后，才由目标项目中的 `$desktop-manage-version` 执行 `node .agents/skills/desktop-manage-version/scripts/version_gate.mjs init --project-root "<downstream-root>" --migration-approved`，并复核输出的 `migration: true`、`history_status: unrecoverable-pre-migration-history`、空 `pending_changes`/`applied_bug_ids` 与 Cargo 版本一致。未获批准时不得代替用户推断或执行，必须把工程层升级与仍待批准的版本状态迁移分别报告，且不得声称整个升级闭环完成。
 15. 工程层收敛并记录基线、且第 14 步适用的版本状态迁移完成后，在目标根调用 `node .agents/skills/desktop-switch-post-release-action/scripts/post_release_action.mjs inspect --project-root "<downstream-root>"`。旧 schema 3 的 `selection_required` 必须询问用户选择本地打包或提交远程，由目标项目中的 `$desktop-switch-post-release-action` 先在保护既有项目规则的前提下合并旧策略正文与新发布后规则，再按本次明确选择原子迁移 frontmatter 至 schema 4，并记录当日 ADR；旧正文中“发布后另行请求”或“无 release 分支”的相反规则未清除时 `set/check` 必须阻断；升级器 `plan|apply|record` 绝不得代写或传入选择。schema 5 的合法 `pending` 保留至首次发布，本次升级记录该状态后结束此项检查。已确认的合法 schema 4/5 保留目标选择，不再次询问。对已有确认值或刚完成 schema 3 迁移的项目运行 `node .agents/skills/desktop-switch-post-release-action/scripts/post_release_action.mjs check --project-root "<downstream-root>"`，复核 `status: configured` 与合法持久值。缺选、非法状态、写入或 ADR 复核失败时，只能报告工程基线已记录，不能声称整个升级闭环完成。
+16. 工程层基线记录后，立即在目标根运行已同步的外部增强 Skill 同步入口，把当前项目适用的外部 Skills（`BeautifulRust`、`rust-anything`，以及图形界面适用的 `taste-skill`）更新至最新上游提交并刷新 `.harness/external-skills-lock.json` 与旁注约束（明确 `rust-anything` 仅允许纯 Rust 实现，禁止兼容包装层；`deslop-please` 作为延迟安装 CLI 工具不在本步强装环境）：
+
+    ```text
+    node "<downstream-root>/.agents/skills/desktop-manage-external-skills/scripts/sync_external_skills.mjs" sync --project-root "<downstream-root>"
+    ```
+
+    网络不可达或上游同步失败时保留既有外部 Skill 目录，明确报告未完成同步的仓库与原因，不得宣称外部 Skill 已更新到最新。
 
 ## 安全边界
 
@@ -77,7 +84,7 @@ description: 在已初始化或首次接入的既有下游项目中安全更新�
 
 ## 完成要求
 
-报告源与目标身份、基线状态、试运行分类、已批准和已应用路径、保留的本地修改、冲突、本次测试或替代验证、锁文件更新、未验证平台和剩余风险。未显式请求时，构建与完整验收均为 `Not run`；仅有成功的试运行不代表升级完成。必须报告发布后动作的原值、最终值与 schema 4/5 强制检查结果；旧项目缺选时不得把工程层完成误报为完整升级。
+报告源与目标身份、基线状态、试运行分类、已批准和已应用路径、保留的本地修改、冲突、本次测试或替代验证、锁文件更新、外部增强 Skills 同步结果（含各仓库最新提交、跳过项及受阻项）、未验证平台和剩余风险。未显式请求时，构建与完整验收均为 `Not run`；仅有成功的试运行不代表升级完成。必须报告发布后动作的原值、最终值与 schema 4/5 强制检查结果；旧项目缺选时不得把工程层完成误报为完整升级。
 
 按范围参考报告每个适用工程项与实际入口的核对结果；明确区分完整受管升级、部分同步、受阻与仅预览。文件组织、源码测试或复制 Skills 的结果不能替代构建和交付规范的接线证明。
 
