@@ -305,10 +305,14 @@ function runDelegatedCheckers(root, findings, checks) {
 
     const coreFirstScript = path.join(root, ".agents", "skills", "desktop-implement-change", "scripts", "check_core_first.mjs");
     if (lstatOrNull(coreFirstScript)?.isFile()) {
-      const cf = spawnSync(process.execPath, [coreFirstScript, "--root", root], { encoding: "utf8", timeout: 30_000 });
-      checks.coreFirst = { ok: cf.status === 0, status: cf.status };
+      const cf = spawnSync(process.execPath, [coreFirstScript, "--workspace-root", root, "--json"], { encoding: "utf8", timeout: 30_000 });
+      let parsed = null;
+      try { parsed = JSON.parse((cf.stdout || "").trim()); } catch { /* 回退到退出码与文本诊断 */ }
+      checks.coreFirst = { ok: cf.status === 0, status: cf.status, toolError: parsed?.toolError ?? null };
       if (cf.status !== 0) {
-        const detail = (cf.stderr || cf.stdout || "core-first 检查未通过").trim().split(/\r?\n/u)[0];
+        const detail = parsed?.errors?.[0]
+          ?? parsed?.toolError
+          ?? ((cf.stderr || cf.stdout || "core-first 检查未通过").trim().split(/\r?\n/u)[0]);
         findings.push({
           id: "constraint.core-first:Cargo.toml",
           category: "constraint",

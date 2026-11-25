@@ -36,10 +36,11 @@ test("verification partition preserves history and signatures", () => {
 
 test("methodology partition preserves numbered sections", () => {
   const texts = readPartition("docs/HARNESS_ENGINEERING.md", "docs/harness_engineering");
-  assert.equal(texts.reduce((total, text) => total + text.split("\n## ").length - 1, 0), 19);
+  assert.equal(texts.reduce((total, text) => total + text.split("\n## ").length - 1, 0), 23);
   assert.equal(texts.reduce((total, text) => total + text.split("\n### ").length - 1, 0), 28);
   const combined = texts.join("\n");
   assert.ok(combined.includes("## 2. 什么是个人小工具 Harness 工程"));
   assert.ok(combined.includes("## 15. Agent-first 小工具设计"));
   assert.ok(combined.includes("## 18. 参考资料"));
+  assert.ok(combined.includes("## 固定比较对象"));
 });

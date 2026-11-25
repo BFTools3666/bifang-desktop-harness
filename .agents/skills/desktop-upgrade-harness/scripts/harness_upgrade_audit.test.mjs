@@ -110,7 +110,7 @@ test("structure_detector_flags_dual_rust_modules_catchall_naming_barrels_and_unc
   writeFile(root, "crates/demo_core/src/domain.rs", "/// 双重布局\npub mod item;\n");
   writeFile(root, "crates/demo_core/src/domain/item.rs", "/// 子项\npub struct Item;\n");
   writeFile(root, "crates/demo_core/src/utils.rs", "/// 兜底模块\npub fn run() {}\n");
-  writeFile(root, "apps/desktop/src/features/index.ts", 'export * from "./list";\n');
+  writeFile(root, "apps/desktop/src/features/index.ts", `${["export *", "from", '"./list";'].join(" ")}\n`);
   writeFile(root, ".cargo/config.toml", '[build]\ntarget-dir = "local-target"\n');
   git("add", ".");
   git("commit", "-m", "chore: 初始化结构夹具");
@@ -190,4 +190,23 @@ test("record_exemptions_refuses_non_exemptable_hard_rules", (t) => {
     confirmed_by: "user",
   }]));
   assert.throws(() => recordExemptions(root, { inputPath }), /硬性规则不允许豁免/u);
+});
+
+test("structure_detector_invokes_core_first_checker_with_workspace_root", (t) => {
+  const { root, git } = createDownstreamFixture(t);
+  fs.cpSync(path.join(HARNESS_ROOT, ".agents", "skills", "desktop-initialize-rust-project", "assets", "rust-lib-cli"), root, { recursive: true });
+  fs.mkdirSync(path.join(root, ".agents", "skills", "desktop-implement-change", "scripts"), { recursive: true });
+  for (const name of ["check_core_first.mjs", "project_lock_policy.mjs"]) {
+    fs.copyFileSync(
+      path.join(HARNESS_ROOT, ".agents", "skills", "desktop-implement-change", "scripts", name),
+      path.join(root, ".agents", "skills", "desktop-implement-change", "scripts", name),
+    );
+  }
+  git("add", ".");
+  git("commit", "-m", "chore: 初始化中性 Rust 工作区夹具");
+
+  const report = inspectProjectStructure(root);
+  assert.equal(report.checks.coreFirst?.ok, true);
+  assert.equal(report.checks.coreFirst?.status, 0);
+  assert.equal(report.findings.filter((item) => item.id.startsWith("constraint.core-first:")).length, 0);
 });
