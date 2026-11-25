@@ -98,7 +98,7 @@ export function validateDependencyEvidenceContract(errors, options = {}) {
   const required = [
     "依赖清单以完整三段的兼容下界为目标，Rust 验证复用已安装且满足项目下限的 stable",
     "中性 Rust CLI fixture 的 Cargo 直接依赖已经在 Rust `1.98.1` 上完成最低直接版本解析",
-    "`rmcp 3.8.0` 和 GUI/React 的版本数值仅为截至 2026-10-29 经 registry metadata、peer 与 engine 筛选的候选完整三段下界",
+    "`rmcp 3.8.0` 和 GUI/React 的版本数值仅为截至 2026-11-25 登记快照中经 registry metadata、peer 与 engine 筛选的候选完整三段下界",
     "继续保持 `Unverified`",
     "实例化真实下游时 Rust 复用满足兼容下限的已安装 stable 正常解析，前端仍在最低 Node.js/pnpm 环境执行最低直接版本解析",
     "成功后才能成为该项目的兼容下界",
@@ -262,7 +262,7 @@ export function validateCurrentDescriptions(errors, options = {}) {
   const dependencyFloors = [
     [path.join(RUST_ASSET, "Cargo.toml"), ['assert_cmd = "2.2.2"', 'clap = { version = "4.6.7"', 'jiff = "0.2.38"', 'serde = { version = "1.0.229"', 'serde_json = "1.0.154"', 'tokio = { version = "1.54.1"']],
     [MCP_SKILL, ["`rmcp 3.8.0`"]],
-    [reactBaseline, ["`react` / `react-dom` | `^19.3.1`", "`@mantine/core` / `@mantine/hooks` | `^9.7.4`", "`@tanstack/react-router` | `^1.170.46`", "`@tanstack/router-plugin` | `^1.168.48`", "`i18next` | `^26.5.11`", "`react-i18next` | `^17.1.9`", "`vite` | `^8.3.5`", "`eslint` | `^10.13.0`", "`typescript-eslint` | `^8.72.1`", "`@types/node` | `^24.19.2`", "`@types/react` / `@types/react-dom` | `^19.3.0`", "`@testing-library/dom` | `^10.4.2`", "`@testing-library/user-event` | `^14.6.8`", "`jsdom` | `^29.1.1`", "不得升级到会重新排除 Node.js 25.x"]],
+    [reactBaseline, ["`react` / `react-dom` | `^19.3.1`", "`@mantine/core` / `@mantine/hooks` | `^9.8.2`", "`@tanstack/react-router` | `^1.170.46`", "`@tanstack/router-plugin` | `^1.169.0`", "`i18next` | `^27.2.9`", "`react-i18next` | `^18.0.3`", "`vite` | `^8.3.8`", "`eslint` | `^10.15.0`", "`typescript-eslint` | `^8.74.0`", "`@types/node` | `^24.19.3`", "`@types/react` | `^19.3.2`", "`@types/react-dom` | `^19.3.0`", "`@testing-library/dom` | `^10.4.2`", "`@testing-library/user-event` | `^14.6.13`", "`jsdom` | `^29.1.1`", "不得升级到会重新排除 Node.js 25.x"]],
   ];
   validateFragmentMap(errors, dependencyFloors, "missing dependency-floor contract file", "dependency-floor contract missing");
 

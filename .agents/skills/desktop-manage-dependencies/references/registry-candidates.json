@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "checkedOn": "2026-10-29",
+  "checkedOn": "2026-11-25",
   "scope": "registered stable dependency candidates; no capability is enabled by this catalog",
   "constraints": {
     "rustMsrv": "1.98.1",
@@ -57,18 +57,6 @@
       "declaredRustVersion": "1.88.0",
       "source": "https://crates.io/api/v1/crates/config/0.15.27"
     },
-    "dirs": {
-      "version": "7.0.0",
-      "latestStable": "7.0.0",
-      "declaredRustVersion": null,
-      "source": "https://crates.io/api/v1/crates/dirs/7.0.0"
-    },
-    "futures-util": {
-      "version": "0.3.34",
-      "latestStable": "0.3.34",
-      "declaredRustVersion": "1.71",
-      "source": "https://crates.io/api/v1/crates/futures-util/0.3.34"
-    },
     "jiff": {
       "version": "0.2.38",
       "latestStable": "0.2.38",
@@ -99,47 +87,17 @@
       "declaredRustVersion": "1.85",
       "source": "https://crates.io/api/v1/crates/notify/8.2.1"
     },
-    "num-bigint": {
-      "version": "0.5.1",
-      "latestStable": "0.5.1",
-      "declaredRustVersion": "1.60",
-      "source": "https://crates.io/api/v1/crates/num-bigint/0.5.1"
-    },
-    "num-traits": {
-      "version": "0.2.19",
-      "latestStable": "0.2.19",
-      "declaredRustVersion": "1.60",
-      "source": "https://crates.io/api/v1/crates/num-traits/0.2.19"
-    },
-    "png": {
-      "version": "0.18.1",
-      "latestStable": "0.18.1",
-      "declaredRustVersion": "1.73",
-      "source": "https://crates.io/api/v1/crates/png/0.18.1"
-    },
     "redis": {
       "version": "1.8.0",
       "latestStable": "1.8.0",
       "declaredRustVersion": "1.88",
       "source": "https://crates.io/api/v1/crates/redis/1.8.0"
     },
-    "reqwest": {
-      "version": "0.13.5",
-      "latestStable": "0.13.5",
-      "declaredRustVersion": "1.85.0",
-      "source": "https://crates.io/api/v1/crates/reqwest/0.13.5"
-    },
     "rmcp": {
       "version": "3.8.0",
       "latestStable": "3.8.0",
       "declaredRustVersion": "1.88",
       "source": "https://crates.io/api/v1/crates/rmcp/3.8.0"
-    },
-    "rust-embed": {
-      "version": "8.13.0",
-      "latestStable": "8.13.0",
-      "declaredRustVersion": "1.80.0",
-      "source": "https://crates.io/api/v1/crates/rust-embed/8.13.0"
     },
     "rust-i18n": {
       "version": "4.2.4",
@@ -166,16 +124,16 @@
       "source": "https://crates.io/api/v1/crates/serde_json/1.0.154"
     },
     "tauri": {
-      "version": "2.12.5",
-      "latestStable": "2.12.5",
+      "version": "2.12.7",
+      "latestStable": "2.12.7",
       "declaredRustVersion": "1.90",
-      "source": "https://crates.io/api/v1/crates/tauri/2.12.5"
+      "source": "https://crates.io/api/v1/crates/tauri/2.12.7"
     },
     "tauri-build": {
-      "version": "2.7.4",
-      "latestStable": "2.7.4",
+      "version": "2.7.6",
+      "latestStable": "2.7.6",
       "declaredRustVersion": "1.90",
-      "source": "https://crates.io/api/v1/crates/tauri-build/2.7.4"
+      "source": "https://crates.io/api/v1/crates/tauri-build/2.7.6"
     },
     "tauri-plugin-autostart": {
       "version": "2.7.0",
@@ -202,10 +160,16 @@
       "source": "https://crates.io/api/v1/crates/tauri-plugin-global-shortcut/2.4.1"
     },
     "tauri-plugin-notification": {
-      "version": "2.8.0",
-      "latestStable": "2.8.0",
+      "version": "2.8.1",
+      "latestStable": "2.8.1",
       "declaredRustVersion": "1.90",
-      "source": "https://crates.io/api/v1/crates/tauri-plugin-notification/2.8.0"
+      "source": "https://crates.io/api/v1/crates/tauri-plugin-notification/2.8.1"
+    },
+    "tauri-plugin-opener": {
+      "version": "2.7.3",
+      "latestStable": "2.7.3",
+      "declaredRustVersion": "1.90",
+      "source": "https://crates.io/api/v1/crates/tauri-plugin-opener/2.7.3"
     },
     "tauri-plugin-os": {
       "version": "2.4.0",
@@ -225,12 +189,6 @@
       "declaredRustVersion": "1.90",
       "source": "https://crates.io/api/v1/crates/tauri-plugin-window-state/2.5.0"
     },
-    "tempfile": {
-      "version": "3.27.0",
-      "latestStable": "3.27.0",
-      "declaredRustVersion": "1.63",
-      "source": "https://crates.io/api/v1/crates/tempfile/3.27.0"
-    },
     "thiserror": {
       "version": "2.0.21",
       "latestStable": "2.0.21",
@@ -242,12 +200,6 @@
       "latestStable": "1.54.1",
       "declaredRustVersion": "1.85",
       "source": "https://crates.io/api/v1/crates/tokio/1.54.1"
-    },
-    "tokio-tungstenite": {
-      "version": "0.30.0",
-      "latestStable": "0.30.0",
-      "declaredRustVersion": "1.85",
-      "source": "https://crates.io/api/v1/crates/tokio-tungstenite/0.30.0"
     },
     "tower": {
       "version": "0.5.3",
@@ -320,43 +272,43 @@
       "source": "https://registry.npmjs.org/%40dnd-kit%2Fsortable/10.0.0"
     },
     "@mantine/core": {
-      "version": "9.7.4",
+      "version": "9.8.2",
       "nodeEngine": null,
       "peerDependencies": {
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
-        "@mantine/hooks": "9.7.4"
+        "@mantine/hooks": "9.8.2"
       },
       "conditional": false,
-      "source": "https://registry.npmjs.org/%40mantine%2Fcore/9.7.4"
+      "source": "https://registry.npmjs.org/%40mantine%2Fcore/9.8.2"
     },
     "@mantine/hooks": {
-      "version": "9.7.4",
+      "version": "9.8.2",
       "nodeEngine": null,
       "peerDependencies": {
         "react": "^19.2.0"
       },
       "conditional": false,
-      "source": "https://registry.npmjs.org/%40mantine%2Fhooks/9.7.4"
+      "source": "https://registry.npmjs.org/%40mantine%2Fhooks/9.8.2"
     },
     "@tabler/icons-react": {
-      "version": "3.50.0",
+      "version": "3.53.0",
       "nodeEngine": null,
       "peerDependencies": {
         "react": ">= 16"
       },
       "conditional": false,
-      "source": "https://registry.npmjs.org/%40tabler%2Ficons-react/3.50.0"
+      "source": "https://registry.npmjs.org/%40tabler%2Ficons-react/3.53.0"
     },
     "@tanstack/react-query": {
-      "version": "5.105.0",
+      "version": "5.108.4",
       "nodeEngine": null,
       "peerDependencies": {
         "react": "^18 || ^19",
         "@types/react": "^18 || ^19"
       },
       "conditional": false,
-      "source": "https://registry.npmjs.org/%40tanstack%2Freact-query/5.105.0"
+      "source": "https://registry.npmjs.org/%40tanstack%2Freact-query/5.108.4"
     },
     "@tanstack/react-router": {
       "version": "1.170.46",
@@ -369,31 +321,31 @@
       "source": "https://registry.npmjs.org/%40tanstack%2Freact-router/1.170.46"
     },
     "@tanstack/router-plugin": {
-      "version": "1.168.48",
-      "nodeEngine": ">=20.19",
+      "version": "1.169.0",
+      "nodeEngine": "^20.19.0 || >=22.12.0",
       "peerDependencies": {
-        "vite": ">=5.0.0 || >=6.0.0 || >=7.0.0 || >=8.0.0",
+        "vite": ">=6.0.0",
         "webpack": ">=5.92.0",
         "@rsbuild/core": ">=1.0.2 || ^2.0.0",
         "vite-plugin-solid": "^2.11.10 || ^3.0.0-0",
         "@tanstack/react-router": "^1.170.46"
       },
       "conditional": false,
-      "source": "https://registry.npmjs.org/%40tanstack%2Frouter-plugin/1.168.48"
+      "source": "https://registry.npmjs.org/%40tanstack%2Frouter-plugin/1.169.0"
     },
     "@tauri-apps/api": {
-      "version": "2.12.4",
+      "version": "2.12.5",
       "nodeEngine": null,
       "peerDependencies": {},
       "conditional": false,
-      "source": "https://registry.npmjs.org/%40tauri-apps%2Fapi/2.12.4"
+      "source": "https://registry.npmjs.org/%40tauri-apps%2Fapi/2.12.5"
     },
     "@tauri-apps/cli": {
-      "version": "2.12.4",
+      "version": "2.12.6",
       "nodeEngine": ">= 10",
       "peerDependencies": {},
       "conditional": false,
-      "source": "https://registry.npmjs.org/%40tauri-apps%2Fcli/2.12.4"
+      "source": "https://registry.npmjs.org/%40tauri-apps%2Fcli/2.12.6"
     },
     "@tauri-apps/plugin-dialog": {
       "version": "2.8.4",
@@ -433,27 +385,27 @@
       "source": "https://registry.npmjs.org/%40testing-library%2Freact/16.3.3"
     },
     "@testing-library/user-event": {
-      "version": "14.6.8",
+      "version": "14.6.13",
       "nodeEngine": ">=12",
       "peerDependencies": {
         "@testing-library/dom": ">=7.21.4"
       },
       "conditional": false,
-      "source": "https://registry.npmjs.org/%40testing-library%2Fuser-event/14.6.8"
+      "source": "https://registry.npmjs.org/%40testing-library%2Fuser-event/14.6.13"
     },
     "@types/node": {
-      "version": "24.19.2",
+      "version": "24.19.3",
       "nodeEngine": null,
       "peerDependencies": {},
       "conditional": false,
-      "source": "https://registry.npmjs.org/%40types%2Fnode/24.19.2"
+      "source": "https://registry.npmjs.org/%40types%2Fnode/24.19.3"
     },
     "@types/react": {
-      "version": "19.3.0",
+      "version": "19.3.2",
       "nodeEngine": null,
       "peerDependencies": {},
       "conditional": false,
-      "source": "https://registry.npmjs.org/%40types%2Freact/19.3.0"
+      "source": "https://registry.npmjs.org/%40types%2Freact/19.3.2"
     },
     "@types/react-dom": {
       "version": "19.3.0",
@@ -465,44 +417,44 @@
       "source": "https://registry.npmjs.org/%40types%2Freact-dom/19.3.0"
     },
     "@vitejs/plugin-react": {
-      "version": "6.1.2",
+      "version": "6.3.0",
       "nodeEngine": "^20.19.0 || >=22.12.0",
       "peerDependencies": {
         "vite": "^8.0.0",
-        "oxc-transform-react": "^0.152.0",
-        "@rolldown/plugin-babel": "^0.1.7 || ^0.2.0",
+        "oxc-transform-react": ">=0.152.0 <0.157.0",
+        "@rolldown/plugin-babel": "^0.1.7 || ^0.2.0 || ^0.3.0",
         "babel-plugin-react-compiler": "^1.0.0"
       },
       "conditional": false,
-      "source": "https://registry.npmjs.org/%40vitejs%2Fplugin-react/6.1.2"
+      "source": "https://registry.npmjs.org/%40vitejs%2Fplugin-react/6.3.0"
     },
     "eslint": {
-      "version": "10.13.0",
+      "version": "10.15.0",
       "nodeEngine": "^20.19.0 || ^22.13.0 || >=24",
       "peerDependencies": {
         "jiti": "*"
       },
       "conditional": false,
-      "source": "https://registry.npmjs.org/eslint/10.13.0"
+      "source": "https://registry.npmjs.org/eslint/10.15.0"
     },
     "i18next": {
-      "version": "26.5.11",
-      "nodeEngine": null,
+      "version": "27.2.9",
+      "nodeEngine": ">=22",
       "peerDependencies": {
         "typescript": "^5 || ^6 || ^7"
       },
       "conditional": false,
-      "source": "https://registry.npmjs.org/i18next/26.5.11"
+      "source": "https://registry.npmjs.org/i18next/27.2.9"
     },
     "jotai": {
-      "version": "3.0.1",
+      "version": "3.0.2",
       "nodeEngine": ">=22.12.0",
       "peerDependencies": {
         "react": ">=18.0.0",
         "@types/react": ">=18.0.0"
       },
       "conditional": false,
-      "source": "https://registry.npmjs.org/jotai/3.0.1"
+      "source": "https://registry.npmjs.org/jotai/3.0.2"
     },
     "jsdom": {
       "version": "29.1.1",
@@ -514,11 +466,11 @@
       "source": "https://registry.npmjs.org/jsdom/29.1.1"
     },
     "prettier": {
-      "version": "3.9.10",
+      "version": "3.10.1",
       "nodeEngine": ">=14",
       "peerDependencies": {},
       "conditional": false,
-      "source": "https://registry.npmjs.org/prettier/3.9.10"
+      "source": "https://registry.npmjs.org/prettier/3.10.1"
     },
     "react": {
       "version": "19.3.1",
@@ -537,15 +489,16 @@
       "source": "https://registry.npmjs.org/react-dom/19.3.1"
     },
     "react-i18next": {
-      "version": "17.1.9",
-      "nodeEngine": null,
+      "version": "18.0.3",
+      "nodeEngine": ">=22",
       "peerDependencies": {
-        "react": ">= 16.8.0",
-        "i18next": ">= 26.2.0",
-        "typescript": "^5 || ^6 || ^7"
+        "react": ">= 18.0.0",
+        "i18next": ">= 27.0.1",
+        "typescript": "^5 || ^6 || ^7",
+        "@types/react": "*"
       },
       "conditional": false,
-      "source": "https://registry.npmjs.org/react-i18next/17.1.9"
+      "source": "https://registry.npmjs.org/react-i18next/18.0.3"
     },
     "react-markdown": {
       "version": "10.1.0",
@@ -573,17 +526,17 @@
       "dependencyRange": ">=6.0.3 <6.1.0"
     },
     "typescript-eslint": {
-      "version": "8.72.1",
+      "version": "8.74.0",
       "nodeEngine": "^18.18.0 || ^20.9.0 || >=21.1.0",
       "peerDependencies": {
         "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
         "typescript": ">=4.8.4 <6.1.0"
       },
       "conditional": false,
-      "source": "https://registry.npmjs.org/typescript-eslint/8.72.1"
+      "source": "https://registry.npmjs.org/typescript-eslint/8.74.0"
     },
     "vite": {
-      "version": "8.3.5",
+      "version": "8.3.8",
       "nodeEngine": "^20.19.0 || >=22.12.0",
       "peerDependencies": {
         "tsx": "^4.8.1",
@@ -600,7 +553,7 @@
         "@vitejs/devtools": "^0.7.1 || ^0.8.0"
       },
       "conditional": false,
-      "source": "https://registry.npmjs.org/vite/8.3.5"
+      "source": "https://registry.npmjs.org/vite/8.3.8"
     },
     "vitest": {
       "version": "4.1.12",
@@ -627,21 +580,26 @@
     {
       "name": "typescript",
       "version": "7.0.2",
-      "reason": "typescript-eslint@8.72.1 requires TypeScript >=4.8.4 <6.1.0; declare >=6.0.3 <6.1.0 so normal resolution cannot select unsupported TypeScript 6.1 or 7, and keep the Chinese-comment AST checker on its tested compiler family"
+      "reason": "typescript-eslint@8.74.0 requires TypeScript >=4.8.4 <6.1.0; declare >=6.0.3 <6.1.0 so normal resolution cannot select unsupported TypeScript 6.1 or 7, and keep the Chinese-comment AST checker on its tested compiler family"
     },
     {
       "name": "vitest",
-      "version": "5.0.5",
+      "version": "5.1.1",
       "reason": "engines.node ^22.12.0 || ^24.0.0 || >=26.0.0 excludes Node.js 25.x"
     },
     {
+      "name": "@testing-library/jest-dom",
+      "version": "8.0.0",
+      "reason": "peerDependencies.vitest >=5 <6 is incompatible with retained Vitest 4.1.12"
+    },
+    {
       "name": "jsdom",
-      "version": "30.1.3",
+      "version": "31.0.1",
       "reason": "engines.node ^22.22.2 || ^24.15.0 || >=26.0.0 excludes Node.js 24.0-24.14 and 25.x"
     },
     {
       "name": "@types/node",
-      "version": "26.6.6",
+      "version": "26.6.10",
       "reason": "keep latest 24.x types aligned with the declared minimum runtime/API line, instead of exposing Node26-only APIs"
     }
   ]

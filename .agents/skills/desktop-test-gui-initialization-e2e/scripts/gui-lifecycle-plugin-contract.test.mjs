@@ -588,13 +588,109 @@ test("rejects a macOS notification settings opener with an arbitrary target", ()
       fs
         .readFileSync(source, "utf8")
         .replace(
-          ".arg(settings_url)",
-          ".arg(user_supplied_url)",
+          ".open_url(settings_url, None::<&str>)",
+          ".open_url(user_supplied_url, None::<&str>)",
         ),
     );
     assert.match(
       verifyGuiLifecycleContract(root, "sample_gui").join("\n"),
       /Notifications 设置 opener 缺少受控结果检查/u,
+    );
+  });
+});
+
+test("rejects raw /usr/bin/open subprocess calls in macOS notification settings opener", () => {
+  withFixture(({ root, guiRoot }) => {
+    const source = path.join(guiRoot, "src-tauri", "src", "lifecycle.rs");
+    fs.writeFileSync(
+      source,
+      fs
+        .readFileSync(source, "utf8")
+        .replace(
+          `    app.opener()
+        .open_url(settings_url, None::<&str>)
+        .map_err(|_| "notification-settings-open-failed")`,
+          `    let status = tauri::async_runtime::spawn_blocking(move || std::process::Command::new("/usr/bin/open").arg(settings_url).status())
+        .await.map_err(|_| "notification-settings-open-failed")?.map_err(|_| "notification-settings-open-failed")?;
+    if status.success() { Ok(()) } else { Err("notification-settings-open-failed") }`,
+        ),
+    );
+    assert.match(
+      verifyGuiLifecycleContract(root, "sample_gui").join("\n"),
+      /必须使用官方 tauri_plugin_opener::OpenerExt，不得手写 \/usr\/bin\/open 子进程调用/u,
+    );
+  });
+});
+
+test("rejects missing or misordered opener plugin registration for system notifications", () => {
+  withFixture(({ root, guiRoot }) => {
+    const source = path.join(guiRoot, "src-tauri", "src", "lifecycle.rs");
+    fs.writeFileSync(
+      source,
+      fs
+        .readFileSync(source, "utf8")
+        .replace("        .plugin(tauri_plugin_opener::init())\n", ""),
+    );
+    assert.match(
+      verifyGuiLifecycleContract(root, "sample_gui").join("\n"),
+      /opener 插件必须在 Tauri Builder 中恰好注册一次，实际 0 次/u,
+    );
+  });
+
+  withFixture(({ root, guiRoot }) => {
+    const source = path.join(guiRoot, "src-tauri", "src", "lifecycle.rs");
+    fs.writeFileSync(
+      source,
+      fs
+        .readFileSync(source, "utf8")
+        .replace(
+          "        .plugin(tauri_plugin_notification::init())\n        .plugin(tauri_plugin_opener::init())",
+          "        .plugin(tauri_plugin_opener::init())\n        .plugin(tauri_plugin_notification::init())",
+        ),
+    );
+    assert.match(
+      verifyGuiLifecycleContract(root, "sample_gui").join("\n"),
+      /Tauri plugin 注册顺序必须为：.*notification → opener/u,
+    );
+  });
+});
+
+test("rejects WebView opener JS package, opener ACL, and disabled opener residuals", () => {
+  withFixture(({ root, guiRoot }) => {
+    fs.writeFileSync(
+      path.join(guiRoot, "package.json"),
+      JSON.stringify({
+        dependencies: {
+          "@tauri-apps/plugin-dialog": "^2.8.4",
+          "@tauri-apps/plugin-opener": "^2.7.3",
+        },
+        devDependencies: { typescript: ">=6.0.3 <6.1.0", "typescript-eslint": "^8.74.0" },
+      }),
+    );
+    fs.writeFileSync(
+      path.join(guiRoot, "src-tauri", "capabilities", "main.json"),
+      JSON.stringify({
+        identifier: "main-capability",
+        permissions: ["core:default", "dialog:default", "opener:default"],
+        windows: ["main"],
+      }),
+    );
+    assert.match(
+      verifyGuiLifecycleContract(root, "sample_gui").join("\n"),
+      /不得安装 Rust-only 能力的 JS 插件：@tauri-apps\/plugin-opener.*不得获得 Rust-only 插件 ACL：opener:/su,
+    );
+  });
+
+  withFixture(({ root, guiRoot }) => {
+    disableTrayAndSingleInstance(root, guiRoot);
+    fs.appendFileSync(path.join(root, "Cargo.toml"), 'tauri-plugin-opener = "2.7.3"\n');
+    fs.appendFileSync(
+      path.join(guiRoot, "src-tauri", "src", "lifecycle.rs"),
+      "\nuse tauri_plugin_opener::OpenerExt;\n",
+    );
+    assert.match(
+      verifyGuiLifecycleContract(root, "sample_gui").join("\n"),
+      /未选择系统通知时不得声明通知插件、opener 插件或 macOS 通知依赖.*未选择系统通知时不得保留运行时：tauri_plugin_opener/su,
     );
   });
 });

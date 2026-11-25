@@ -49,7 +49,7 @@
 - “更新日志”的事件只绑定自身 Button；父级 Paper/Group 不代理动作。其他按钮、链接、`Switch`、`Checkbox` 同样绑定在自身，Card、`Table.Tr`、`Table.Td` 等父级不得代理；表格行点击不能切换行内 `Switch`。
 - 作者显示名使用 `about.studio`，联系人使用 profile 的 `contacts.support`；窗口标题使用独立的 `contacts.windowTitle`，两个角色即使当前值相同也不能混用。
 - 三段免责声明必须完整显示并接入中英文 `brandSupport` 翻译；不得因产品没有其他关于区块而隐藏或改成占位文案。
-- 外部链接经 Tauri 窄命令或系统浏览器打开并验证 scheme/host；模板本身不持有 endpoint、网络 client 或秘密。
+- 外部链接经 Tauri 窄命令（优先复用官方 Rust-only `tauri-plugin-opener = "2.7.3"` 的 `OpenerExt`，禁止向 WebView 暴露未受限 `opener:*` ACL）或系统浏览器打开并验证 scheme/host；模板本身不持有 endpoint、网络 client 或秘密。
 
 ## 赞助页约束（仅在选择赞助页时）
 

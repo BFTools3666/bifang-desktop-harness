@@ -209,7 +209,6 @@ export const REQUIRED_ROOT_FILES = [
   ".agents/skills/desktop-build-rust-release/scripts/prepare_release_directory.test.mjs",
   ".agents/skills/desktop-build-tauri-local-install/SKILL.md",
   ".agents/skills/desktop-build-tauri-local-install/agents/openai.yaml",
-  ".agents/skills/desktop-build-tauri-release/references/tauri-macos-windows.md",
   ".agents/skills/desktop-build-tauri-release/references/tauri-macos-dmg.md",
   ".agents/skills/desktop-build-tauri-release/references/tauri-macos-signing.md",
   ".agents/skills/desktop-build-tauri-release/references/tauri-windows-native.md",

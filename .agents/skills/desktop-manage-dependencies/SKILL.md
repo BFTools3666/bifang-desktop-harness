@@ -7,7 +7,7 @@ description: 在创建下游或实际新增、替换、提高依赖下界时执�
 
 读取 [Rust 技术基线](../../../docs/RUST_CLI_TEMPLATE.md) 的所选接口、工具链和依赖准入章节，以及 [工程规则](../../../docs/ENGINEERING_RULES.md) 的依赖规则。版本数值、固定技术族与锁策略以这些事实源和当前根清单为准，不在本 Skill 复制维护。
 
-2026-10-29 登记候选及官方 registry 来源见 [registry-candidates.json](references/registry-candidates.json)。它记录当次兼容筛选，不替代目标项目实际清单、stable 测试或平台验证；后续依赖任务仍须重新查询 registry。
+2026-11-25 登记候选及官方 registry 来源见 [registry-candidates.json](references/registry-candidates.json)。它记录当次兼容筛选，不替代目标项目实际清单、stable 测试或平台验证；后续依赖任务仍须重新查询 registry。
 
 采用或更新候选前读取 [兼容反馈](references/compatibility-feedback.md)。已核实的 peer 上界、API 迁移和平台行为约束必须参与筛选，不能仅因 registry latest 或最低版本测试成功而忽略。
 

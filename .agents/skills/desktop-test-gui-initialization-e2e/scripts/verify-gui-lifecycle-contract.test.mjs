@@ -529,7 +529,7 @@ test("rejects every system-notification residual when that capability is disable
     disableTrayAndSingleInstance(root, guiRoot);
     fs.appendFileSync(
       path.join(root, "Cargo.toml"),
-      'tauri-plugin-notification = "2.8.0"\n',
+      'tauri-plugin-notification = "2.8.1"\n',
     );
     fs.appendFileSync(
       path.join(guiRoot, "src", "routes", "settings.tsx"),
@@ -632,11 +632,11 @@ test("accepts table-form Cargo dependencies and MenuItem with_id", () => {
   withFixture(({ root, guiRoot }) => {
     fs.writeFileSync(
       path.join(root, "Cargo.toml"),
-      `[workspace]\nmembers = ["sample_gui/src-tauri"]\n\n[workspace.metadata.agent-first-harness]\ninterfaces = ["gui"]\ngui-framework = "tauri"\ntarget-platforms = ["macos"]\n\n[workspace.dependencies.mac-usernotifications]\nversion = "0.3.1"\n\n[workspace.dependencies.tauri]\nversion = "2.12.5"\nfeatures = ["tray-icon"]\n\n[workspace.dependencies.tauri-plugin-autostart]\nversion = "2.7.0"\n\n[workspace.dependencies.tauri-plugin-deep-link]\nversion = "2.6.3"\n\n[workspace.dependencies.tauri-plugin-global-shortcut]\nversion = "2.4.1"\n\n[workspace.dependencies.tauri-plugin-notification]\nversion = "2.8.0"\n\n[workspace.dependencies.tauri-plugin-os]\nversion = "2.4.0"\n\n[workspace.dependencies.tauri-plugin-single-instance]\nversion = "2.5.5"\nfeatures = ["deep-link"]\n\n[workspace.dependencies.tauri-plugin-window-state]\nversion = "2.5.0"\n\n[workspace.dependencies.tokio]\nversion = "1.0.0"\nfeatures = ["macros", "rt", "fs", "sync"]\n\n[workspace.dependencies.serde]\nversion = "1.0.0"\n\n[workspace.dependencies.serde_json]\nversion = "1.0.0"\n`,
+      `[workspace]\nmembers = ["sample_gui/src-tauri"]\n\n[workspace.metadata.agent-first-harness]\ninterfaces = ["gui"]\ngui-framework = "tauri"\ntarget-platforms = ["macos"]\n\n[workspace.dependencies.mac-usernotifications]\nversion = "0.3.1"\n\n[workspace.dependencies.tauri]\nversion = "2.12.7"\nfeatures = ["tray-icon"]\n\n[workspace.dependencies.tauri-plugin-autostart]\nversion = "2.7.0"\n\n[workspace.dependencies.tauri-plugin-deep-link]\nversion = "2.6.3"\n\n[workspace.dependencies.tauri-plugin-global-shortcut]\nversion = "2.4.1"\n\n[workspace.dependencies.tauri-plugin-notification]\nversion = "2.8.1"\n\n[workspace.dependencies.tauri-plugin-opener]\nversion = "2.7.3"\n\n[workspace.dependencies.tauri-plugin-os]\nversion = "2.4.0"\n\n[workspace.dependencies.tauri-plugin-single-instance]\nversion = "2.5.5"\nfeatures = ["deep-link"]\n\n[workspace.dependencies.tauri-plugin-window-state]\nversion = "2.5.0"\n\n[workspace.dependencies.tokio]\nversion = "1.0.0"\nfeatures = ["macros", "rt", "fs", "sync"]\n\n[workspace.dependencies.serde]\nversion = "1.0.0"\n\n[workspace.dependencies.serde_json]\nversion = "1.0.0"\n`,
     );
     fs.writeFileSync(
       path.join(guiRoot, "src-tauri", "Cargo.toml"),
-      `[package]\nname = "sample_gui"\nversion = "0.1.0"\n\n[dependencies.tauri]\nworkspace = true\n\n[dependencies.tauri-plugin-deep-link]\nworkspace = true\n\n[dependencies.tauri-plugin-global-shortcut]\nworkspace = true\n\n[dependencies.tauri-plugin-notification]\nworkspace = true\n\n[dependencies.tauri-plugin-os]\nworkspace = true\n\n[dependencies.tauri-plugin-single-instance]\nworkspace = true\n\n[dependencies.tauri-plugin-window-state]\nworkspace = true\n\n[dependencies.tokio]\nworkspace = true\n\n[dependencies.serde]\nworkspace = true\n\n[dependencies.serde_json]\nworkspace = true\n\n[target.'cfg(target_os = "macos")'.dependencies.mac-usernotifications]\nworkspace = true\n\n[target.'cfg(any(target_os = "macos", target_os = "windows", target_os = "linux"))'.dependencies.tauri-plugin-autostart]\nworkspace = true\n`,
+      `[package]\nname = "sample_gui"\nversion = "0.1.0"\n\n[dependencies.tauri]\nworkspace = true\n\n[dependencies.tauri-plugin-deep-link]\nworkspace = true\n\n[dependencies.tauri-plugin-global-shortcut]\nworkspace = true\n\n[dependencies.tauri-plugin-notification]\nworkspace = true\n\n[dependencies.tauri-plugin-opener]\nworkspace = true\n\n[dependencies.tauri-plugin-os]\nworkspace = true\n\n[dependencies.tauri-plugin-single-instance]\nworkspace = true\n\n[dependencies.tauri-plugin-window-state]\nworkspace = true\n\n[dependencies.tokio]\nworkspace = true\n\n[dependencies.serde]\nworkspace = true\n\n[dependencies.serde_json]\nworkspace = true\n\n[target.'cfg(target_os = "macos")'.dependencies.mac-usernotifications]\nworkspace = true\n\n[target.'cfg(any(target_os = "macos", target_os = "windows", target_os = "linux"))'.dependencies.tauri-plugin-autostart]\nworkspace = true\n`,
     );
     fs.appendFileSync(
       path.join(root, "Cargo.toml"),
@@ -685,11 +685,12 @@ test("rejects system-notification dependency lower bounds below the fixed minimu
       fs
         .readFileSync(cargo, "utf8")
         .replace('mac-usernotifications = "0.3.1"', 'mac-usernotifications = "0.3.0"')
-        .replace('tauri-plugin-notification = "2.8.0"', 'tauri-plugin-notification = "2.3.9"'),
+        .replace('tauri-plugin-notification = "2.8.1"', 'tauri-plugin-notification = "2.8.0"')
+        .replace('tauri-plugin-opener = "2.7.3"', 'tauri-plugin-opener = "2.7.2"'),
     );
     assert.match(
       verifyGuiLifecycleContract(root, "sample_gui").join("\n"),
-      /tauri-plugin-notification.*"2\.8\.0".*mac-usernotifications.*"0\.3\.1"/su,
+      /tauri-plugin-notification.*"2\.8\.1".*tauri-plugin-opener.*"2\.7\.3".*mac-usernotifications.*"0\.3\.1"/su,
     );
   });
 });

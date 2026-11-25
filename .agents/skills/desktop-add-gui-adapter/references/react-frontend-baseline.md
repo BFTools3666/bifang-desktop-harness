@@ -16,36 +16,37 @@
 
 实施适配器时为每个直接包声明满足实际 API、Node.js、Tauri WebView、平台和安全约束的最低兼容稳定范围。`dependencies`/`devDependencies` 使用带完整三段下界的 caret（例如 `^1.2.3`），或上游官方明确支持的兼容范围；禁止裸精确版本、`latest`、tag、通配符和无下界范围。确需因上游缺陷或互操作约束精确固定时，先记录硬规则例外与解除条件。
 
-截至 2026-10-29，当前经 registry 元数据、peer 与 engine 筛选的 GUI 前端候选完整三段下界如下；在真实 GUI 下游完成最低 Node.js/pnpm、lowest-direct 解析、类型检查、非空测试与生产构建前保持 `Unverified`。实际通过后才可成为该项目的兼容下界；写入 `package.json` 时保留表内兼容范围；存在官方 peer 上界的包必须显式保留该上界，不得扩张为 caret 或改成精确锁定：
+截至 2026-11-25，当前经 registry 元数据、peer 与 engine 筛选的 GUI 前端候选完整三段下界如下；在真实 GUI 下游完成最低 Node.js/pnpm、lowest-direct 解析、类型检查、非空测试与生产构建前保持 `Unverified`。实际通过后才可成为该项目的兼容下界；写入 `package.json` 时保留表内兼容范围；存在官方 peer 上界的包必须显式保留该上界，不得扩张为 caret 或改成精确锁定：
 
 | 直接包 | 最低兼容范围 |
 |---|---|
-| `@tauri-apps/api` | `^2.12.4` |
+| `@tauri-apps/api` | `^2.12.5` |
 | `@tauri-apps/plugin-dialog` | `^2.8.4` |
 | `react` / `react-dom` | `^19.3.1` |
-| `@mantine/core` / `@mantine/hooks` | `^9.7.4` |
-| `@tabler/icons-react` | `^3.50.0` |
+| `@mantine/core` / `@mantine/hooks` | `^9.8.2` |
+| `@tabler/icons-react` | `^3.53.0` |
 | `@tanstack/react-router` | `^1.170.46` |
-| `@tanstack/router-plugin` | `^1.168.48` |
-| `@tanstack/react-query` | `^5.105.0` |
-| `jotai` | `^3.0.1` |
-| `i18next` | `^26.5.11` |
-| `react-i18next` | `^17.1.9` |
-| `vite` | `^8.3.5` |
-| `@vitejs/plugin-react` | `^6.1.2` |
+| `@tanstack/router-plugin` | `^1.169.0` |
+| `@tanstack/react-query` | `^5.108.4` |
+| `jotai` | `^3.0.2` |
+| `i18next` | `^27.2.9` |
+| `react-i18next` | `^18.0.3` |
+| `vite` | `^8.3.8` |
+| `@vitejs/plugin-react` | `^6.3.0` |
 | `typescript` | `>=6.0.3 <6.1.0` |
-| `eslint` | `^10.13.0` |
-| `typescript-eslint` | `^8.72.1` |
-| `prettier` | `^3.9.10` |
+| `eslint` | `^10.15.0` |
+| `typescript-eslint` | `^8.74.0` |
+| `prettier` | `^3.10.1` |
 | `vitest` | `^4.1.12` |
-| `@types/react` / `@types/react-dom` | `^19.3.0` |
-| `@types/node` | `^24.19.2` |
+| `@types/react` | `^19.3.2` |
+| `@types/react-dom` | `^19.3.0` |
+| `@types/node` | `^24.19.3` |
 | `@testing-library/dom` | `^10.4.2` |
 | `@testing-library/react` | `^16.3.3` |
 | `@testing-library/jest-dom` | `^7.0.1` |
-| `@testing-library/user-event` | `^14.6.8` |
+| `@testing-library/user-event` | `^14.6.13` |
 | `jsdom` | `^29.1.1` |
-| `@tauri-apps/cli` | `^2.12.4` |
+| `@tauri-apps/cli` | `^2.12.6` |
 
 有列表页时才在对应前端本地依赖中声明 `@dnd-kit/core: ^6.3.1` 与 `@dnd-kit/sortable: ^10.0.0`；无列表页的中性 GUI 不预装。
 
@@ -53,11 +54,11 @@
 
 `@tauri-apps/plugin-dialog` 是所有 GUI 的固定生产依赖，不按 profile 裁剪。前端仅通过官方包调用 dialog guest API；主窗口 capability 必须且只能用一个 `dialog:default` 覆盖 message、open、save 全部官方对话框类型，不得追加 partial allow、deprecated `ask`/`confirm` alias、deny 项、wildcard 或任何文件系统权限。dialog 返回的用户选择只表示路径值或取消结果；实际读取、写入与业务处理仍需独立批准的窄 adapter/core 能力。
 
-`package.json` 必须以 `engines.node: ">=24.0.0"` 和 `engines.pnpm: ">=12.4.1"` 表达当前最低工具范围。已安装的任何更高正式版本都在 Node.js 连续范围内直接通过；缺失或低于下界时，环境门禁选择官方索引中的最高 LTS 系列及其最新稳定补丁安装。`@types/node ^24.19.2` 是 Vite 8 类型声明与复制的 TypeScript 检查脚本直接消费的开发依赖，不能依赖 Vite/Vitest 的 optional peer 被 pnpm 间接提升。测试环境固定使用 `jsdom ^29.1.1`，其 Node.js engine 连续覆盖 `>=24.0.0`；不得升级到会重新排除 Node.js 25.x 等更高正式主版的 jsdom 版本。不得把旧式精确 `packageManager` 字段当作兼容要求；若生成工具为 Corepack 溯源必须写入该字段，它只属于实际解析元数据，不能替代 `engines` 范围或下界验证。缺省或 `dependency-lock-policy = "ignored"` 时，正常安装可生成 Git 忽略的本地 `pnpm-lock.yaml`；显式 `tracked` 时，GUI 根的 `pnpm-lock.yaml` 必须受 Git 跟踪并以冻结安装复核。锁文件策略不改变清单下界。
+`package.json` 必须以 `engines.node: ">=24.0.0"` 和 `engines.pnpm: ">=12.4.1"` 表达当前最低工具范围。已安装的任何更高正式版本都在 Node.js 连续范围内直接通过；缺失或低于下界时，环境门禁选择官方索引中的最高 LTS 系列及其最新稳定补丁安装。`@types/node ^24.19.3` 是 Vite 8 类型声明与复制的 TypeScript 检查脚本直接消费的开发依赖，不能依赖 Vite/Vitest 的 optional peer 被 pnpm 间接提升。测试环境固定使用 `jsdom ^29.1.1`，其 Node.js engine 连续覆盖 `>=24.0.0`；不得升级到会重新排除 Node.js 25.x 等更高正式主版的 jsdom 版本。不得把旧式精确 `packageManager` 字段当作兼容要求；若生成工具为 Corepack 溯源必须写入该字段，它只属于实际解析元数据，不能替代 `engines` 范围或下界验证。缺省或 `dependency-lock-policy = "ignored"` 时，正常安装可生成 Git 忽略的本地 `pnpm-lock.yaml`；显式 `tracked` 时，GUI 根的 `pnpm-lock.yaml` 必须受 Git 跟踪并以冻结安装复核。锁文件策略不改变清单下界。
 
 新增或提高直接下界时，在临时副本的 `pnpm-workspace.yaml` 中设置 `resolutionMode: lowest-direct`，于声明的最低 Node.js/pnpm 环境运行受影响的类型检查、非空单元测试与生产构建。最低版本解析只用于证明下界；正常安装可选择范围内较新的稳定版本。缺省锁策略下本地锁文件不进入 Git；已有下游显式选择 `tracked` 时跟踪 GUI 根锁文件。
 
-2026-10-29 兼容筛选保留 TypeScript `>=6.0.3 <6.1.0`、Vitest 4.1.12 与 jsdom 29.1.1：`^6.0.3` 会允许 6.1+，因此不能表达当前 typescript-eslint 的 `<6.1.0` peer；初始化构建前直接检查实际 package 声明的完整范围，不能只验证锁中碰巧安装的 6.0.3。TypeScript 7.0.2 同样不满足该 peer，Vitest 5.0.5 排除 Node.js 25，jsdom 30.1.3 排除 Node.js 24.0–24.14 和 25。`@types/node` 使用最新 24.x（24.19.2）约束最低运行时可调用的 API；不能据 26.x 类型可安装就假设 Node.js 24 支持对应新 API。Jotai 3.0.1 的公共 atom/store/Provider 用法已按当前模板核对；不使用 v3 删除的 atomFamily、loadable、setSelf。完整候选元数据与来源见 [registry-candidates.json](../../desktop-manage-dependencies/references/registry-candidates.json)。
+2026-11-25 兼容筛选保留 TypeScript `>=6.0.3 <6.1.0`、Vitest 4.1.12、`@testing-library/jest-dom 7.0.1` 与 jsdom 29.1.1：`^6.0.3` 会允许 6.1+，因此不能表达当前 `typescript-eslint@8.74.0` 的 `<6.1.0` peer；初始化构建前直接检查实际 package 声明的完整范围，不能只验证锁中碰巧安装的 6.0.3。TypeScript 7.0.2 同样不满足该 peer，Vitest 5.1.1 排除 Node.js 25，`@testing-library/jest-dom 8.0.0` 要求 `vitest >=5 <6`，jsdom 31.0.1 排除 Node.js 24.0–24.14 和 25。`@types/node` 使用最新 24.x（24.19.3）约束最低运行时可调用的 API；不能据 26.x 类型可安装就假设 Node.js 24 支持对应新 API。`i18next 27.2.9` 与 `react-i18next 18.0.3` 需成套升级并均满足 `Node >=22` 与 React 19。Jotai 3.0.2 的公共 atom/store/Provider 用法已按当前模板核对；不使用 v3 删除的 atomFamily、loadable、setSelf。完整候选元数据与来源见 [registry-candidates.json](../../desktop-manage-dependencies/references/registry-candidates.json)。
 
 ## 状态所有权
 

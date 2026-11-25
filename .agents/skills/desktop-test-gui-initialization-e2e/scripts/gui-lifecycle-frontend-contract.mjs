@@ -304,6 +304,7 @@ export function validateRustOnlyDesktopCapabilities(guiRoot, profile, errors, re
       "@tauri-apps/plugin-deep-link",
       "@tauri-apps/plugin-global-shortcut",
       "@tauri-apps/plugin-notification",
+      "@tauri-apps/plugin-opener",
       "@tauri-apps/plugin-os",
       "@tauri-apps/plugin-autostart",
       "@tauri-apps/plugin-window-state",
@@ -321,6 +322,7 @@ export function validateRustOnlyDesktopCapabilities(guiRoot, profile, errors, re
     "deep-link:",
     "global-shortcut:",
     "notification:",
+    "opener:",
     "os:",
     "autostart:",
     "window-state:",
@@ -329,8 +331,8 @@ export function validateRustOnlyDesktopCapabilities(guiRoot, profile, errors, re
       errors.push(`GUI WebView 不得获得 Rust-only 插件 ACL：${prefix}`);
     }
   }
-  if (!profile.systemNotification && capabilityTexts.includes("notification")) {
-    errors.push("未选择系统通知时 capability 不得保留通知权限残留");
+  if (!profile.systemNotification && (capabilityTexts.includes("notification") || capabilityTexts.includes("opener"))) {
+    errors.push("未选择系统通知时 capability 不得保留通知或 opener 权限残留");
   }
   if (!profile.autostart && capabilityTexts.includes("autostart")) {
     errors.push("未选择开机自启时 capability 不得保留自启权限残留");

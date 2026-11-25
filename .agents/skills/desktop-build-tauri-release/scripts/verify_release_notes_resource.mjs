@@ -12,7 +12,7 @@ export const ROOT_CARGO_SOURCE_MAPPING = "../release-notes.json";
 export const CONVENTIONAL_CARGO_SOURCE_MAPPING = "../../release-notes.json";
 export const RESOURCE_TARGET = "release-notes.json";
 
-export class ResourceVerificationError extends Error {
+class ResourceVerificationError extends Error {
   constructor(message) {
     super(message);
     this.name = "ResourceVerificationError";

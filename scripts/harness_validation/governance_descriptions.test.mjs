@@ -103,7 +103,7 @@ test("adapter contracts require their unverified evidence markers", () => {
 });
 
 test("React dependency floors require Node types and continuous jsdom support", () => {
-  for (const fragment of ["`@types/node` | `^24.19.2`", "`jsdom` | `^29.1.1`", "不得升级到会重新排除 Node.js 25.x"]) {
+  for (const fragment of ["`@types/node` | `^24.19.3`", "`jsdom` | `^29.1.1`", "不得升级到会重新排除 Node.js 25.x"]) {
     withTemporaryRoot((root) => {
       const reactBaseline = mutate(root, REACT_BASELINE, (source) => source.replace(fragment, ""));
       const errors = [];

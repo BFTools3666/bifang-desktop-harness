@@ -324,14 +324,16 @@ function validateSettingsOpener(sourceText, rustFunctions, errors) {
   const settingsAssignments = [...code.matchAll(/\blet\s+settings_url\s*=/gu)];
   const bundle = /let\s+bundle_identifier\s*=\s*app\.config\(\)\.identifier\.clone\(\)\s*;/u.exec(code);
   const settings = /let\s+settings_url\s*=\s*format!\s*\(\s*"\{MACOS_NOTIFICATION_SETTINGS_URL_PREFIX\}\{bundle_identifier\}"\s*\)\s*;/u.exec(code);
-  const command = /tauri::async_runtime::spawn_blocking[\s\S]*?std::process::Command::new\s*\(\s*"\/usr\/bin\/open"\s*\)\s*\.arg\s*\(\s*settings_url\s*\)\s*\.status\s*\(\s*\)/u.exec(code);
-  const result = /if\s+status\.success\(\)\s*\{\s*Ok\(\(\)\)\s*\}\s*else\s*\{\s*Err\(\s*"notification-settings-open-failed"\s*\)\s*\}/u.exec(code);
+  const openerCall = /app\s*\.\s*opener\s*\(\s*\)\s*\.\s*open_url\s*\(\s*settings_url\s*,\s*None::<&str>\s*\)\s*\.\s*map_err\s*\(\s*\|\s*_\s*\|\s*"notification-settings-open-failed"\s*\)/u.exec(code);
+  if (/std::process::Command|\/usr\/bin\/open/u.test(code)) {
+    errors.push("macOS Notifications 设置 opener 必须使用官方 tauri_plugin_opener::OpenerExt，不得手写 /usr/bin/open 子进程调用");
+  }
   if (
     bundleAssignments.length !== 1 || settingsAssignments.length !== 1 ||
-    !bundle || !settings || !command || !result ||
-    !(bundle.index < settings.index && settings.index < command.index && command.index < result.index)
+    !bundle || !settings || !openerCall ||
+    !(bundle.index < settings.index && settings.index < openerCall.index)
   ) {
-    errors.push("macOS Notifications 设置 opener 缺少受控结果检查：必须由当前 app identifier 构造固定 URL，并检查 open 退出状态");
+    errors.push("macOS Notifications 设置 opener 缺少受控结果检查：必须由当前 app identifier 构造固定 URL，并通过官方 app.opener().open_url(..., None::<&str>) 映射失败错误");
   }
 }
 
@@ -339,6 +341,8 @@ export function validateNotificationRuntime(sourceTexts, errors) {
   const sourceText = sourceTexts.join("\n");
   const registrations = [...sourceText.matchAll(/\.plugin\s*\(\s*tauri_plugin_notification::init/gu)];
   if (registrations.length !== 1) errors.push(`notification 插件必须在 Tauri Builder 中恰好注册一次，实际 ${registrations.length} 次`);
+  const openerRegistrations = [...sourceText.matchAll(/\.plugin\s*\(\s*tauri_plugin_opener::init\s*\(\s*\)\s*\)/gu)];
+  if (openerRegistrations.length !== 1) errors.push(`opener 插件必须在 Tauri Builder 中恰好注册一次，实际 ${openerRegistrations.length} 次`);
   for (const token of [
     "NotificationPayload", "NotificationCommand", "mpsc", "oneshot", "JoinHandle",
     "get_system_notification_setting", "set_system_notification_enabled", "enqueue_system_notification",
@@ -349,7 +353,7 @@ export function validateNotificationRuntime(sourceTexts, errors) {
     "MacosNotificationAuthorizationStatus::Provisional", "MacosNotificationAuthorizationStatus::Ephemeral",
     "open_macos_notification_settings", "MACOS_NOTIFICATION_SETTINGS_URL_PREFIX",
     "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=", "app.config().identifier",
-    'std::process::Command::new("/usr/bin/open")', "permission-denied-settings-opened",
+    "OpenerExt", ".opener()", ".open_url(", "permission-denied-settings-opened",
     "permission-restricted-settings-opened", "permission-not-granted-settings-opened",
     "notification-settings-open-failed", "NotificationExt", "request_permission", ".builder(", ".show(",
   ]) {

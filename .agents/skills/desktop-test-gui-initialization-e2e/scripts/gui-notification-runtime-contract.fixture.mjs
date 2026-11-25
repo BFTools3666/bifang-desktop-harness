@@ -130,9 +130,9 @@ async fn get_macos_notification_authorization_status() -> Result<MacosNotificati
 async fn open_macos_notification_settings(app: &tauri::AppHandle) -> Result<(), &'static str> {
     let bundle_identifier = app.config().identifier.clone();
     let settings_url = format!("{MACOS_NOTIFICATION_SETTINGS_URL_PREFIX}{bundle_identifier}");
-    let status = tauri::async_runtime::spawn_blocking(move || std::process::Command::new("/usr/bin/open").arg(settings_url).status())
-        .await.map_err(|_| "notification-settings-open-failed")?.map_err(|_| "notification-settings-open-failed")?;
-    if status.success() { Ok(()) } else { Err("notification-settings-open-failed") }
+    app.opener()
+        .open_url(settings_url, None::<&str>)
+        .map_err(|_| "notification-settings-open-failed")
 }
 
 #[cfg(target_os = "macos")]

@@ -187,11 +187,16 @@ export function validatePluginDependencyContract(rootCargo, guiCargo, profile, e
     rootCargo,
     "tauri-plugin-notification",
   );
+  const workspaceOpener = workspaceDependency(
+    rootCargo,
+    "tauri-plugin-opener",
+  );
   const workspaceMacNotifications = workspaceDependency(
     rootCargo,
     "mac-usernotifications",
   );
   const memberNotification = memberDependency(guiCargo, "tauri-plugin-notification");
+  const memberOpener = memberDependency(guiCargo, "tauri-plugin-opener");
   const genericMacNotifications = memberDependency(guiCargo, "mac-usernotifications");
   const targetMacNotifications = targetDependencyDeclaration(
     guiCargo,
@@ -199,14 +204,20 @@ export function validatePluginDependencyContract(rootCargo, guiCargo, profile, e
     "mac-usernotifications",
   );
   if (profile.systemNotification) {
-    if (!cargoDependencyHasLowerBound(workspaceNotification, "2.8.0")) {
-      errors.push('选择系统通知时 tauri-plugin-notification 兼容下界必须为 "2.8.0"');
+    if (!cargoDependencyHasLowerBound(workspaceNotification, "2.8.1")) {
+      errors.push('选择系统通知时 tauri-plugin-notification 兼容下界必须为 "2.8.1"');
+    }
+    if (!cargoDependencyHasLowerBound(workspaceOpener, "2.7.3")) {
+      errors.push('选择系统通知时 tauri-plugin-opener 兼容下界必须为 "2.7.3"');
     }
     if (!cargoDependencyHasLowerBound(workspaceMacNotifications, "0.3.1")) {
       errors.push('选择系统通知时 mac-usernotifications 兼容下界必须为 "0.3.1"');
     }
     if (!memberNotification || !/\bworkspace\s*=\s*true\b/u.test(memberNotification)) {
       errors.push("选择系统通知时 member 必须通过 workspace = true 继承 tauri-plugin-notification");
+    }
+    if (!memberOpener || !/\bworkspace\s*=\s*true\b/u.test(memberOpener)) {
+      errors.push("选择系统通知时 member 必须通过 workspace = true 继承 tauri-plugin-opener");
     }
     if (
       !targetMacNotifications ||
@@ -217,11 +228,13 @@ export function validatePluginDependencyContract(rootCargo, guiCargo, profile, e
     }
   } else if (
     workspaceNotification ||
+    workspaceOpener ||
     workspaceMacNotifications ||
     allMemberDependencyDeclarations(guiCargo, "tauri-plugin-notification").length > 0 ||
+    allMemberDependencyDeclarations(guiCargo, "tauri-plugin-opener").length > 0 ||
     allMemberDependencyDeclarations(guiCargo, "mac-usernotifications").length > 0
   ) {
-    errors.push("未选择系统通知时不得声明通知插件或 macOS 通知依赖");
+    errors.push("未选择系统通知时不得声明通知插件、opener 插件或 macOS 通知依赖");
   }
 
   const workspaceAutostart = workspaceDependency(rootCargo, "tauri-plugin-autostart");
@@ -259,7 +272,10 @@ function validatePluginOrder(sourceText, profile, errors) {
     ["window-state", "tauri_plugin_window_state::Builder::default"],
     ["dialog", "tauri_plugin_dialog::init"],
     ...(profile.systemNotification
-      ? [["notification", "tauri_plugin_notification::init"]]
+      ? [
+          ["notification", "tauri_plugin_notification::init"],
+          ["opener", "tauri_plugin_opener::init"],
+        ]
       : []),
     ...(profile.autostart ? [["autostart", "tauri_plugin_autostart::init"]] : []),
     ...(profile.globalShortcut
@@ -599,7 +615,7 @@ export function validatePluginRuntimeContract(guiRoot, sourceTexts, profile, err
   else validateDisabledRuntime(sourceText, "全局快捷键", ["tauri_plugin_global_shortcut", "GlobalShortcutExt", "OwnedGlobalShortcutRegistry", "global_shortcut_", "globalShortcut"], errors);
 
   if (profile.systemNotification) validateNotificationRuntime(sourceTexts, errors);
-  else validateDisabledRuntime(sourceText, "系统通知", ["tauri_plugin_notification", "mac_usernotifications", "NotificationCommand", "system_notification"], errors);
+  else validateDisabledRuntime(sourceText, "系统通知", ["tauri_plugin_notification", "tauri_plugin_opener", "OpenerExt", "mac_usernotifications", "NotificationCommand", "system_notification"], errors);
 
   if (profile.autostart) validateAutostartRuntime(sourceTexts, errors);
   else validateDisabledRuntime(sourceText, "开机自启", ["tauri_plugin_autostart", "autolaunch", "get_autostart_enabled", "set_autostart_enabled"], errors);
@@ -608,7 +624,7 @@ export function validatePluginRuntimeContract(guiRoot, sourceTexts, profile, err
 }
 
 /** 返回当前 profile 必须存在的独立插件回归名称。 */
-export function requiredPluginTestNames(profile) {
+function requiredPluginTestNames(profile) {
   return [
     ...BASELINE_TEST_NAMES,
     ...(profile.singleInstance ? SINGLE_INSTANCE_TEST_NAMES : []),

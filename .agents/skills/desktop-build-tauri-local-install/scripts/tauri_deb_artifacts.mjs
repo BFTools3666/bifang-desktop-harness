@@ -55,7 +55,7 @@ function verifyCollection(directory, filename, result) {
 }
 
 /** 目录身份保持不变时才移除本次私有 stage；漂移现场保留，不递归删除陌生目录。 */
-export function removeOwnedDirectory(directory, identity) {
+function removeOwnedDirectory(directory, identity) {
   const stat = fs.lstatSync(directory);
   if (!stat.isDirectory() || stat.isSymbolicLink() || stat.dev !== identity.dev || stat.ino !== identity.ino) throw new Error('owned artifact directory changed; cleanup remains unverified');
   fs.rmSync(directory, { recursive: true });

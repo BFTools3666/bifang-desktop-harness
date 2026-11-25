@@ -13,7 +13,7 @@ import {
 const supportRoot = path.join(SKILLS_ROOT, "desktop-prepare-gui-support-surfaces");
 export const GUI_SUPPORT_SKILL = path.join(supportRoot, "SKILL.md");
 export const GUI_SUPPORT_REFERENCE = path.join(supportRoot, "references", "gui-support-surfaces.md");
-export const GUI_SUPPORT_PAGES_REFERENCE = path.join(supportRoot, "references", "about-and-sponsor-pages.md");
+const GUI_SUPPORT_PAGES_REFERENCE = path.join(supportRoot, "references", "about-and-sponsor-pages.md");
 export const GUI_SUPPORT_METADATA = path.join(supportRoot, "agents", "openai.yaml");
 export const GUI_SUPPORT_BRAND_ROOT = path.join(supportRoot, "assets", "brand-support");
 

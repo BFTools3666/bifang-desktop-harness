@@ -6,7 +6,7 @@ import { fail, relativePath } from "./core.mjs";
 
 const SAFE_RELATIVE_PATH = /^[A-Za-z0-9._/-]+$/u;
 
-export const EXPECTED_MEDIA = new Map([
+const EXPECTED_MEDIA = new Map([
   ["media/sponsor/arrow.png", "brand-optional-currently-unreferenced"],
   ["media/sponsor/bg.jpg", "brand-presentation"],
   ["media/sponsor/icon1.png", "brand-optional-currently-unreferenced"],

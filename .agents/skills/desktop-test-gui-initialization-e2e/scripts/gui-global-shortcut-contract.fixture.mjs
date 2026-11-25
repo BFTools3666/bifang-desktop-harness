@@ -232,6 +232,7 @@ fn run() {
         .plugin(tauri_plugin_window_state::Builder::default().with_state_flags(StateFlags::SIZE | StateFlags::POSITION | StateFlags::MAXIMIZED).build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, None))
         ${shortcutBuilder}
         .invoke_handler(tauri::generate_handler![get_app_metadata, get_system_locale, set_interface_language, load_release_notes, get_system_notification_setting, set_system_notification_enabled, get_autostart_enabled, set_autostart_enabled${statusCommand}])
