@@ -1,17 +1,17 @@
 {
   "schemaVersion": 3,
-  "sourceHead": "f9e0539885c0b02fb7d949bb365985abdeb1de90",
-  "version": "202611251946",
+  "sourceHead": "099a55b6e08678be93b4c9d78ffc2cd44a5537f8",
+  "version": "202611252042",
   "releaseDate": "2026-11-25",
-  "expectedTag": "v202611251946-20261125",
+  "expectedTag": "v202611252042-20261125",
   "defaultBranch": "master",
   "releaseReview": {
     "selection": "enabled",
     "status": "passed",
-    "scopeBase": "f2d946b5217a2d5045bc2b79526546bed0391bdf",
-    "sourceHead": "f9e0539885c0b02fb7d949bb365985abdeb1de90",
-    "scopeDiffSha256": "564bc979b75910cd372998835f55dfceb309d320a5212ebfb9138b0a0bfff916",
-    "reviewedSourceCommit": "f9e0539885c0b02fb7d949bb365985abdeb1de90",
+    "scopeBase": "8162d89ce70efd129a98b692c750f47691249384",
+    "sourceHead": "099a55b6e08678be93b4c9d78ffc2cd44a5537f8",
+    "scopeDiffSha256": "130a2552ab8a463f36e14ed8fbc920ef6433cabaaedc4a994bd7271b8518699e",
+    "reviewedSourceCommit": "099a55b6e08678be93b4c9d78ffc2cd44a5537f8",
     "checks": [
       "behavior-correctness",
       "core-adapter-boundary",
@@ -19,7 +19,7 @@
       "responsibility-and-size",
       "temporary-markers"
     ],
-    "evidenceSummary": "审查覆盖 f2d946b5..f9e05398（下游治理知识回流、NSH 0.7.0 生态与 Tauri 2.12.7/tauri-plugin-opener 升级及清理）。核心边界：中性 CLI 经 check_core_first 与 rustc 1.100.0 fmt/clippy/test(7/7) 通过；NSH 0.7 保留共享 core；Tauri opener 限 Rust-only 禁 JS/ACL 与 /usr/bin/open。隔离沙箱(Rust 5/5、前端 43/43 + tsc + Vite)及 22 个 Harness 测试文件 326/326 通过；validate_harness --release-review 通过（36 项既有软行数提示无硬超限，TODO 为测试夹具）。候选版本仍标 Unverified；无产品构建或 E2E。",
+    "evidenceSummary": "全项目审查覆盖 8162d89c..099a55b6（外部增强 Skills 分类同步与 rust-anything 纯 Rust 约束、deslop-please 延迟安装、sync_gitignore 自动忽略、Harness 升级后置依赖/清理/结构重构/单版本豁免审计）。审查修复了 harness_upgrade_structure 调用 check_core_first 参数名（--workspace-root）、测试夹具静态引用及 document_partitions 章节计数。验证：validate_harness --release-review（57 skills、228 scripts、99 test files、526 maintained files，37 项既有非阻断提示）、check_no_python、中性 Rust 脚手架 rustc 1.100.0 fmt/clippy/test(7/7)/core-first/中文注释(24项)、全量 99 文件回归(1312通过+修复后3套件23/23全通过，17项平台跳过)。无产品构建或 E2E。",
     "reason": null,
     "remainingRisk": null
   }
