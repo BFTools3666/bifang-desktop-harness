@@ -22,5 +22,6 @@ Harness 本身也必须遵守 MVP 原则。项目很小时，Harness 应当简�
 - [基础定义、核心信念与七层模型](harness_engineering/foundations.md)
 - [范围、生命周期、维护与演进](harness_engineering/project_lifecycle.md)
 - [Agent-first 设计、案例与完成定义](harness_engineering/agent_first_design.md)
+- [下游差异比较与经验回流](harness_engineering/downstream_feedback.md)
 
 按任务只读取相关分卷；本入口维护方法论定位与阅读路由，不重复分卷正文。

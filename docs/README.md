@@ -15,6 +15,7 @@
 
 - [创建终端下游的阶段图](PROJECT_CREATION.md)：本 Harness 上游的导航；表单、准备、初始化、裁剪和基线各有独立负责人。
 - [下游升级 Skill](../.agents/skills/desktop-upgrade-harness/SKILL.md)：已有终端项目的工程层传播与受保护文件边界。
+- [下游差异比较与经验回流](harness_engineering/downstream_feedback.md)：在上游维护中筛选可复用缺口，按知识归属回写并核对传播范围。
 - [技术债](TECH_DEBT.md)：当前已知限制、缓解状态及退役条目的历史证据。
 
 `docs/` 保存当前规范与按事件形成的原始记录。`knowledge/` 只描述提取时的源码快照；两者内容冲突时回到当前源码及本页所指的权威来源核对。
