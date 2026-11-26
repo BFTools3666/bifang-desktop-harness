@@ -4,7 +4,7 @@
 
 ## 2026-11-26 变化
 
-- `HARNESS-NSH-071-RUNTIME-20261126`（`required_version = pending`）：新建 NSH 工程使用官方 0.7.1 运行时、匹配 CLI 和两套同版 Skills。已采用顶层 NSH 的项目先在原工程同步 Cargo 版本、Git 提交与 CLI，再进入受管开发、工程升级和打包。Linux 0.7.1 由官方运行器按需启用媒体，构建无须旧 GStreamer 开发包。详见 [NSH 运行时与迁移](../../.agents/skills/desktop-add-nsh-adapter/references/runtime-and-capabilities.md)。
+- `HARNESS-NSH-071-RUNTIME-20261126`（`required_version = 202611261230`）：新建 NSH 工程使用官方 0.7.1 运行时、匹配 CLI 和两套同版 Skills。已采用顶层 NSH 的项目先在原工程同步 Cargo 版本、Git 提交与 CLI，再进入受管开发、工程升级和打包。Linux 0.7.1 由官方运行器按需启用媒体，构建无须旧 GStreamer 开发包。详见 [NSH 运行时与迁移](../../.agents/skills/desktop-add-nsh-adapter/references/runtime-and-capabilities.md)。
 
 ## 2026-11-25 变化
 
