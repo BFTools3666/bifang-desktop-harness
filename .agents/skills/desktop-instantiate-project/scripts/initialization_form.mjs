@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import { resolveProjectTarget } from "./resolve_project_target.mjs";
-import { validNshIdentity } from "../../desktop-add-nsh-adapter/scripts/nsh_runtime_revision.mjs";
+import { validNshIdentity } from "../../desktop-add-nsh-adapter/scripts/nsh_identity.mjs";
 import { BASE_FIELDS, DESKTOP_FIELDS, GUI_FIELDS, NSH_PLATFORM_ORDER, NSH_TARGET_PLATFORMS, POLICY_FIELDS, POLICY_PRESET, QUESTIONS, REVIEW_QUESTION, questionFor, summaryNotices } from "./initialization_questions.mjs";
 
 const NSH_DESKTOP_QUESTIONS = ["system_tray", "single_instance", "deep_link", "about_page", "sponsor_page", "sidebar_mode"];

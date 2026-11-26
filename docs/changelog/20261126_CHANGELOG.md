@@ -1,6 +1,10 @@
-# 2026-11-25 变更记录
+# 2026-11-26 变更记录
 
 本文件承接既有变更与历史版本绑定。退役接口的发布记录见[历史原文](CHANGELOG_history.md)。
+
+## 2026-11-26 变化
+
+- `HARNESS-NSH-071-RUNTIME-20261126`（`required_version = pending`）：新建 NSH 工程使用官方 0.7.1 运行时、匹配 CLI 和两套同版 Skills。已采用顶层 NSH 的项目先在原工程同步 Cargo 版本、Git 提交与 CLI，再进入受管开发、工程升级和打包。Linux 0.7.1 由官方运行器按需启用媒体，构建无须旧 GStreamer 开发包。详见 [NSH 运行时与迁移](../../.agents/skills/desktop-add-nsh-adapter/references/runtime-and-capabilities.md)。
 
 ## 2026-11-25 变化
 

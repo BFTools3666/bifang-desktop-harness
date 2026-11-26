@@ -103,8 +103,9 @@ export const REQUIRED_MANAGED_SOURCE_PATHS = [
   ".agents/skills/desktop-switch-post-release-action/scripts/post_release_action.test.mjs",
 ];
 
-/** NSH 发布模块只随采用 NSH 的下游候选传播，并与上游版本保持一致。 */
+/** NSH 构建所需模块只随采用 NSH 的下游候选传播，并与上游版本保持一致。 */
 export const REQUIRED_NSH_SOURCE_PATHS = [
+  ".agents/skills/desktop-add-nsh-adapter/scripts/nsh_identity.mjs",
   ".agents/skills/desktop-build-nsh-release/scripts/build_nsh_release.mjs",
   ".agents/skills/desktop-build-nsh-release/scripts/nsh_portable_entry.mjs",
   ".agents/skills/desktop-build-nsh-release/scripts/nsh_desktop_installer.mjs",

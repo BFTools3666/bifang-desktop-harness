@@ -35,10 +35,10 @@
 
 ### NSH 全目标 Mixed 与桌面能力
 
-- 受管 NSH 入口仅支持官方 v0.7.0 提交 `3f8ecd8b3c55ad6274c6babbf7ee55c4cd4ae359` 与匹配 CLI。旧工程须先迁移，详见 [NSH 运行时](../../.agents/skills/desktop-add-nsh-adapter/references/runtime-and-capabilities.md)。
+- 受管 NSH 入口仅支持官方 v0.7.1 提交 `f78eace7af23a9c1c72605c7ee46204f57f3e8e6` 与匹配 CLI。旧工程须先迁移，详见 [NSH 运行时](../../.agents/skills/desktop-add-nsh-adapter/references/runtime-and-capabilities.md)。
 
 - `HARNESS-NSH-05-OFFICIAL`（`required_version = 202611121850`）：所有新 NSH 目标使用同版本官方运行时、Mixed TSX 和共享 Rust core。仅 desktop 保存九字段桌面 profile，表单只询问适用项。官方多窗口固定提供；托盘、单实例、深链接按选择接入，深链接要求单实例；自启、通知与 OS 全局快捷键在中性模板固定关闭。选择 NSH 时，官方 `nsh`、`nsh-design-guides` 随脚手架自动安装到项目 `.agents/skills/`。见 [ADR-20261112-003](../adr/20261125_ADR.md)。
-- 新 NSH 的 desktop、mobile、Web 均走官方 `nsh package`；TUI 只支持官方运行与测试，0.7.0 没有 TUI 打包目标。组合工程的移动/Web 包通过保留应用资源和 Cargo 相对路径的工作区副本隔离桌面窗口、单实例与模板恢复协议。旧工程迁移在原项目中处理。
+- 新 NSH 的 desktop、mobile、Web 均走官方 `nsh package`；TUI 只支持官方运行与测试，0.7.1 没有 TUI 打包目标。组合工程的移动/Web 包通过保留应用资源和 Cargo 相对路径的工作区副本隔离桌面窗口、单实例与模板恢复协议。旧工程迁移在原项目中处理。
 
 ### NSH 顶层程序类型与目标能力
 

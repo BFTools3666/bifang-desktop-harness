@@ -1,5 +1,5 @@
 /** 初始化问句的唯一目录；选项值供解析器使用，中文文案直接供所有模型展示。 */
-import { NSH_STABLE_VERSION, NSH_TARGETS, NSH_PLATFORMS as NSH_PLATFORM_ORDER, NSH_TARGET_PLATFORMS } from "../../desktop-add-nsh-adapter/scripts/nsh_runtime_revision.mjs";
+import { NSH_STABLE_VERSION, NSH_TARGETS, NSH_PLATFORMS as NSH_PLATFORM_ORDER, NSH_TARGET_PLATFORMS } from "../../desktop-implement-change/scripts/nsh_runtime_policy.mjs";
 export { NSH_TARGETS, NSH_PLATFORM_ORDER, NSH_TARGET_PLATFORMS };
 export const QUESTIONS = [
   { id: "name_zh", number: 1, title: "中文项目展示名称是什么？", alternateAction: { label: "改用英文名", value: "skip" }, help: "中英文至少提供一个；若只提供英文名，可点击“改用英文名”。另一名称由 Agent 翻译，在最终汇总中确认。" },

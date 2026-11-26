@@ -40,7 +40,7 @@
 | Harness 升级 | 真实 CLI + 隔离 Git 测试夹具 | `plan`/`apply`/`record`、三方比较、引导、来源与控制状态绑定、权限、`protected`/`tombstone`；遇到符号链接与碰撞时默认拒绝，真实下游仍需前向证据 |
 | Rust 资产 | 声明的 Rust 工具链 | 日常开发只运行本次必要单元测试；显式构建只追加 workspace 差异范围非空回归测试与实际构建，E2E 只在最终候选形成后按本次选择执行 |
 | GUI 初始化 E2E | Tauri：`verify-gui-lifecycle-contract.mjs` + `$desktop-test-gui-initialization-e2e` + Computer Use | 只在含 GUI 的一次性初始化提交前读取九项 profile；Tauri 验证 system-locale/window-state 两项 Rust-only 基线与 dialog 固定 WebView 基线（依赖、顺序、`dialog:default`、零额外文件系统授权），再按选择验证六项宿主能力。|
-| NSH 初始化 E2E | `$desktop-test-nsh-initialization-e2e` + 非空 Rust/Mixed 渲染测试 + 已选目标实际运行 | 核对官方 0.7.0 运行时和项目本地 Skills。桌面验证官方多窗口及已选宿主能力；移动/Web 验证实际运行；TUI 执行官方终端渲染测试并检查键盘操作与终端恢复。 |
+| NSH 初始化 E2E | `$desktop-test-nsh-initialization-e2e` + 非空 Rust/Mixed 渲染测试 + 已选目标实际运行 | 核对官方 0.7.1 运行时和项目本地 Skills。桌面验证官方多窗口及已选宿主能力；移动/Web 验证实际运行；TUI 执行官方终端渲染测试并检查键盘操作与终端恢复。 |
 | 发布语义审查 | 当次 `reviewSelection` + 冻结基线到发布 HEAD 的累计差异 | 每次明确发布只解析一次；硬要求强制启用。`enabled` 记录绑定提交和差异范围的通过证据；`disabled` 且无硬要求时记录 `Not run`、原因和风险且不生成证据；日常 Task/Worktree 整合只保留机械安全门禁 |
 | 发布刷新 | 辅助程序与发布校验器正负向测试 | 独立 Git 根、原子隔离旧目录、符号链接/重解析点、不跟随清理、精确忽略规则、默认矩阵和回退边界 |
 | Tauri DMG 最终布局 | `scripts/verify-dmg-layout.sh <final-dmg>` + 只读候选证据 | 构建和完整验收都绑定当前最终字节，验证 `.DS_Store`、本地背景、唯一 `.app` 与 `/Applications` 链接；软件许可需独立人工授权，后处理后旧证据失效 |
@@ -60,6 +60,6 @@
 
 ### NSH 路由
 
-根 Cargo `interfaces = ["nsh"]` 与 `nsh-targets` 分派 `$desktop-build-nsh-release`。新 NSH 的 desktop、mobile、Web 均走官方 `nsh package`；TUI 只支持官方运行与测试，0.7.0 没有 TUI 打包目标。组合工程的移动/Web 包通过保留应用资源和 Cargo 相对路径的工作区副本隔离桌面窗口、单实例与模板恢复协议。最终候选按实际平台执行变更所需的安装、正常启动、共享 core、双语更新日志或其他交互。未运行的平台保持 Unverified。外层日志用 sidecar 摘要核对，适用界面行为在真实制品中观察。
+根 Cargo `interfaces = ["nsh"]` 与 `nsh-targets` 分派 `$desktop-build-nsh-release`。新 NSH 的 desktop、mobile、Web 均走官方 `nsh package`；TUI 只支持官方运行与测试，0.7.1 没有 TUI 打包目标。组合工程的移动/Web 包通过保留应用资源和 Cargo 相对路径的工作区副本隔离桌面窗口、单实例与模板恢复协议。最终候选按实际平台执行变更所需的安装、正常启动、共享 core、双语更新日志或其他交互。未运行的平台保持 Unverified。外层日志用 sidecar 摘要核对，适用界面行为在真实制品中观察。
 
 NSH 按明确的目标和 buildRun 定位候选证据。macOS 和 Windows 正式制品及校验和位于 `release/` 顶层，清单与运行证据从 `release/.nsh-evidence/<buildRun>/` 读取。其他目标和历史批次使用原 `release/<buildRun>/`。校验清单列出的包、更新日志和许可证字节及摘要。E2E 在最终包形成后使用真实目标宿主/设备或 Web 静态站点；每个目标独立取证。已选或必需检查无通过证据时，候选不能判为 accepted。初始化中性壳层测试不替代产品验收。

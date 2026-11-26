@@ -7,7 +7,8 @@ import test from 'node:test';
 import { spawnSync } from 'node:child_process';
 import { createNshWorkspace } from './create_nsh_workspace.mjs';
 import { addNshAdapter } from '../../desktop-add-nsh-adapter/scripts/add_nsh_adapter.mjs';
-import { renderNshAdapterFiles,NSH_REVISION,NSH_UNAVAILABLE } from '../../desktop-add-nsh-adapter/scripts/nsh_adapter_files.mjs';
+import { renderNshAdapterFiles } from '../../desktop-add-nsh-adapter/scripts/nsh_adapter_files.mjs';
+import { NSH_STABLE_REVISION } from '../../desktop-implement-change/scripts/nsh_runtime_policy.mjs';
 import { sourceSnapshot } from '../../desktop-build-nsh-release/scripts/build_nsh_release.mjs';
 import { initialize,check } from '../../desktop-manage-version/scripts/version_gate.mjs';
 
@@ -27,7 +28,7 @@ test('application_ids_are_valid_for_android_and_apple_without_collisions',()=>{
 });
 
 test('unavailable_capabilities_reject_before_writing_and_disabled_pages_have_no_files',()=>fixture(parent=>{
-  for(const field of NSH_UNAVAILABLE){const input=options();input.profile[field]='enabled';assert.throws(()=>createNshWorkspace(path.join(parent,'new'),input),/unavailable/u);assert.equal(fs.existsSync(path.join(parent,'new')),false);}
+  for(const field of ['system_notification', 'autostart', 'global_shortcut']){const input=options();input.profile[field]='enabled';assert.throws(()=>createNshWorkspace(path.join(parent,'new'),input),/unavailable/u);assert.equal(fs.existsSync(path.join(parent,'new')),false);}
   const files=renderNshAdapterFiles(options());
   assert.equal([...files.keys()].some(file=>/sponsor|about\.tsx|build\.rs/u.test(file)),false);
   assert.equal(files.get('sample_tool_nsh/Cargo.toml').includes('sample_tool_core.workspace = true'),true);
@@ -101,7 +102,7 @@ test('fresh_workspace_cargo_metadata_binds_nsh_to_core_and_platforms',()=>fixtur
   assert.equal(metadata.metadata['agent-first-harness']['gui-framework'],undefined);
   const gui=metadata.packages.find(pkg=>pkg.name==='sample_tool_nsh');assert.ok(gui.dependencies.some(dep=>dep.name==='sample_tool_core' && !dep.optional));
   assert.equal(gui.dependencies.some(dep=>dep.name.startsWith('nsh-platform-')), false);
-  assert.ok(gui.dependencies.some(dep=>dep.name==='nsh-core' && dep.source.endsWith(NSH_REVISION)));
+  assert.ok(gui.dependencies.some(dep=>dep.name==='nsh-core' && dep.source.endsWith(NSH_STABLE_REVISION)));
   assert.equal(gui.dependencies.some(dep=>dep.name==='nsh-base'), false);
   initialize(root);assert.deepEqual(check(root,'build').version_mirrors,['sample_tool_nsh/nsh.json']);
   const config=path.join(root,'sample_tool_nsh/nsh.json');const originalConfig=fs.readFileSync(config,'utf8');

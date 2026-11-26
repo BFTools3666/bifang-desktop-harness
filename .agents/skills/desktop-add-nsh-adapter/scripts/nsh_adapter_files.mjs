@@ -4,14 +4,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { renderNshSponsor } from './nsh_support_pages.mjs';
-import { NSH_OFFICIAL_GIT, NSH_STABLE_REVISION, NSH_STABLE_VERSION, NSH_TARGETS, nshRevisionForTargets, validNshIdentity, validateNshPlatforms } from './nsh_runtime_revision.mjs';
+import { NSH_OFFICIAL_GIT, NSH_STABLE_REVISION, NSH_STABLE_VERSION, NSH_TARGETS, validateNshPlatforms } from '../../desktop-implement-change/scripts/nsh_runtime_policy.mjs';
+import { validNshIdentity } from './nsh_identity.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const assetRoot = path.resolve(here, '../assets/gui');
-/** Compatibility export for existing stable-only generator checks. */
-export const NSH_REVISION = NSH_STABLE_REVISION;
-export { NSH_TARGETS, nshRevisionForTargets };
-export const NSH_UNAVAILABLE = ['system_notification', 'autostart', 'global_shortcut'];
+const FIXED_DISABLED_PROFILE_FIELDS = ['system_notification', 'autostart', 'global_shortcut'];
 export const PROFILE_FIELDS = ['system_tray', 'system_notification', 'autostart', 'about_page', 'sponsor_page', 'single_instance', 'deep_link', 'global_shortcut', 'sidebar_mode'];
 const NEUTRAL_PROFILE = Object.freeze(Object.fromEntries(PROFILE_FIELDS.map(key => [key, key === 'sidebar_mode' ? 'detailed' : 'disabled'])));
 
@@ -26,7 +24,7 @@ export function normalizeNshOptions(input) {
   if (selected.has('desktop')) {
     if (!input.profile || Array.isArray(input.profile) || typeof input.profile !== 'object' || Object.keys(input.profile).sort().join() !== [...PROFILE_FIELDS].sort().join()) throw new Error('requires exactly nine desktop profile fields');
     for (const key of PROFILE_FIELDS) if (!(key === 'sidebar_mode' ? ['compact','detailed'] : ['enabled','disabled']).includes(input.profile[key])) throw new Error('invalid ' + key);
-    for (const key of NSH_UNAVAILABLE) if (input.profile[key] !== 'disabled') throw new Error('NSH desktop capability unavailable: ' + key);
+    for (const key of FIXED_DISABLED_PROFILE_FIELDS) if (input.profile[key] !== 'disabled') throw new Error('NSH desktop capability unavailable: ' + key);
     if (input.profile.deep_link === 'enabled' && input.profile.single_instance !== 'enabled') throw new Error('NSH deep_link requires single_instance');
   } else if (input.profile !== undefined) throw new Error('NSH desktop profile requires desktop target');
   if (input.logo !== undefined) {
@@ -312,9 +310,8 @@ export function renderNshAdapterFiles(input, version = '0.1.0') {
 
 /** Workspace dependencies use the pinned NSH revision, not a local Cargo cache path. */
 export function nshDependencies(input) {
-  const options = normalizeNshOptions(input);
-  const revision = nshRevisionForTargets(options.nshTargets);
-  return `nsh-core = { version = "${NSH_STABLE_VERSION}", git = "${NSH_OFFICIAL_GIT}", rev = "${revision}" }`;
+  normalizeNshOptions(input);
+  return `nsh-core = { version = "${NSH_STABLE_VERSION}", git = "${NSH_OFFICIAL_GIT}", rev = "${NSH_STABLE_REVISION}" }`;
 }
 
 /** Root scripts call only helpers retained by the selected downstream. */

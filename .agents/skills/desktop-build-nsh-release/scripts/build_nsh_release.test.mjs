@@ -11,9 +11,10 @@ import { renderDocument } from '../../desktop-prepare-release/scripts/release_no
 /** 临时包只用于拒绝畸形输入，不能充当运行验证。 */
 function fixture(run){const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'nsh-package-test-')));try{run(root);}finally{fs.rmSync(root,{recursive:true,force:true});}}
 
-const current = '3f8ecd8b3c55ad6274c6babbf7ee55c4cd4ae359';
+const current = 'f78eace7af23a9c1c72605c7ee46204f57f3e8e6';
 const git = 'https://github.com/longbridge/nsh.git';
 const older = [
+  ['0.7.0', '3f8ecd8b3c55ad6274c6babbf7ee55c4cd4ae359'],
   ['0.6.1', '2f51d8611677c8a6bbad937b39756e8d0cc45350'],
   ['0.6.0', '554163758e30d2f62f814096a6327937dcb4fe49'],
   ['0.5.0', 'f4d68f7f9f31eb7b3ecc8a4cbc31096d5c6238a1'],
@@ -22,7 +23,7 @@ const older = [
 
 /** 独立成员必须匹配当前运行时与目标，旧框架和混装都被拒绝。 */
 test('package_facts_accepts_only_current_top_level_nsh', () => fixture(root => {
-  const metadata = (extra = {}, req = '^0.7.0', revision = current) => ({
+  const metadata = (extra = {}, req = '^0.7.1', revision = current) => ({
     workspace_root: root, workspace_members: ['member-id'],
     packages: [{
       id: 'member-id', name: 'sample_tool_nsh', version: '0.1.0',
@@ -43,29 +44,29 @@ test('package_facts_accepts_only_current_top_level_nsh', () => fixture(root => {
   assert.throws(() => packageFacts(root, metadata(), 'linux'), /not selected/u);
   assert.throws(() => packageFacts(root, metadata({ interfaces: ['gui'], 'gui-framework': 'nsh' }), 'macos'), /requires NSH workspace/u);
   for (const [version, revision] of older) {
-    assert.throws(() => packageFacts(root, metadata({}, '^' + version, revision), 'web'), /仅支持官方 v0.7.0/u);
+    assert.throws(() => packageFacts(root, metadata({}, '^' + version, revision), 'web'), /仅支持官方 v0\.7\.1/u);
   }
   const mixed = metadata();
   mixed.workspace_members.push('core');
   mixed.packages.push({ id: 'core', dependencies: [{ name: 'nsh-core', rename: 'old_runtime', req: '^0.5.1', source: 'git+' + git + '?rev=' + older[1][1] }] });
-  assert.throws(() => packageFacts(root, mixed, 'web'), /仅支持官方 v0.7.0/u);
+  assert.throws(() => packageFacts(root, mixed, 'web'), /仅支持官方 v0\.7\.1/u);
 }));
 
 /** Cargo 和 CLI 必须分别匹配发布版本与提交。 */
-test('nsh_toolchain_requires_exact_v061_cli_and_runtime', () => fixture(root => {
+test('nsh_toolchain_requires_exact_v071_cli_and_runtime', () => fixture(root => {
   const file = path.join(root, 'Cargo.toml');
   const manifest = (version, revision) => '[workspace.dependencies]\nnsh-core = { version = "' + version + '", git = "' + git + '", rev = "' + revision + '" }\n';
-  fs.writeFileSync(file, manifest('0.7.0', current));
-  assert.equal(assertNshToolchain(root, ['web'], 'nsh 0.7.0 (3f8ecd8)'), current);
+  fs.writeFileSync(file, manifest('0.7.1', current));
+  assert.equal(assertNshToolchain(root, ['web'], 'nsh 0.7.1 (f78eace)'), current);
   for (const [version, revision] of older) {
     const oldCli = 'nsh ' + version + ' (' + revision.slice(0, 7) + ')';
     assert.throws(() => assertNshToolchain(root, ['web'], oldCli), /do not match/u);
     fs.writeFileSync(file, manifest(version, revision));
-    assert.throws(() => assertNshToolchain(root, ['web'], oldCli), /仅支持官方 v0.7.0/u);
-    fs.writeFileSync(file, manifest('0.7.0', current));
+    assert.throws(() => assertNshToolchain(root, ['web'], oldCli), /仅支持官方 v0\.7\.1/u);
+    fs.writeFileSync(file, manifest('0.7.1', current));
   }
-  fs.writeFileSync(file, manifest('0.7.0', older[1][1]));
-  assert.throws(() => assertNshToolchain(root, ['web'], 'nsh 0.7.0 (3f8ecd8)'), /仅支持官方 v0.7.0/u);
+  fs.writeFileSync(file, manifest('0.7.1', older[0][1]));
+  assert.throws(() => assertNshToolchain(root, ['web'], 'nsh 0.7.1 (f78eace)'), /仅支持官方 v0\.7\.1/u);
 }));
 
 /** 旧工程在测试或包目录写入之前失败。 */

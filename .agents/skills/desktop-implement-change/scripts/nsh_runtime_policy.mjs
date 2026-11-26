@@ -4,11 +4,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-export const NSH_STABLE_VERSION = '0.7.0';
-export const NSH_STABLE_REVISION = '3f8ecd8b3c55ad6274c6babbf7ee55c4cd4ae359';
+export const NSH_STABLE_VERSION = '0.7.1';
+export const NSH_STABLE_REVISION = 'f78eace7af23a9c1c72605c7ee46204f57f3e8e6';
 export const NSH_OFFICIAL_GIT = 'https://github.com/longbridge/nsh.git';
-export const NSH_CLI_VERSION = `nsh ${NSH_STABLE_VERSION} (${NSH_STABLE_REVISION.slice(0, 7)})`;
-export const NSH_RUNTIME_ERROR = `Harness NSH 仅支持官方 v${NSH_STABLE_VERSION} 固定提交 ${NSH_STABLE_REVISION}。请先迁移旧工程。`;
+const NSH_CLI_VERSION = `nsh ${NSH_STABLE_VERSION} (${NSH_STABLE_REVISION.slice(0, 7)})`;
+const NSH_RUNTIME_ERROR = `Harness NSH 仅支持官方 v${NSH_STABLE_VERSION} 固定提交 ${NSH_STABLE_REVISION}。请先迁移旧工程。`;
 export const NSH_TARGETS = Object.freeze(['desktop', 'mobile', 'web', 'tui']);
 export const NSH_PLATFORMS = Object.freeze(['windows', 'macos', 'linux', 'android', 'ios', 'web']);
 const desktopPlatforms = Object.freeze(['windows', 'macos', 'linux']);

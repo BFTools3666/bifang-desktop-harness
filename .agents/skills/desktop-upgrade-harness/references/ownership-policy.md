@@ -92,4 +92,4 @@
 
 统一 Task/工作树合同完整 managed 传播 `$desktop-task-workflow` 的 SKILL、metadata 与 references；旧三个入口仅兼容路由，脚本路径保持兼容。独立工作树尽量并行创建，只有同 Local cwd 与共享状态写入短串行。
 
-NSH 工程选择：新下游由根 Cargo `interfaces = ["nsh"]` 与 `nsh-targets` 表示，受管 NSH 仅支持官方 0.7.0。符合条件的顶层项目保留 adapter/build 专用 Skills 和运行时知识，其他接口裁掉 NSH 专属能力。选择 desktop 才保留适用的桌面支持页工程入口。受保护 Cargo、profile、策略、产品源码及签名不改写。NSH 初始化 E2E 与仅初始化阶段的 wrapper 不传播。升级不会把声明支持改写为验证通过。
+NSH 工程选择：新下游由根 Cargo `interfaces = ["nsh"]` 与 `nsh-targets` 表示，受管 NSH 仅支持官方 0.7.1。符合条件的顶层项目保留 adapter/build 专用 Skills 和运行时知识，其他接口裁掉 NSH 专属能力。选择 desktop 才保留适用的桌面支持页工程入口。受保护 Cargo、profile、策略、产品源码及签名不改写。NSH 初始化 E2E 与仅初始化阶段的 wrapper 不传播。升级不会把声明支持改写为验证通过。

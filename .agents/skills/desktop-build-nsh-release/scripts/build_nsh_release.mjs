@@ -11,10 +11,10 @@ import { loadDocument,renderDocument } from '../../desktop-prepare-release/scrip
 import { check as checkVersion } from '../../desktop-manage-version/scripts/version_gate.mjs';
 import { readDependencyLockPolicy } from '../../desktop-implement-change/scripts/project_lock_policy.mjs';
 import { resolveCargoDeviceTarget } from '../../desktop-implement-change/scripts/cargo_device_config.mjs';
-import { nshRevisionForTargets, validNshIdentity } from '../../desktop-add-nsh-adapter/scripts/nsh_runtime_revision.mjs';
+import { validNshIdentity } from '../../desktop-add-nsh-adapter/scripts/nsh_identity.mjs';
 import {
   assertNshCargoRuntime, assertNshCliVersion, assertNshDefaultCargoBuildTarget, assertNshWorkspacePin,
-  NSH_HOST_DESKTOP_PLATFORMS, nshCargoEnvironment, readNshMixedConfig,
+  NSH_HOST_DESKTOP_PLATFORMS, NSH_STABLE_REVISION, nshCargoEnvironment, readNshMixedConfig, validateNshTargets,
 } from '../../desktop-implement-change/scripts/nsh_runtime_policy.mjs';
 import { iosPackagingIdentity,restoreIosDisplayIdentity } from './nsh_ios_identity.mjs';
 import { prepareNshPortableEntry } from './nsh_portable_entry.mjs';
@@ -43,10 +43,10 @@ export function resolveNshPackageTarget(requested, host = process.platform) {
 
 /** 仅允许受支持目标使用相同正式提交的 CLI 与 Cargo 运行时。 */
 export function assertNshToolchain(root,selected,cliVersion) {
-  const revision = nshRevisionForTargets(selected);
+  validateNshTargets(selected);
   assertNshWorkspacePin(fs.readFileSync(path.join(root, 'Cargo.toml'), 'utf8'));
   assertNshCliVersion(cliVersion);
-  return revision;
+  return NSH_STABLE_REVISION;
 }
 /** 输出只能落在真实项目目录，拒绝链接目录和已有批次覆盖。 */
 export function safeOutputPath(root,file) {

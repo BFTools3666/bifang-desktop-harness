@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { NSH_REVISION, normalizeNshOptions, nshDependencies, nshPackageScripts, nshRevisionForTargets, renderNshAdapterFiles } from './nsh_adapter_files.mjs';
+import { normalizeNshOptions, nshDependencies, nshPackageScripts, renderNshAdapterFiles } from './nsh_adapter_files.mjs';
 import { assertNshCliVersion, assertNshDefaultCargoBuildTarget, assertNshNativeDevelopmentTarget, nshCargoEnvironment } from '../../desktop-implement-change/scripts/nsh_runtime_policy.mjs';
 
 const checkNsh = "node .agents/skills/desktop-add-nsh-adapter/scripts/check_nsh_toolchain.mjs";
@@ -18,9 +18,9 @@ const profile = Object.freeze({
 const base = { projectId: 'sample_tool', nameZh: '示例工具', nameEn: 'Sample Tool', owner: 'test-owner' };
 
 /** 版本相同而提交不同的 CLI 也不能启动运行器。 */
-test('official_07_cli_requires_the_exact_release_revision', () => {
-  assert.doesNotThrow(() => assertNshCliVersion('nsh 0.7.0 (3f8ecd8)\n'));
-  for (const version of ['nsh 0.6.1 (2f51d86)', 'nsh 0.7.0 (abcdef0)', 'nsh 0.7.1 (3f8ecd8)']) {
+test('official_071_cli_requires_the_exact_release_revision', () => {
+  assert.doesNotThrow(() => assertNshCliVersion('nsh 0.7.1 (f78eace)\n'));
+  for (const version of ['nsh 0.6.1 (2f51d86)', 'nsh 0.7.0 (3f8ecd8)', 'nsh 0.7.1 (3f8ecd8)', 'nsh 0.7.2 (f78eace)']) {
     assert.throws(() => assertNshCliVersion(version), /do not match/u);
   }
 });
@@ -55,15 +55,12 @@ test('official_i18n_locales_and_resource_replace_manual_state_machines', () => {
 });
 
 /** 未选择 TUI 的工程不暴露终端入口。 */
-test('supported NSH targets use only the released v0.7.0 runtime and scripts', () => {
+test('supported NSH targets use only the released v0.7.1 runtime and scripts', () => {
   const desktop = { ...base, targetPlatforms: ['macos'], nshTargets: ['desktop'], profile };
   const mobileWeb = { ...base, targetPlatforms: ['android', 'web'], nshTargets: ['mobile', 'web'] };
-  assert.equal(NSH_REVISION, '3f8ecd8b3c55ad6274c6babbf7ee55c4cd4ae359');
   for (const options of [desktop, mobileWeb]) {
-    assert.equal(nshRevisionForTargets(options.nshTargets), NSH_REVISION);
     const dependencies = nshDependencies(options);
-    assert.match(dependencies, new RegExp(NSH_REVISION, 'u'));
-    assert.doesNotMatch(dependencies, /nsh-base/u);
+    assert.equal(dependencies, 'nsh-core = { version = "0.7.1", git = "https://github.com/longbridge/nsh.git", rev = "f78eace7af23a9c1c72605c7ee46204f57f3e8e6" }');
     const files = renderNshAdapterFiles(options);
     assert.doesNotMatch(files.get('sample_tool_nsh/Cargo.toml'), /nsh-base/u);
     assert.ok(![...files.keys()].some(name => name.includes('.tui.')));
@@ -84,7 +81,6 @@ test('generation_rejects_unsupported_nsh_targets', () => {
     assert.throws(() => normalizeNshOptions(options), /invalid NSH targets/u);
     assert.throws(() => renderNshAdapterFiles(options), /invalid NSH targets/u);
     assert.throws(() => nshDependencies(options), /invalid NSH targets/u);
-    assert.throws(() => nshRevisionForTargets(options.nshTargets), /invalid NSH targets/u);
     assert.throws(() => nshPackageScripts(options.projectId, options.nshTargets, options.targetPlatforms), /invalid NSH targets/u);
   }
 });
