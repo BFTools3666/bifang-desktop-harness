@@ -2,6 +2,26 @@
   "schemaVersion": 2,
   "releases": [
     {
+      "releaseDate": "2026-11-26",
+      "version": "v202611261230",
+      "featureOptimizations": [
+        {
+          "zh-CN": "新建 NSH 项目使用官方 0.7.1，并附带同版本的开发和设计指南。已有 NSH 工程先同步 CLI、Cargo 依赖版本和 Git 提交，再用官方 `nsh check <应用目录>` 验证，随后升级 Harness。",
+          "en-US": "New NSH projects use the official 0.7.1 release and include its matching development and design guides. For an existing NSH project, update the CLI, Cargo dependency versions, and Git revision together. Verify with the official `nsh check <app-directory>` command before upgrading Harness."
+        },
+        {
+          "zh-CN": "准备 NSH 0.7.1 的 Linux 构建环境时，可以移除旧的 GStreamer 开发包。使用声音或视频的应用仍需按目标系统核对播放所需的运行时依赖。",
+          "en-US": "When preparing a Linux build environment for NSH 0.7.1, you can remove the legacy GStreamer development packages. For apps that play audio or video, check the playback runtime dependencies for the target system."
+        }
+      ],
+      "bugFixes": [
+        {
+          "zh-CN": "修正 NSH 测试命令示例。移动导航、退出状态和深链接注入用例使用不带平台目标的 `npm run nsh:test`，macOS 原生窗口测试用 `--nsh-filter` 选择支持的用例。",
+          "en-US": "Corrected the NSH test commands. Run mobile navigation, app-exit, and deep-link injection tests with `npm run nsh:test` without a platform target. Use `--nsh-filter` to select supported native window tests on macOS."
+        }
+      ]
+    },
+    {
       "releaseDate": "2026-11-25",
       "version": "v202611252042",
       "featureOptimizations": [
@@ -161,25 +181,6 @@
           "en-US": "Rust builds use Cargo’s global output directory. For a Tauri Linux test build using that shared directory, Harness locates the deb at the path reported by the current build."
         }
       ]
-    },
-    {
-      "releaseDate": "2026-11-19",
-      "version": "v202611191015",
-      "featureOptimizations": [
-        {
-          "zh-CN": "新建 NSH 桌面、移动、Web 或终端项目时，使用 NSH 0.6.0 CLI。模板自动安装同版本的官方开发和设计指南。",
-          "en-US": "Use the NSH 0.6.0 CLI to create desktop, mobile, web, or terminal projects. The template installs the matching official development and design guides."
-        },
-        {
-          "zh-CN": "维护已有 NSH 工程时，使用 0.5.0、0.5.1 或旧 GUI/NSH 格式的项目须先迁移到 0.6.0 的顶层 Mixed 工程，再使用新版开发命令、Harness 升级或打包入口。开发命令会在启动前检查 CLI 版本。",
-          "en-US": "Migrate projects on NSH 0.5.0 or 0.5.1 and projects using the legacy GUI/NSH format to a top-level Mixed workspace on 0.6.0 before using the current development commands, Harness upgrade, or packaging. Development commands check the CLI version before launch."
-        },
-        {
-          "zh-CN": "NSH 桌面项目启用关于页后，可展开和收起随应用提供的离线双语更新日志，辅助技术可以读取展开状态。",
-          "en-US": "NSH desktop projects with an About page can expand and collapse the bundled bilingual release notes offline. The control exposes its expanded state to assistive technology."
-        }
-      ],
-      "bugFixes": []
     }
   ]
 }
