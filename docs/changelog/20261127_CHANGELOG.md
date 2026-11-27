@@ -4,7 +4,7 @@
 
 ## 2026-11-27 变化
 
-- `HARNESS-NSH-072-RUNTIME-20261127`（`required_version = pending`）：新建 NSH 工程使用官方 0.7.2 运行时、匹配 CLI 和同版开发与设计 Skills。已采用 0.7.0 或 0.7.1 的项目先同步原项目 Cargo、CLI 和已用扩展，再使用受管入口。迁移指引补充桌面窗口回调、TSX 文本及 Windows 原位更新后的卸载检查。[受管运行时与迁移](../../.agents/skills/desktop-add-nsh-adapter/references/runtime-and-capabilities.md)
+- `HARNESS-NSH-072-RUNTIME-20261127`（`required_version = 202611271658`）：新建 NSH 工程使用官方 0.7.2 运行时、匹配 CLI 和同版开发与设计 Skills。已采用 0.7.0 或 0.7.1 的项目先同步原项目 Cargo、CLI 和已用扩展，再使用受管入口。迁移指引补充桌面窗口回调、TSX 文本及 Windows 原位更新后的卸载检查。[受管运行时与迁移](../../.agents/skills/desktop-add-nsh-adapter/references/runtime-and-capabilities.md)
 
 ## 2026-11-26 变化
 

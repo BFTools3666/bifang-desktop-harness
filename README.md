@@ -6,7 +6,7 @@ Bifang Desktop Harness Template
 
 一个让 AI Agent 帮你创建和维护跨平台小工具的工程模板。
 
-告诉 Agent 项目名称、保存位置及所需的程序类型。CLI、MCP、DESKTOP 默认支持 Windows、macOS、Linux。选择 NSH 后再选桌面、移动、Web、TUI 能力。Agent 会创建独立的 Git 项目，搭好共享核心、所选接口、开发规则和交付流程。之后可直接提出变更，由 Agent 实现并运行相关测试。
+告诉 Agent 项目名称、保存位置，以及需要 CLI、MCP、DESKTOP 或 NSH 中的哪些程序类型。CLI、MCP、DESKTOP 默认支持 Windows、macOS、Linux。选择 NSH 后再选桌面、移动、Web、TUI 能力。Agent 会创建独立的 Git 项目，搭好共享核心、所选接口、开发规则和交付流程。之后可直接提出变更，由 Agent 实现并运行相关测试。
 
 选择 **DESKTOP** 即使用 **Tauri**，无需另选框架。随后按顺序确认九项桌面配置，并在完整汇总中确认平台和所选能力。
 
@@ -158,7 +158,7 @@ CLI、MCP 与 DESKTOP 可以单独或组合使用；当前 NSH 独立选择。�
 - 维护状态：Active
 - 中文名称：毕方桌面应用Harness模版
 - English name: Bifang Desktop Harness Template
-- 当前版本：v202611261230
+- 当前版本：v202611271658
 - 发布状态：以适用 Git 引用复核结果为准
 - 产品规格：Approved
 - 具体产品源码：不包含
