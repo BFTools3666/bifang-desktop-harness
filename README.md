@@ -6,7 +6,7 @@ Bifang Desktop Harness Template
 
 一个让 AI Agent 帮你创建和维护跨平台小工具的工程模板。
 
-你只需要告诉 Agent：项目叫什么、放在哪里，以及需要 CLI、MCP、DESKTOP 或 NSH 中的哪些程序类型。CLI/MCP/DESKTOP 默认支持 Windows、macOS、Linux 全平台；选择 NSH 后只需选择桌面、移动、Web、TUI 能力。NSH 的说明是“下一代全平台开发框架”，当前统一正式 0.7.1 工具链。它会创建一个独立的 Git 项目，搭好共享核心、所选接口、开发规则和交付流程。之后你可以直接说要改什么，Agent 会完成实现并运行这次改动真正需要的测试。
+告诉 Agent 项目名称、保存位置及所需的程序类型。CLI、MCP、DESKTOP 默认支持 Windows、macOS、Linux。选择 NSH 后再选桌面、移动、Web、TUI 能力。Agent 会创建独立的 Git 项目，搭好共享核心、所选接口、开发规则和交付流程。之后可直接提出变更，由 Agent 实现并运行相关测试。
 
 选择 **DESKTOP** 即使用 **Tauri**，无需另选框架。随后按顺序确认九项桌面配置，并在完整汇总中确认平台和所选能力。
 
@@ -14,14 +14,14 @@ DESKTOP 使用 Node.js/pnpm 工程工具，初始化通过 Tauri 专用结构检
 
 ### NSH 项目
 
-NSH 可多选桌面、移动、Web、TUI。四类目标共用 Mixed TSX 和 Rust core，受管入口仅支持正式 v0.7.1 提交 `f78eace7af23a9c1c72605c7ee46204f57f3e8e6` 与匹配 CLI。初始化会将同版本官方 `nsh`、`nsh-design-guides` 安装到项目的 `.agents/skills/`。
+NSH 可多选桌面、移动、Web、TUI。四类目标共用 Mixed TSX 和 Rust core。当前受管工具链使用官方 **v0.7.2**。初始化会把同版开发与设计 Skills 安装到项目的 `.agents/skills/`。[运行时版本与迁移](.agents/skills/desktop-add-nsh-adapter/references/runtime-and-capabilities.md)
 
 | 目标 | 下游开发命令 | 官方打包目标 |
 | --- | --- | --- |
 | 桌面（Windows、macOS、Linux） | `npm run dev:desktop` | `windows`、`macos`、`linux`，使用对应宿主 |
 | 移动（Android、iOS） | `npm run dev:android`、`npm run dev:ios` | `android`（APK/AAB）、`ios-simulator`、`ios` |
 | Web | `npm run dev:web` | `web`（静态站点） |
-| TUI（Windows、macOS、Linux） | `npm run dev:tui`、`npm run nsh:test:tui -- --test <测试文件>` | 0.7.1 提供运行与测试 |
+| TUI（Windows、macOS、Linux） | `npm run dev:tui`、`npm run nsh:test:tui -- --test <测试文件>` | 提供运行与测试 |
 
 NSH 桌面默认提供官方多窗口。表单按托盘、单实例、有条件的深链接、关于、赞助、侧栏模式询问。只有启用单实例才询问深链接。自启、通知和 OS 全局快捷键在中性模板固定关闭。仅含移动、Web 或 TUI 的项目跳过桌面配置和 Logo。
 
@@ -149,7 +149,7 @@ Core-first 是强制规则：值域、跨字段关系、业务默认值和可复
 - **CLI**：适合脚本和 Agent 调用，支持非交互运行和统一 JSON 输出。
 - **MCP**：提供 Rust stdio MCP 服务器，让其他 Agent 或 MCP 客户端调用共享能力。
 - **DESKTOP**：使用 Tauri 2、React 和 Mantine。固定接入系统语言、窗口状态和原生 dialog 基线，并可按初始化选择加入托盘、单实例、深链接、全局快捷键、系统通知、开机自启、关于页和赞助页。
-- **NSH**：下一代全平台开发框架，当前子目标为桌面、移动、Web、TUI；统一正式 v0.7.1 固定提交及匹配 CLI。Cargo 的 `nsh-targets` 记录子目标，`target-platforms` 记录具体平台。九项桌面配置只适用于桌面子目标。
+- **NSH** 是下一代全平台开发框架，子目标包括桌面、移动、Web、TUI。Cargo 的 `nsh-targets` 记录子目标，`target-platforms` 记录具体平台。九项桌面配置只适用于桌面子目标。
 
 CLI、MCP 与 DESKTOP 可以单独或组合使用；当前 NSH 独立选择。与接口无关的业务规则统一放在共享核心（shared core）中，接口只负责输入、展示和系统交互。
 

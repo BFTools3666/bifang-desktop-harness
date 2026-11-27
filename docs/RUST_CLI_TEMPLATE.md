@@ -125,7 +125,7 @@ git --version
 node --version
 # 仅 GUI
 
-NSH 专用路由：根 Cargo `interfaces = ["nsh"]` 与 `nsh-targets` 表示顶层 NSH 及 desktop/mobile/web/tui 子目标；全部使用正式 v0.7.1 固定提交 `f78eace7af23a9c1c72605c7ee46204f57f3e8e6` 的 Mixed TSX/Rust 运行时与匹配 CLI。NSH 使用 `$desktop-add-nsh-adapter`、`docs/design_standards/nsh_gui.md` 与 `$desktop-build-nsh-release`；旧版与旧 GUI/NSH 工程须先迁移。能力边界以 NSH Skill 的 `references/runtime-and-capabilities.md` 为准。
+NSH 专用路由：根 Cargo `interfaces = ["nsh"]` 与 `nsh-targets` 表示顶层 NSH 及 desktop/mobile/web/tui 子目标；全部使用同一官方 Mixed TSX/Rust 固定运行时与匹配 CLI。NSH 使用 `$desktop-add-nsh-adapter`、`docs/design_standards/nsh_gui.md` 与 `$desktop-build-nsh-release`；旧版与旧 GUI/NSH 工程须先迁移。[受管版本与能力](../.agents/skills/desktop-add-nsh-adapter/references/runtime-and-capabilities.md)
 pnpm --version
 ```
 

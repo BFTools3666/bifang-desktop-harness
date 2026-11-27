@@ -18,9 +18,9 @@ const profile = Object.freeze({
 const base = { projectId: 'sample_tool', nameZh: '示例工具', nameEn: 'Sample Tool', owner: 'test-owner' };
 
 /** 版本相同而提交不同的 CLI 也不能启动运行器。 */
-test('official_071_cli_requires_the_exact_release_revision', () => {
-  assert.doesNotThrow(() => assertNshCliVersion('nsh 0.7.1 (f78eace)\n'));
-  for (const version of ['nsh 0.6.1 (2f51d86)', 'nsh 0.7.0 (3f8ecd8)', 'nsh 0.7.1 (3f8ecd8)', 'nsh 0.7.2 (f78eace)']) {
+test('official_072_cli_requires_the_exact_release_revision', () => {
+  assert.doesNotThrow(() => assertNshCliVersion('nsh 0.7.2 (0c29b5e)\n'));
+  for (const version of ['nsh 0.6.1 (2f51d86)', 'nsh 0.7.0 (3f8ecd8)', 'nsh 0.7.1 (f78eace)', 'nsh 0.7.2 (f78eace)', 'nsh 0.7.1 (0c29b5e)']) {
     assert.throws(() => assertNshCliVersion(version), /do not match/u);
   }
 });
@@ -55,12 +55,12 @@ test('official_i18n_locales_and_resource_replace_manual_state_machines', () => {
 });
 
 /** 未选择 TUI 的工程不暴露终端入口。 */
-test('supported NSH targets use only the released v0.7.1 runtime and scripts', () => {
+test('supported NSH targets use only the released v0.7.2 runtime and scripts', () => {
   const desktop = { ...base, targetPlatforms: ['macos'], nshTargets: ['desktop'], profile };
   const mobileWeb = { ...base, targetPlatforms: ['android', 'web'], nshTargets: ['mobile', 'web'] };
   for (const options of [desktop, mobileWeb]) {
     const dependencies = nshDependencies(options);
-    assert.equal(dependencies, 'nsh-core = { version = "0.7.1", git = "https://github.com/longbridge/nsh.git", rev = "f78eace7af23a9c1c72605c7ee46204f57f3e8e6" }');
+    assert.equal(dependencies, 'nsh-core = { version = "0.7.2", git = "https://github.com/longbridge/nsh.git", rev = "0c29b5e3351128f489fe53bfb167160801707191" }');
     const files = renderNshAdapterFiles(options);
     assert.doesNotMatch(files.get('sample_tool_nsh/Cargo.toml'), /nsh-base/u);
     assert.ok(![...files.keys()].some(name => name.includes('.tui.')));

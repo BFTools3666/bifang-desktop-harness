@@ -7,7 +7,7 @@ description: 在 NSH 中性下游基线前执行非空 Rust/NSH 测试与已选�
 
 仅用于尚未裁剪或创建唯一基线的顶层 NSH 下游。先读 Cargo `nsh-targets`、具体目标平台和 [$desktop-add-nsh-adapter](../desktop-add-nsh-adapter/SKILL.md) 的运行时引用；只有选择 desktop 才读生成的 `docs/GUI_APP_PROFILE.md`。此门禁独立于候选 E2E 偏好，不作产品验收结论。
 
-1. 复核 CLI `nsh 0.7.1 (f78eace)` 与 Cargo 固定提交、项目本地两份官方 Skill 和 Cargo 实际解析的全局目标目录。在项目根运行 `npm run test -- --rust-package <id>_core --rust-test tests::reports_that_product_definition_is_required` 及 `npm run nsh:check`。用 `npm run nsh:test -- --test <id>_nsh/App.test.tsx` 运行非空 headless 回归。生成 `App.platform.test.tsx` 时，用同一命令单独传入该文件，复核已选目标和能力。启用深链接时覆盖官方事件的启动与运行中交付。OS 注册另在目标系统实际验证。
+1. 复核 受管版本要求的 CLI 与 Cargo 固定提交、项目本地两份官方 Skill 和 Cargo 实际解析的全局目标目录。在项目根运行 `npm run test -- --rust-package <id>_core --rust-test tests::reports_that_product_definition_is_required` 及 `npm run nsh:check`。用 `npm run nsh:test -- --test <id>_nsh/App.test.tsx` 运行非空 headless 回归。生成 `App.platform.test.tsx` 时，用同一命令单独传入该文件，复核已选目标和能力。启用深链接时覆盖官方事件的启动与运行中交付。OS 注册另在目标系统实际验证。
 2. desktop 仅对当前宿主已选的平台，用 `$desktop-build-nsh-release` 的 `local` 模式生成官方本机包，启动该次应用并通过 Computer Use 检查多窗口、新建/显示全部/关闭与最后窗口生命周期、应用菜单、双语、三态主题、窄屏、侧栏及条件支持页。已选托盘验证关窗隐藏、菜单恢复与退出；单实例验证二次启动；深链接在官方声明或注册后分别验证冷/热启动。不验证或启用中性模板未接入的自启、通知和 OS 全局快捷键。
 3. TUI 运行 `npm run nsh:test:tui -- --test <id>_nsh/App.test.tsx`，在真实终端通过 `dev:tui` 确认可见内容、窄终端、Tab/Enter 进入设置、切换语言或主题、退出和终端恢复。
 4. 构建非本机目标前，确认用户明确指定本次的 Web、Android、iOS 或 iOS 模拟器产物。持久目标声明只提供支持范围。Web 通过 `local --target web` 构建官方静态站点，在本机浏览器检查实际包、窄屏、设置及主题。移动在实际运行目标系统的模拟器或设备中检查导航、安全区、语言和主题，注明真实设备与运行环境。组合项目通过受管打包入口隔离桌面窗口和协议声明。

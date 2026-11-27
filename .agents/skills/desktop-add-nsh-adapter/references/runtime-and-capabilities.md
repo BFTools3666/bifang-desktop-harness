@@ -1,18 +1,29 @@
-# NSH 0.7.1：运行时、目标与生态
+# NSH 运行时、目标与生态
 
-核对日期为 2026-11-26。Harness 受管 NSH 采用正式 v0.7.1，Cargo 固定提交 `f78eace7af23a9c1c72605c7ee46204f57f3e8e6`，CLI 必须是 `nsh 0.7.1 (f78eace)`。官方安装器可用 `NSH_VERSION=v0.7.1` 选择版本，运行时组件须匹配该版本。上游源码声明 Rust 1.97，Harness 新项目声明 Rust 1.98.1。[正式发行](https://github.com/longbridge/nsh/releases/tag/v0.7.1) · [安装](https://github.com/longbridge/nsh/blob/v0.7.1/website/docs/installation.md)
+2026-11-27 核对正式 v0.7.2。Cargo 固定提交 `0c29b5e3351128f489fe53bfb167160801707191`，CLI 的 `nsh --version` 必须返回 `nsh 0.7.2 (0c29b5e)`。采用官方安装器时，设置 `NSH_VERSION=v0.7.2` 选择该发行版，运行时组件由匹配的 CLI 安装。上游声明 Rust 1.97，Harness 新项目声明 Rust 1.98.1。[机器版本策略](../../desktop-implement-change/scripts/nsh_runtime_policy.mjs) · [正式发行](https://github.com/longbridge/nsh/releases/tag/v0.7.2) · [安装与组件](https://github.com/longbridge/nsh/blob/v0.7.2/website/docs/installation.md)
 
-旧工程先在自己的项目迁移，再进入当前 Harness 的开发、工程升级或构建入口。根 Cargo 声明 `interfaces = ["nsh"]`、`nsh-targets` 和具体 `target-platforms`，所有直接 NSH 依赖与匹配 CLI 都由共享 `nsh_runtime_policy.mjs` 检查。工程升级只同步受管工程资产，不替产品改写 Cargo、界面或身份。
+根 Cargo 声明 `interfaces = ["nsh"]`、`nsh-targets` 和具体 `target-platforms`。受管入口检查所有直接 NSH 依赖的版本和提交，以及本机 CLI。旧工程在自己的项目完成迁移后再运行 Harness 开发、工程升级或构建。既有项目的 Cargo、界面和应用身份由下游维护。
+
+## 桌面补丁检查
+
+| 场景 | 上游变化和项目核对项 |
+| --- | --- |
+| 桌面多窗口 | `titleBar()` 与 `windowState()` 在事件、计时器或异步回调中读取打开的主窗口。未打开主窗口时分别返回零值与 `null`。需要操作发起事件的窗口时，在渲染阶段取得 `currentWindow()`，在回调中使用该引用的 `titleBar()` 或 `state()`。 |
+| TSX 控件文本 | Rust 组件接收裸文本子节点时，修复了放置过程中的 `UnknownNode`。可见文字仍通过 `<Text>` 渲染，裸文字放进 `Button` 会产生运行时警告。 |
+| macOS | 修复已经到期的计时器反复占用主线程。使用计时器的应用可在空闲窗口和恢复后复核界面响应。 |
+| Windows | 修复打开 URL 或发出通知时的中止、通知唤醒可见窗口、应用窗口计数、开发窗口图标、缩放残影和多行输入的鼠标、按键及 IME 定位。使用官方目录替换更新的 Inno Setup 安装包应复核原位更新后的卸载。 |
+
+[0.7.1 到 0.7.2 的源码差异](https://github.com/longbridge/nsh/compare/v0.7.1...v0.7.2) · [桌面 API](https://github.com/longbridge/nsh/blob/v0.7.2/website/modules/nsh-desktop.md) · [TSX 文本规则](../assets/vendor/nsh/references/tsx.md#text)
 
 ## Mixed 与官方扩展
 
 所有模板目标共用 TSX UI、窄 Rust native module 和共享 Rust core。`<project-id>_nsh/nsh.json` 保留 `rust: "."`、不设置 `root`，这是 0.7 仍支持的官方 Mixed 入口。桥接 crate 只直接依赖共享 core 和 `nsh-core`；TSX 的 `nsh/base` 由官方 runner 提供，不重复声明未使用的 `nsh-base` 或平台宿主 crate。[官方 Mixed 指南](../assets/vendor/nsh/references/mixed.md)
 
-0.7 新建 `nsh init --template mixed` 默认把 Rust 扩展放在 `ext/<name>-native/`，通过 `nsh.json.dependencies` 的 path 接入。Harness 继续使用已有 workspace 成员布局以保持共享 core 与工具路径合同；增加可复用扩展时优先采用官方 `nshm`、`nsh add` 和 `#[native_module]`，不要另造插件加载器或通用命令桥。`nsh add`、`nsh upgrade`、`nsh remove` 管理依赖和 `nsh.lock`；外部模块按项目依赖准入选择、声明及锁定，不因升级模板自动安装。[nshm](https://github.com/longbridge/nsh/blob/v0.7.1/website/docs/nshm.md)
+官方 `nsh init --template mixed` 默认把 Rust 扩展放在 `ext/<name>-native/`，通过 `nsh.json.dependencies` 的 path 接入。Harness 的 workspace 成员布局用于共享 core。增加可复用扩展时使用官方 `nshm` 和 `#[native_module]`。`nsh add`、`nsh upgrade`、`nsh remove` 管理依赖和 `nsh.lock`。CLI 支持读取扩展从 workspace 继承的版本与 `nsh-core` 约束。外部模块按项目依赖准入选择、声明和锁定。[nshm](https://github.com/longbridge/nsh/blob/v0.7.2/website/docs/nshm.md)
 
-`nsh-extra` 的 camera、location、photos、push 和 speech 都是按需启用的官方模块。选用时核对 feature、目标系统和权限，并与 NSH 运行时保持同版。社区扩展也按实际产品需求准入。[官方扩展](https://github.com/longbridge/nsh/blob/v0.7.1/website/docs/nshm.md#nsh-extra)
+`nsh-extra` 的 camera、location、photos、push 和 speech 都是按需启用的官方模块。选用时核对 feature、目标系统和权限，并与 NSH 运行时保持同版。社区扩展也按实际产品需求准入。[官方扩展](https://github.com/longbridge/nsh/blob/v0.7.2/website/docs/nshm.md#nsh-extra)
 
-生成器把 v0.7.1 的 [nsh Skill](../assets/vendor/nsh/SKILL.md) 和 [设计指南 Skill](../assets/vendor/nsh-design-guides/SKILL.md) 原样安装到下游 `.agents/skills/`，附官方引用和 Apache 许可证。新建、裁剪和升级必须保留这些完整引用；不依赖用户全局 Skill。
+生成器把同版官方开发与设计 Skills 原样安装到下游 `.agents/skills/`。新建、裁剪和升级保留两套 Skills、完整引用及 Apache 许可证。[nsh Skill](../assets/vendor/nsh/SKILL.md) · [设计指南 Skill](../assets/vendor/nsh-design-guides/SKILL.md)
 
 ## 目标与宿主
 
@@ -23,9 +34,9 @@
 | web | Web | `nsh run --target web`；`nsh package --target web` 生成完整静态站点 |
 | tui | Windows、macOS、Linux 终端 | `nsh run --target tui`、精确测试文件的 `nsh test --target tui`；0.7 无 TUI 打包目标 |
 
-用 `platform.idiom === "terminal"` 区分终端；`platform.os` 仍是系统。TUI 使用共享 core、键盘焦点和 Cell 布局，不加载图形侧栏、Logo、托盘或移动状态栏。[TUI 指南](https://github.com/longbridge/nsh/blob/v0.7.1/website/docs/tui.md)
+用 `platform.idiom === "terminal"` 区分终端；`platform.os` 仍是系统。TUI 使用共享 core、键盘焦点和 Cell 布局，不加载图形侧栏、Logo、托盘或移动状态栏。[TUI 指南](https://github.com/longbridge/nsh/blob/v0.7.2/website/docs/tui.md)
 
-0.7.1 由官方 CLI 根据 `Sound`、`AudioPlayer`、`Video` 的实际使用启用媒体支持。Linux 声音后端动态加载 GStreamer，编译和打包无须安装 GStreamer 开发包。媒体功能的运行时依赖按组件和目标系统核对。Windows 由官方 runner 按需启用 Media Foundation。[正式发行说明](https://github.com/longbridge/nsh/releases/tag/v0.7.1) · [Linux Cargo features](https://github.com/longbridge/nsh/blob/v0.7.1/crates/nsh-platform-linux/Cargo.toml#L63-L69)
+从 0.7.1 起，官方 CLI 根据 `Sound`、`AudioPlayer`、`Video` 的使用启用媒体支持。Linux 声音后端动态加载 GStreamer，编译和打包无须安装 GStreamer 开发包。媒体功能的运行时依赖按组件和目标系统核对，Windows 由官方 runner 按需启用 Media Foundation。Linux 打包前还要确认由展示名派生的可执行文件名不会与 `nsh/` 资源目录重名。[媒体变更说明](https://github.com/longbridge/nsh/releases/tag/v0.7.1) · [Linux Cargo features](https://github.com/longbridge/nsh/blob/v0.7.2/crates/nsh-platform-linux/Cargo.toml#L63-L69) · [技术债 LIM-032](../../../../docs/TECH_DEBT.md)
 
 ## 官方能力优先
 
@@ -40,17 +51,17 @@
 | 移动导航 | 当前主题底栏基于官方语义 Button 和 safeArea；产品要求系统导航时用 `nsh/mobile` TabBar，验证安全区和选中态。 |
 | 在线更新 | 独立授权后用 `nsh/updater`，核对渠道、签名和权限。离线更新日志继续用随包资源，不访问网络。 |
 
-桌面窗口在 0.7 各自独立关闭；关闭主窗口不再隐式关闭其他窗口。模板无托盘时显式设置 `application.quitMode: "lastWindowClosed"`，保证所有系统在最后一窗关闭后退出；有托盘时使用 `"explicit"`，主窗关闭隐藏，菜单明确退出调用 `Application.quit()`。`Application.on("reopen")` 负责再次启动或 Dock 恢复窗口。不要把 `WindowRef.close()` 当应用退出，也不要等待异步 `lastWindowClosed` 事件再设置退出策略。[桌面生命周期](https://github.com/longbridge/nsh/blob/v0.7.1/website/modules/nsh-desktop.md#quitting)
+桌面窗口在 0.7 各自独立关闭；关闭主窗口不再隐式关闭其他窗口。模板无托盘时显式设置 `application.quitMode: "lastWindowClosed"`，保证所有系统在最后一窗关闭后退出；有托盘时使用 `"explicit"`，主窗关闭隐藏，菜单明确退出调用 `Application.quit()`。`Application.on("reopen")` 负责再次启动或 Dock 恢复窗口。不要把 `WindowRef.close()` 当应用退出，也不要等待异步 `lastWindowClosed` 事件再设置退出策略。[桌面生命周期](https://github.com/longbridge/nsh/blob/v0.7.2/website/modules/nsh-desktop.md#quitting)
 
 自启、通知和 OS 全局快捷键在中性 profile 固定关闭，后续产品按需求接入官方 Application、Notifications、GlobalShortcut，并在真实宿主验证。移动状态栏使用 `statusBar.foreground: "auto"` 和 `capabilities.statusBar`。组合工程的移动/Web 构建副本移除 `window`、`application`、windows/application 权限、singleInstance 与模板恢复协议，保留产品自有配置；不修改原工程。
 
 ## 0.7 迁移检查
 
-- 已采用 0.7.0 的顶层 Mixed 项目，先在项目内把 CLI、各直接 NSH crate 的 Cargo 版本和 Git revision 一起升级为 0.7.1。项目启用 nshm 时同步核对扩展兼容范围及 `nsh.lock`；0.7.1 的 CLI 支持读取扩展从 workspace 继承的版本和 `nsh-core` 约束。完成后执行类型检查与受影响用例，再继续 Harness 工程升级。
+- 已采用 0.7.0 或 0.7.1 的顶层 Mixed 项目，在原项目同步升级 CLI、各直接 NSH crate 的 Cargo 版本和 Git revision。启用 nshm 时同步核对扩展兼容范围与 `nsh.lock`。执行类型检查，并按上表选择受影响的用例和真实宿主，再继续 Harness 工程升级。
 - 复核上方独立窗口与退出模式；pointer press 在 Apple 平台不再自动移动键盘焦点，必要时显式 focus，键盘和辅助技术 press 的 `clickCount` 为 0。
 - `Clipboard.writeText/write` 返回结果，Web Storage 写入可能因配额失败而拒绝；保留可见失败，不能把完成 Promise 当成功写入。
 - Speech 按 nsh-extra 迁移；新增 Rust 结构字段使用有依据的默认值；WebView 的可达性分析无法发现动态使用时显式声明 feature。
-- 从 0.6 或更早版本迁移时，按 [0.7.0 兼容性变化](https://github.com/longbridge/nsh/releases/tag/v0.7.0#breaking-changes) 和 [0.7.1 补丁说明](https://github.com/longbridge/nsh/releases/tag/v0.7.1) 核对原项目的实际调用。
+- 从 0.6 或更早版本迁移时，先对照 0.7.0 兼容性变化，再按两份补丁说明核对原项目实际调用。[0.7.0 兼容性变化](https://github.com/longbridge/nsh/releases/tag/v0.7.0#breaking-changes) · [0.7.1 补丁](https://github.com/longbridge/nsh/releases/tag/v0.7.1) · [0.7.2 补丁](https://github.com/longbridge/nsh/releases/tag/v0.7.2)
 
 ## 定向测试与旧脚本迁移
 

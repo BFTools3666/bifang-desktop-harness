@@ -202,7 +202,7 @@ function stagePublicFile(source, publicStage, name, sha256) {
 
 /** 保全上游 updater 识别的归档原名，展开目录清理前将更新文件纳入批次证据。 */
 function preserveUpdaterArchives(stage, appName, version, target) {
-  // NSH 0.7.1 的 platform_archive_name 逐字符将非 ASCII 字母数字替换为连字符。
+  // NSH 的 platform_archive_name 逐字符将非 ASCII 字母数字替换为连字符。
   const stem = appName.replace(/[^A-Za-z0-9]/gu, '-');
   const prefix = `${stem}-${version}-${target}-`;
   const architectures = target === 'macos' ? /^(?:aarch64|x86_64)\.tar\.gz$/u : /^[a-z0-9_]+\.zip$/u;

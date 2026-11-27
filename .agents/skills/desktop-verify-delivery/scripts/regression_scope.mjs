@@ -113,7 +113,7 @@ export function regressionCommand(root, entry) {
     let cwd = path.dirname(file);
     while (!fs.existsSync(path.join(cwd, 'nsh.json')) && cwd !== root) cwd = path.dirname(cwd);
     relativeFile(root, path.relative(root, path.join(cwd, 'nsh.json')).split(path.sep).join('/'), /(?:^|\/)nsh\.json$/u);
-    // NSH 0.7.1 只为目录路径发现 Rust crates；精确测试文件避免隐式 cargo 全量。
+    // NSH 只为目录路径发现 Rust crates；精确测试文件避免隐式 cargo 全量。
     return {command: 'nsh', cwd, args: ['test', file, ...(filter ? ['--filter', filter] : [])]};
   }
   if (entry.runner === 'frontend') {

@@ -21,7 +21,7 @@
 
 这里链接到适配器携带的官方副本。初始化 NSH 下游时安装到该项目的 `.agents/skills/`，随后从下游目录调用对应版本。
 
-- [`$nsh`](desktop-add-nsh-adapter/assets/vendor/nsh/SKILL.md) 负责 NSH 开发、运行与测试。
+- [`$nsh`](desktop-add-nsh-adapter/assets/vendor/nsh/SKILL.md) 负责 NSH 开发、运行与测试。固定版本和下游迁移见[受管运行时](desktop-add-nsh-adapter/references/runtime-and-capabilities.md)。
 - [`$nsh-design-guides`](desktop-add-nsh-adapter/assets/vendor/nsh-design-guides/SKILL.md) 负责 NSH 界面设计标准。
 
 ### 桌面能力与呈现

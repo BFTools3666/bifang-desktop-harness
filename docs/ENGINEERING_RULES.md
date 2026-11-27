@@ -1,6 +1,6 @@
 # 工程规则
 
-NSH 专用路由：新下游顶层 `interfaces = ["nsh"]` 配合 `nsh-targets` 和具体 `target-platforms`，仅支持 desktop/mobile/web/tui，并统一正式 v0.7.1 固定提交 `f78eace7af23a9c1c72605c7ee46204f57f3e8e6` 与匹配 CLI。旧 GUI/NSH 工程须先迁移为顶层 NSH。NSH 使用 `$desktop-add-nsh-adapter`、`docs/design_standards/nsh_gui.md` 与 `$desktop-build-nsh-release`；桌面九项配置仅适用于 desktop。能力与打包边界见 NSH Skill 的 `references/runtime-and-capabilities.md`。
+NSH 专用路由：新下游顶层 `interfaces = ["nsh"]` 配合 `nsh-targets` 和具体 `target-platforms`，仅支持 desktop/mobile/web/tui，并统一使用官方固定版本与匹配 CLI。旧 GUI/NSH 工程须先迁移为顶层 NSH。NSH 使用 `$desktop-add-nsh-adapter`、`docs/design_standards/nsh_gui.md` 与 `$desktop-build-nsh-release`；桌面九项配置仅适用于 desktop。[受管版本与能力](../.agents/skills/desktop-add-nsh-adapter/references/runtime-and-capabilities.md)
 
 GUI 版本/兼容、性能和打包方案按 [GUI 工程索引](GUI_ENGINEERING.md) 分派；只在当前任务需要时读取对应 Skill。
 

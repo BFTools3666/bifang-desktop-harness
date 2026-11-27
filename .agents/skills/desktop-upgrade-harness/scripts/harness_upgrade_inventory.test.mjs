@@ -53,7 +53,7 @@ test("source_inventory_prevents_false_deletion", (t) => {
 /** 盘点不需要已有清单或来源锁，运行时不兼容也须列出全部适用工程项而不改项目。 */
 test("source_inventory_reports_custom_nsh_without_mutation", (t) => {
   const f = new HarnessUpgradeFixture(t);
-  f.write(f.target, "Cargo.toml", '[workspace.metadata.agent-first-harness]\nproject-id = "existing"\ninterfaces = ["nsh"]\nnsh-targets = ["desktop"]\n[workspace.dependencies]\nnsh-core = "=0.7.1"\n');
+  f.write(f.target, "Cargo.toml", '[workspace.metadata.agent-first-harness]\nproject-id = "existing"\ninterfaces = ["nsh"]\nnsh-targets = ["desktop"]\n[workspace.dependencies]\nnsh-core = "=0.7.2"\n');
   const required = ".agents/skills/desktop-build-nsh-release/SKILL.md";
   const official = ".agents/skills/desktop-add-nsh-adapter/assets/vendor/nsh/SKILL.md";
   commitSource(f, { [required]: "NSH 构建规范\n", [official]: "当前官方 NSH Skill\n", ".agents/skills/desktop-add-cli-adapter/SKILL.md": "不适用的 CLI\n" });
