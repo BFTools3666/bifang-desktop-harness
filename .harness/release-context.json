@@ -1,17 +1,17 @@
 {
   "schemaVersion": 3,
-  "sourceHead": "1be9d6dbd00a3fac449047c33582cc52264ea795",
-  "version": "202611261230",
-  "releaseDate": "2026-11-26",
-  "expectedTag": "v202611261230-20261126",
+  "sourceHead": "9c7737f611f197ec5c3d456f25ca51c5eeb2dd8e",
+  "version": "202611271658",
+  "releaseDate": "2026-11-27",
+  "expectedTag": "v202611271658-20261127",
   "defaultBranch": "master",
   "releaseReview": {
     "selection": "enabled",
     "status": "passed",
-    "scopeBase": "68f61182a30cd670fc11fbf358f56f32a3972ecc",
-    "sourceHead": "1be9d6dbd00a3fac449047c33582cc52264ea795",
-    "scopeDiffSha256": "56e97b79fe5977a258c5122d13a5f9ae92ee80ece1f573b0f9ae3a5ac691e154",
-    "reviewedSourceCommit": "1be9d6dbd00a3fac449047c33582cc52264ea795",
+    "scopeBase": "4499158208b05b10c58270a2b3ebfb6a720a3e39",
+    "sourceHead": "9c7737f611f197ec5c3d456f25ca51c5eeb2dd8e",
+    "scopeDiffSha256": "18a0938f109699558a8718b9605e71b1ddca34b6007864375b7273a2d66b0f09",
+    "reviewedSourceCommit": "9c7737f611f197ec5c3d456f25ca51c5eeb2dd8e",
     "checks": [
       "behavior-correctness",
       "core-adapter-boundary",
@@ -19,7 +19,7 @@
       "responsibility-and-size",
       "temporary-markers"
     ],
-    "evidenceSummary": "复核了上一发布至审查源码的实际差异。NSH 0.7.1 版本与提交门禁、初始化、升级和打包入口一致，共享 core 与 NSH 桥接职责分明。155 项实现回归、140 项发布工具回归、生成工程类型检查、Rust core 测试、11 项 headless 和 1 项 macOS 原生窗口用例通过。发布校验通过，已复核文件规模提示及既有测试夹具标记。",
+    "evidenceSummary": "复核 NSH 0.7.2 的生成、升级兼容、共享 core 边界、文档和临时标记。Harness 硬门禁和发布审查通过。37 项非阻断提示为既有结构或测试样例。110 项定向 Node 回归、7 项中性 Rust 测试及 macOS Mixed 验证通过。",
     "reason": null,
     "remainingRisk": null
   }

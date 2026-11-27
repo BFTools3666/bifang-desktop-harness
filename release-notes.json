@@ -2,6 +2,26 @@
   "schemaVersion": 2,
   "releases": [
     {
+      "releaseDate": "2026-11-27",
+      "version": "v202611271658",
+      "featureOptimizations": [
+        {
+          "zh-CN": "新建 NSH 项目使用官方 0.7.2 运行时和同版开发与设计 Skills。已有 0.7.0 或 0.7.1 项目，先在原工程同步 CLI、Cargo 依赖和已用扩展，再使用 Harness 开发、升级或打包。",
+          "en-US": "New NSH projects use the official 0.7.2 runtime and matching development and design skills. For projects on 0.7.0 or 0.7.1, update the CLI, Cargo dependencies, and any extensions in the existing project before using Harness development, upgrade, or packaging commands."
+        },
+        {
+          "zh-CN": "NSH 运行时指南集中说明安装、目标平台和迁移步骤。开发多窗口应用、做 Windows 原位更新或打包 Linux 时，可查对应的窗口回调、卸载和可执行文件命名检查。",
+          "en-US": "The NSH runtime guide brings together installation, target platforms, and migration steps. It covers window callbacks for multi-window applications, uninstall checks after in-place Windows updates, and executable naming for Linux packaging."
+        }
+      ],
+      "bugFixes": [
+        {
+          "zh-CN": "NSH 0.7.2 的上游补丁修复了 Windows 打开链接或显示通知时的崩溃，以及多行输入框的输入法候选窗定位问题。",
+          "en-US": "Upstream NSH 0.7.2 fixes Windows crashes when opening links or displaying notifications and corrects IME candidate positioning in multiline inputs."
+        }
+      ]
+    },
+    {
       "releaseDate": "2026-11-26",
       "version": "v202611261230",
       "featureOptimizations": [
@@ -159,26 +179,6 @@
         {
           "zh-CN": "Rust 构建按执行设备的实际工具链选择原生目标，并复用用户级 Cargo 输出目录。仅通过 Cargo 配置文件设置目录时，NSH 开发脚本和打包命令也能使用该目录。",
           "en-US": "Rust builds select the native target from the device’s active toolchain and reuse the user-level Cargo output directory. NSH development and packaging commands also work when the directory is set only in Cargo’s configuration file."
-        }
-      ]
-    },
-    {
-      "releaseDate": "2026-11-22",
-      "version": "v202611221943",
-      "featureOptimizations": [
-        {
-          "zh-CN": "默认在当前 checkout 完成任务。需要独立环境时，请明确开启 Task 工作树，或在已允许内部 Worktree 的项目中明确请求本次使用。",
-          "en-US": "Tasks use the current checkout by default. Enable Task worktrees when you need a separate checkout, or explicitly request one for internal work in a project that allows it."
-        },
-        {
-          "zh-CN": "普通构建和发布后本地打包默认生成当前系统的原生产物。需要其他系统、架构或 Web 时，请明确指定目标。运行测试与验收在对应环境完成。",
-          "en-US": "Builds and post-release packaging default to the current operating system and native architecture. Specify the target when you need a different system, architecture, or a Web build. Runtime tests and acceptance run in the corresponding environment."
-        }
-      ],
-      "bugFixes": [
-        {
-          "zh-CN": "Rust 构建沿用全局 Cargo 目录。使用共享目录打包 Tauri Linux 试包时，Harness 按本次构建报告的路径查找 deb。",
-          "en-US": "Rust builds use Cargo’s global output directory. For a Tauri Linux test build using that shared directory, Harness locates the deb at the path reported by the current build."
         }
       ]
     }
